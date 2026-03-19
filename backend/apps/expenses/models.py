@@ -3,6 +3,82 @@ from django.conf import settings # type: ignore
 from django.db import models # type: ignore
 
 
+class RecurringTransaction(models.Model):
+    """Recurring rule that auto-creates expenses or incomes via Celery Beat."""
+
+    class TransactionType(models.TextChoices):
+        EXPENSE = "expense", "Expense"
+        INCOME = "income", "Income"
+
+    class Frequency(models.TextChoices):
+        DAILY = "daily", "Daily"
+        WEEKLY = "weekly", "Weekly"
+        BIWEEKLY = "biweekly", "Biweekly"
+        MONTHLY = "monthly", "Monthly"
+        QUARTERLY = "quarterly", "Quarterly"
+        YEARLY = "yearly", "Yearly"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="recurring_transactions",
+    )
+    type = models.CharField(max_length=10, choices=TransactionType.choices)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    currency = models.CharField(max_length=3, default="NPR")
+    category = models.ForeignKey(
+        "categories.Category",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="recurring_transactions",
+    )
+    description = models.TextField(blank=True)
+    merchant = models.CharField(
+        max_length=255, blank=True,
+        help_text="For expense type only",
+    )
+    source_name = models.CharField(
+        max_length=255, blank=True,
+        help_text="For income type only (e.g., 'TBC Salary')",
+    )
+    frequency = models.CharField(max_length=20, choices=Frequency.choices)
+    day_of_week = models.SmallIntegerField(
+        null=True, blank=True,
+        help_text="0=Monday to 6=Sunday (for weekly/biweekly)",
+    )
+    day_of_month = models.SmallIntegerField(
+        null=True, blank=True,
+        help_text="1-31 (for monthly, wraps to last day if needed)",
+    )
+    month_of_year = models.SmallIntegerField(
+        null=True, blank=True,
+        help_text="1-12 (for yearly)",
+    )
+    next_occurrence = models.DateField(
+        help_text="When to auto-create the next transaction",
+    )
+    last_created_at = models.DateTimeField(null=True, blank=True)
+    total_created = models.IntegerField(default=0)
+    end_date = models.DateField(
+        null=True, blank=True,
+        help_text="NULL = runs forever",
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "recurring_transactions"
+        ordering = ["next_occurrence"]
+        indexes = [
+            models.Index(fields=["user", "is_active"]),
+            models.Index(fields=["is_active", "next_occurrence"]),
+        ]
+
+    def __str__(self):
+        return f"{self.type} | {self.amount} {self.currency} | {self.frequency} | Next: {self.next_occurrence}"
+
 class Expense(models.Model):
     """A single expense transaction."""
 
@@ -12,6 +88,7 @@ class Expense(models.Model):
         NFC = "nfc", "NFC Tag"
         CHATBOT = "chatbot", "AI Chatbot"
         IMPORT = "import", "CSV/Data Import"
+        RECURRING = "recurring", "Auto-Created by Recurring Rule"
 
     class RecurringFrequency(models.TextChoices):
         DAILY = "daily", "Daily"
@@ -44,11 +121,17 @@ class Expense(models.Model):
     merchant = models.CharField(max_length=255, blank=True)
     date = models.DateField()
     time = models.TimeField(null=True, blank=True)
-    is_recurring = models.BooleanField(default=False)
-    recurring_frequency = models.CharField(
-        max_length=20,
-        choices=RecurringFrequency.choices,
+    is_recurring = models.BooleanField(
+        default=False,
+        help_text="TRUE if auto-created by a recurring rule",
+    )
+    recurring = models.ForeignKey(
+        "expenses.RecurringTransaction",
+        on_delete=models.SET_NULL,
+        null=True,
         blank=True,
+        related_name="created_expenses",
+        help_text="The recurring rule that created this expense",
     )
     receipt_image = models.ImageField(
         upload_to="receipts/", blank=True, null=True,
@@ -114,10 +197,13 @@ class Income(models.Model):
     description = models.TextField(blank=True)
     date = models.DateField()
     is_recurring = models.BooleanField(default=False)
-    recurring_frequency = models.CharField(
-        max_length=20,
-        choices=RecurringFrequency.choices,
+    recurring = models.ForeignKey(
+        "expenses.RecurringTransaction",
+        on_delete=models.SET_NULL,
+        null=True,
         blank=True,
+        related_name="created_incomes",
+        help_text="The recurring rule that created this income",
     )
     metadata = models.JSONField(default=dict, blank=True)
     is_deleted = models.BooleanField(default=False)
