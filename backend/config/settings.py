@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "apps.receipts",
     "apps.iot",
     "apps.ai_insights",
+    "apps.chat",
     "apps.notifications",
     "apps.reports",
 ]
@@ -167,7 +168,7 @@ CELERY_TIMEZONE = "Asia/Kathmandu"
 
 # Internationalization
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
+TIME_ZONE = "Asia/Kathmandu"
 USE_I18N = True
 USE_TZ = True
 

@@ -12,6 +12,8 @@ class Notification(models.Model):
         REMINDER = "reminder", "Reminder"
         SYSTEM = "system", "System"
         ANOMALY = "anomaly", "Anomaly Alert"
+        RECURRING = "recurring", "Recurring Transaction"
+        RECEIPT_PROCESSED = "receipt_processed", "Receipt Processed"
 
     class Channel(models.TextChoices):
         IN_APP = "in_app", "In-App"
@@ -54,3 +56,36 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.title} | {self.user.email} | {self.channel}"
+    
+    
+class NotificationPreference(models.Model):
+    """Per-user notification channel preferences with quiet hours."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="notification_preferences",
+    )
+    notification_type = models.CharField(
+        max_length=30,
+        choices=Notification.NotificationType.choices,
+    )
+    email_enabled = models.BooleanField(default=True)
+    sms_enabled = models.BooleanField(default=False)
+    push_enabled = models.BooleanField(default=True)
+    in_app_enabled = models.BooleanField(default=True)
+    quiet_hours_start = models.TimeField(
+        null=True, blank=True,
+        help_text="No notifications sent after this time",
+    )
+    quiet_hours_end = models.TimeField(
+        null=True, blank=True,
+        help_text="Notifications resume at this time",
+    )
+
+    class Meta:
+        db_table = "notification_preferences"
+        unique_together = ["user", "notification_type"]
+
+    def __str__(self):
+        return f"{self.user.email} | {self.notification_type} prefs"

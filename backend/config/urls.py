@@ -14,6 +14,7 @@ urlpatterns = [
     path("api/v1/receipts/", include("apps.receipts.urls")),
     path("api/v1/iot/", include("apps.iot.urls")),
     path("api/v1/insights/", include("apps.ai_insights.urls")),
+    path("api/v1/chat/", include("apps.chat.urls")),
     path("api/v1/notifications/", include("apps.notifications.urls")),
     path("api/v1/reports/", include("apps.reports.urls")),
     # API Documentation

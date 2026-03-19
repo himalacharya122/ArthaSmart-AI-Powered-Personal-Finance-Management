@@ -47,6 +47,10 @@ class Budget(models.Model):
         help_text="Alert when this percentage of budget is spent",
     )
     alert_sent = models.BooleanField(default=False)
+    rollover = models.BooleanField(
+        default=False,
+        help_text="If TRUE, unused budget amount carries to next period",
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
