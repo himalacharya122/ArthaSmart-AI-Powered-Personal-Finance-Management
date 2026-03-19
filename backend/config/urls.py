@@ -1,22 +1,26 @@
-"""
-URL configuration for config project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/6.0/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
-from django.contrib import admin
-from django.urls import path
+"""URL configuration for ArthaSmart."""
+from django.contrib import admin # type: ignore
+from django.urls import include, path # type: ignore
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView # type: ignore
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    # Admin
+    path("admin/", admin.site.urls),
+    # API v1
+    path("api/v1/auth/", include("apps.users.urls")),
+    path("api/v1/categories/", include("apps.categories.urls")),
+    path("api/v1/expenses/", include("apps.expenses.urls")),
+    path("api/v1/budgets/", include("apps.budgets.urls")),
+    path("api/v1/receipts/", include("apps.receipts.urls")),
+    path("api/v1/iot/", include("apps.iot.urls")),
+    path("api/v1/insights/", include("apps.ai_insights.urls")),
+    path("api/v1/notifications/", include("apps.notifications.urls")),
+    path("api/v1/reports/", include("apps.reports.urls")),
+    # API Documentation
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path(
+        "api/docs/",
+        SpectacularSwaggerView.as_view(url_name="schema"),
+        name="swagger-ui",
+    ),
 ]

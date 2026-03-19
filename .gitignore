@@ -48,3 +48,8 @@ logs/
 ai-service/models/*.pkl
 ai-service/models/*.h5
 ai-service/models/*.pt
+
+# Temporary Igonred Files
+docs/database
+docs/uml
+docs/wireframes
