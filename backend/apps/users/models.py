@@ -16,6 +16,10 @@ class User(AbstractUser):
     profile_picture = models.ImageField(
         upload_to="profiles/", blank=True, null=True,
     )
+    timezone = models.CharField(
+        max_length=50, default="Asia/Kathmandu",
+        help_text="IANA timezone for recurring transaction scheduling",
+    )
     is_email_verified = models.BooleanField(default=False)
     two_factor_enabled = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)

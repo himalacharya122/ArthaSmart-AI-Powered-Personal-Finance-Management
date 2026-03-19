@@ -14,6 +14,7 @@ class AuditLog(models.Model):
         LOGOUT = "logout", "Logout"
         EXPORT = "export", "Export"
         IMPORT = "import", "Import"
+        FAILED_LOGIN = "failed_login", "Failed Login"
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
