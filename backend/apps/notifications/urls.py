@@ -1,8 +1,15 @@
-"""Users URL configuration."""
-from django.urls import path # type: ignore
+"""Notifications URL configuration."""
+from django.urls import include, path # type: ignore
+from rest_framework.routers import DefaultRouter # type: ignore
+
+from .views import NotificationPreferenceView, NotificationViewSet
 
 app_name = "notifications"
 
+router = DefaultRouter()
+router.register("", NotificationViewSet, basename="notification")
+
 urlpatterns = [
-    # TODO: Add auth endpoints (register, login, refresh, profile)
+    path("preferences/", NotificationPreferenceView.as_view(), name="notification-preferences"),
+    path("", include(router.urls)),
 ]

@@ -53,3 +53,4 @@ ai-service/models/*.pt
 docs/database
 docs/uml
 docs/wireframes
+docs/
