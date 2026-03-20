@@ -1,8 +1,14 @@
-"""Users URL configuration."""
-from django.urls import path # type: ignore
+"""Budgets URL configuration."""
+from django.urls import include, path # type: ignore
+from rest_framework.routers import DefaultRouter # type: ignore
+
+from .views import BudgetViewSet
 
 app_name = "budgets"
 
+router = DefaultRouter()
+router.register("", BudgetViewSet, basename="budget")
+
 urlpatterns = [
-    # TODO: Add auth endpoints (register, login, refresh, profile)
+    path("", include(router.urls)),
 ]

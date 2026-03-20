@@ -1,8 +1,14 @@
 """Chat URL configuration."""
-from django.urls import path # type: ignore
+from django.urls import include, path # type: ignore
+from rest_framework.routers import DefaultRouter # type: ignore
+
+from .views import ChatConversationViewSet
 
 app_name = "chat"
 
+router = DefaultRouter()
+router.register("conversations", ChatConversationViewSet, basename="conversation")
+
 urlpatterns = [
-    # TODO: Add chat endpoints (create conversation, send message, list history)
+    path("", include(router.urls)),
 ]
