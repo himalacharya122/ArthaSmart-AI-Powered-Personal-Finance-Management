@@ -10,6 +10,8 @@ urlpatterns = [
     path("api/v1/auth/", include("apps.users.urls")),
     path("api/v1/categories/", include("apps.categories.urls")),
     path("api/v1/expenses/", include("apps.expenses.urls")),
+    path("api/v1/incomes/", include("apps.expenses.income_urls")),
+    path("api/v1/recurring-transactions/", include("apps.expenses.recurring_urls")),
     path("api/v1/budgets/", include("apps.budgets.urls")),
     path("api/v1/receipts/", include("apps.receipts.urls")),
     path("api/v1/iot/", include("apps.iot.urls")),
