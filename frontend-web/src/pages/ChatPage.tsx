@@ -13,6 +13,7 @@ import { Button } from '@/components/common/Button';
 import { CardSkeleton } from '@/components/common/LoadingSkeleton';
 import { ActionCard } from '@/components/chat/ActionCard';
 import { QuickActions } from '@/components/chat/QuickActions';
+import { VoiceButton } from '@/components/chat/VoiceButton';
 import { formatRelativeDate } from '@/utils/format';
 import { cn } from '@/utils/cn';
 import type { Message } from '@/types/chat';
@@ -193,6 +194,12 @@ export function ChatPage() {
         {activeId && (
           <div className="border-t border-primary-200 px-4 py-3">
             <div className="flex items-end gap-2">
+              <VoiceButton
+                onTranscription={(text) => {
+                  setInput((prev) => (prev ? prev + ' ' + text : text));
+                }}
+                disabled={sendMsg.isPending}
+              />
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}

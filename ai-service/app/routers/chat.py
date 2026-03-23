@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import logging
+import re
 import time
 
 from fastapi import APIRouter, Depends # type: ignore
 
+from app.core.rate_limiter import rate_limiter
 from app.core.security import verify_service_key
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.services.action_parser import (
@@ -21,6 +23,22 @@ from app.services.tool_definitions import TOOLS
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["chat"])
+
+# Patterns to strip from AI reply (metadata that leaks into visible text)
+_CLEANUP_PATTERNS = [
+    re.compile(r"\[SYSTEM:.*?\]", re.DOTALL),
+    re.compile(r"MEMORY EXTRACTION:.*?(?=\n\n|\Z)", re.DOTALL),
+    re.compile(r"\*\*MEMORY EXTRACTION\*\*:.*?(?=\n\n|\Z)", re.DOTALL),
+]
+
+
+def _clean_reply(text: str) -> str:
+    """Remove leaked metadata/system tags from the AI reply."""
+    for pattern in _CLEANUP_PATTERNS:
+        text = pattern.sub("", text)
+    # Collapse multiple blank lines
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
 
 
 @router.post(
@@ -43,6 +61,9 @@ async def process_chat(request: ChatRequest) -> ChatResponse:
     """
     start = time.perf_counter()
 
+    # 0. Rate limit check
+    rate_limiter.check_chat(request.user_context.user_id)
+
     # 1. Build system prompt
     system_prompt = build_system_prompt(request.user_context, request.user_memory)
 
@@ -63,8 +84,9 @@ async def process_chat(request: ChatRequest) -> ChatResponse:
     # 4. Parse tool calls into actions
     actions = parse_tool_calls(tool_calls)
 
-    # 5. If tools were called, we need a follow-up to get a human-readable reply
-    if tool_calls and not content:
+    # 5. If tools were called, ALWAYS get a clean follow-up reply
+    #    (even if the LLM returned content alongside tool calls, it's often polluted)
+    if tool_calls:
         # Build tool result messages to feed back
         tool_messages = list(messages)
         # Add the assistant's tool call message
@@ -82,20 +104,25 @@ async def process_chat(request: ChatRequest) -> ChatResponse:
                 {
                     "role": "tool",
                     "tool_call_id": tc["id"],
-                    "content": f"Action '{func_name}' will be executed by the system. "
-                    f"Confirm to the user what was done.",
+                    "content": f"Action '{func_name}' is queued and will be shown to the user as a "
+                    f"pending action card with Confirm/Cancel buttons. "
+                    f"Write a brief, friendly confirmation message. "
+                    f"Do NOT include any [SYSTEM:] tags or metadata.",
                 }
             )
 
-        # Second LLM call for natural language reply
+        # Second LLM call for natural language reply (no tools this time)
         followup = chat_completion(messages=tool_messages)
         content = followup["content"] or "Done!"
         total_tokens += followup["tokens_used"]
 
-    # 6. Detect intent
+    # 6. Clean the reply — strip any leaked metadata
+    content = _clean_reply(content or "")
+
+    # 7. Detect intent
     intent = detect_intent(tool_calls, content, request.message)
 
-    # 7. Extract memory updates
+    # 8. Extract memory updates (from original content, before cleaning)
     memory_updates = extract_memory_updates(content)
 
     elapsed_ms = int((time.perf_counter() - start) * 1000)

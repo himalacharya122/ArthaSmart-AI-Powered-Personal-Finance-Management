@@ -7,6 +7,7 @@ import {
   sendMessage,
   confirmActions,
   rejectActions,
+  transcribeAudio,
 } from '@/api/chat';
 import toast from 'react-hot-toast';
 
@@ -94,5 +95,12 @@ export function useRejectActions() {
       toast('Action cancelled');
     },
     onError: () => toast.error('Failed to cancel action'),
+  });
+}
+
+export function useTranscribeAudio() {
+  return useMutation({
+    mutationFn: (audioBlob: Blob) => transcribeAudio(audioBlob),
+    onError: () => toast.error('Voice transcription failed. Please try again.'),
   });
 }

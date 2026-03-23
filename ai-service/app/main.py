@@ -6,7 +6,7 @@ from fastapi import FastAPI # type: ignore
 from fastapi.middleware.cors import CORSMiddleware # type: ignore
 
 from app.config import get_settings
-from app.routers import chat, health, insights
+from app.routers import chat, health, insights, voice
 
 # Configure logging
 logging.basicConfig(
@@ -48,6 +48,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(chat.router)
     app.include_router(insights.router)
+    app.include_router(voice.router)
 
     logger.info(
         "ArthaSmart AI Service started | model=%s | port=%s",
