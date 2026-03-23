@@ -161,6 +161,10 @@ CORS_ALLOWED_ORIGINS = config(
     cast=Csv(),
 )
 
+# AI Service
+AI_SERVICE_URL = config("AI_SERVICE_URL", default="http://localhost:8001")
+AI_SERVICE_KEY = config("AI_SERVICE_KEY", default="artha-ai-service-key-change-in-production")
+
 # Celery (activate later when Redis is ready)
 CELERY_BROKER_URL = config("CELERY_BROKER_URL", default="redis://localhost:6379/1")
 CELERY_RESULT_BACKEND = CELERY_BROKER_URL

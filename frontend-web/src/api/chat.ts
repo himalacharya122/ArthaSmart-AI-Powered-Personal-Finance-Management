@@ -3,6 +3,8 @@ import type {
   Conversation,
   ConversationDetail,
   SendMessageResponse,
+  ConfirmActionResponse,
+  Message,
 } from '@/types/chat';
 import type { PaginatedResponse } from '@/types/api';
 
@@ -34,6 +36,26 @@ export async function sendMessage(
   const res = await apiClient.post<SendMessageResponse>(
     `/chat/conversations/${conversationId}/messages/`,
     { content },
+  );
+  return res.data;
+}
+
+export async function confirmActions(
+  conversationId: number,
+  messageId: number,
+): Promise<ConfirmActionResponse> {
+  const res = await apiClient.post<ConfirmActionResponse>(
+    `/chat/conversations/${conversationId}/messages/${messageId}/confirm/`,
+  );
+  return res.data;
+}
+
+export async function rejectActions(
+  conversationId: number,
+  messageId: number,
+): Promise<{ message: Message }> {
+  const res = await apiClient.post<{ message: Message }>(
+    `/chat/conversations/${conversationId}/messages/${messageId}/reject/`,
   );
   return res.data;
 }
