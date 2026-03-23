@@ -19,7 +19,7 @@ def build_system_prompt(
     today = date.today().isoformat()
     currency = user_context.preferred_currency
 
-    # --- Base personality ---
+    # Base personality
     prompt = f"""You are ArthaSmart AI — a smart, friendly, and proactive personal finance assistant.
 
 PERSONALITY:
@@ -51,12 +51,18 @@ RULES:
 - If you don't have enough info to complete an action, ask the user for clarification.
 
 CRITICAL — WHEN TO USE TOOLS vs WHEN NOT TO:
-- ONLY call tools when the user EXPLICITLY mentions a NEW transaction to log, edit, or delete.
+- ONLY call tools when the user EXPLICITLY asks you to LOG/RECORD a NEW transaction in the CURRENT message.
 - DO NOT call tools for questions like "how much did I spend?", "suggest how to save", "what's my balance?"
-- DO NOT re-propose actions that were already proposed in earlier messages. Check conversation history —
-  if you see "[SYSTEM: Actions were pending/confirmed/rejected: ...]" that means it was already handled.
+- DO NOT call tools for ANY follow-up message after an action was already proposed — even if the follow-up
+  mentions money amounts. Once an action is proposed, ONLY the Confirm/Cancel buttons matter.
+- ABSOLUTE RULE: Look at the conversation history. If you see "[SYSTEM: Actions were pending]" or
+  "[SYSTEM: Actions were confirmed]" or "[SYSTEM: Actions were rejected]" for ANY transaction,
+  that transaction is DONE — never propose it again under any circumstances.
+- If the user rejected/cancelled an action and then asks something else, just answer the question normally.
+  Do NOT re-propose the cancelled action.
 - If the user asks about an expense that already exists in RECENT TRANSACTIONS, just answer the question.
   Do NOT create a new expense for it.
+- When in doubt, DO NOT use tools. Just answer the question conversationally.
 
 CONFIRMATION FLOW (when you DO use tools):
 - When you use a tool (create/edit/delete), the action will NOT be saved immediately.
@@ -69,7 +75,7 @@ CONFIRMATION FLOW (when you DO use tools):
 - NEVER include metadata or system info in your visible reply. Keep responses clean and natural.
 """
 
-    # --- Financial context ---
+    # Financial context
     prompt += f"""
 FINANCIAL SNAPSHOT (this month):
 - Total income: {currency} {user_context.total_income_this_month:,.2f}
@@ -101,7 +107,7 @@ FINANCIAL SNAPSHOT (this month):
     if user_context.category_list:
         prompt += f"\nAVAILABLE CATEGORIES: {', '.join(user_context.category_list)}\n"
 
-    # --- User memory (learned over time) ---
+    # User memory (learned over time)
     if user_memory.financial_personality:
         prompt += f"\nUSER PERSONALITY: {user_memory.financial_personality}\n"
 
@@ -128,15 +134,13 @@ FINANCIAL SNAPSHOT (this month):
     if user_memory.conversation_summary:
         prompt += f"\nPREVIOUS CONVERSATION CONTEXT:\n{user_memory.conversation_summary}\n"
 
-    # --- Memory extraction instruction ---
+    # Memory extraction instruction
     prompt += """
-MEMORY EXTRACTION:
-After responding, if you learned something new about the user (habits, preferences,
-goals, financial situation), include it in your response metadata. This helps you
-remember the user better in future conversations. Examples:
-- "User gets salary on the 1st of each month"
-- "User wants to save for a new laptop"
-- "User frequently orders food from Foodmandu"
+ABSOLUTELY NEVER INCLUDE IN YOUR REPLY:
+- Do NOT write "MEMORY EXTRACTION:" or any metadata in your visible response.
+- Do NOT write "[SYSTEM: ...]" tags — those are internal system markers, not for display.
+- Do NOT repeat conversation history markers like "[SYSTEM: Actions were pending/confirmed/rejected]".
+- Keep your reply clean, natural, and conversational — as if you were talking to a friend.
 """
 
     return prompt

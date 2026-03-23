@@ -59,3 +59,18 @@ export async function rejectActions(
   );
   return res.data;
 }
+
+export interface TranscriptionResult {
+  text: string;
+  language: string;
+  duration_ms: number;
+}
+
+export async function transcribeAudio(audioBlob: Blob): Promise<TranscriptionResult> {
+  const formData = new FormData();
+  formData.append('audio', audioBlob, 'recording.webm');
+  const res = await apiClient.post<TranscriptionResult>('/chat/voice/transcribe/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return res.data;
+}

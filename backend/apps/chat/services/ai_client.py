@@ -53,7 +53,15 @@ def call_ai_chat(payload: dict) -> dict:
         return _fallback_response("My response took too long. Please try a simpler question.")
 
     except httpx.HTTPStatusError as exc:
-        logger.error("AI service error: %s %s", exc.response.status_code, exc.response.text[:200])
+        status_code = exc.response.status_code
+        logger.error("AI service error: %s %s", status_code, exc.response.text[:200])
+        if status_code == 429:
+            # Rate limited — forward the message
+            try:
+                detail = exc.response.json().get("detail", "")
+            except Exception:
+                detail = ""
+            return _fallback_response(detail or "You're sending messages too quickly. Please slow down a bit.")
         return _fallback_response("Something went wrong on my end. Please try again.")
 
 

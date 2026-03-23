@@ -381,7 +381,8 @@ def _create_insight_notifications(user, insights: list[AIInsight]):
                 notification_type="insight",
                 title=insight.title,
                 message=insight.description,
-                data={"insight_id": insight.id, "severity": insight.severity},
+                related_object_type="ai_insight",
+                related_object_id=insight.id,
             )
 
 
@@ -394,9 +395,6 @@ def _create_anomaly_notification(user, expense, anomaly_data: dict):
         notification_type="anomaly",
         title=f"Unusual {expense.category.name if expense.category else ''} Expense",
         message=anomaly_data.get("reason", "An unusual expense was detected."),
-        data={
-            "expense_id": expense.id,
-            "amount": float(expense.amount),
-            "suggestion": anomaly_data.get("suggestion", ""),
-        },
+        related_object_type="expense",
+        related_object_id=expense.id,
     )

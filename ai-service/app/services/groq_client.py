@@ -1,4 +1,4 @@
-"""Groq LLM client — uses OpenAI-compatible SDK."""
+"""Groq LLM client — uses OpenAI-compatible SDK with retry logic."""
 
 from __future__ import annotations
 
@@ -6,13 +6,17 @@ import logging
 import time
 from typing import Any
 
-from openai import OpenAI # type: ignore
+from openai import OpenAI, APIError, APIConnectionError, RateLimitError  # type: ignore
 
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
 _client: OpenAI | None = None
+
+# Retry config
+MAX_RETRIES = 3
+RETRY_BASE_DELAY = 1.0  # seconds — exponential: 1s, 2s, 4s
 
 
 def get_groq_client() -> OpenAI:
@@ -27,6 +31,43 @@ def get_groq_client() -> OpenAI:
     return _client
 
 
+def _call_with_retry(client: OpenAI, kwargs: dict[str, Any]) -> Any:
+    """Call the API with exponential backoff retry on transient errors."""
+    last_exc = None
+    for attempt in range(MAX_RETRIES):
+        try:
+            return client.chat.completions.create(**kwargs)
+        except RateLimitError as exc:
+            last_exc = exc
+            delay = RETRY_BASE_DELAY * (2 ** attempt)
+            logger.warning(
+                "Rate limited (attempt %d/%d). Retrying in %.1fs: %s",
+                attempt + 1, MAX_RETRIES, delay, exc,
+            )
+            time.sleep(delay)
+        except APIConnectionError as exc:
+            last_exc = exc
+            delay = RETRY_BASE_DELAY * (2 ** attempt)
+            logger.warning(
+                "Connection error (attempt %d/%d). Retrying in %.1fs: %s",
+                attempt + 1, MAX_RETRIES, delay, exc,
+            )
+            time.sleep(delay)
+        except APIError as exc:
+            # Server errors (500, 502, 503) are retryable
+            if exc.status_code and exc.status_code >= 500:
+                last_exc = exc
+                delay = RETRY_BASE_DELAY * (2 ** attempt)
+                logger.warning(
+                    "Server error %s (attempt %d/%d). Retrying in %.1fs",
+                    exc.status_code, attempt + 1, MAX_RETRIES, delay,
+                )
+                time.sleep(delay)
+            else:
+                raise  # Client errors (400, 401, etc.) — don't retry
+    raise last_exc  # type: ignore[misc]
+
+
 def chat_completion(
     messages: list[dict[str, Any]],
     tools: list[dict[str, Any]] | None = None,
@@ -34,7 +75,11 @@ def chat_completion(
     temperature: float | None = None,
     max_tokens: int | None = None,
 ) -> dict[str, Any]:
-    """Send a chat completion request to Groq.
+    """Send a chat completion request to Groq with retry + fallback.
+
+    Retry order:
+    1. Primary model with exponential backoff (up to 3 attempts)
+    2. Fallback model (single attempt)
 
     Returns:
         {
@@ -65,10 +110,10 @@ def chat_completion(
         kwargs["tool_choice"] = "auto"
 
     try:
-        response = client.chat.completions.create(**kwargs)
+        response = _call_with_retry(client, kwargs)
     except Exception as exc:
-        logger.warning("Primary model %s failed: %s. Trying fallback.", model, exc)
-        # Retry with fallback model
+        logger.warning("Primary model %s failed after retries: %s. Trying fallback.", model, exc)
+        # Retry with fallback model (single attempt)
         kwargs["model"] = settings.llm_model_fallback
         if tools:
             # Fallback model may not support tools — remove them
@@ -79,6 +124,13 @@ def chat_completion(
     elapsed_ms = int((time.perf_counter() - start) * 1000)
     choice = response.choices[0]
     message = choice.message
+
+    logger.info(
+        "LLM call: model=%s tokens=%s time=%dms",
+        response.model,
+        response.usage.total_tokens if response.usage else "?",
+        elapsed_ms,
+    )
 
     # Extract tool calls if present
     tool_calls = None
