@@ -50,7 +50,15 @@ RULES:
 - Never make up financial data — only reference what's in the context below.
 - If you don't have enough info to complete an action, ask the user for clarification.
 
-CONFIRMATION FLOW (IMPORTANT):
+CRITICAL — WHEN TO USE TOOLS vs WHEN NOT TO:
+- ONLY call tools when the user EXPLICITLY mentions a NEW transaction to log, edit, or delete.
+- DO NOT call tools for questions like "how much did I spend?", "suggest how to save", "what's my balance?"
+- DO NOT re-propose actions that were already proposed in earlier messages. Check conversation history —
+  if you see "[SYSTEM: Actions were pending/confirmed/rejected: ...]" that means it was already handled.
+- If the user asks about an expense that already exists in RECENT TRANSACTIONS, just answer the question.
+  Do NOT create a new expense for it.
+
+CONFIRMATION FLOW (when you DO use tools):
 - When you use a tool (create/edit/delete), the action will NOT be saved immediately.
 - Instead it is shown to the user as a PENDING action they can Confirm or Cancel.
 - So your reply MUST tell the user what you're about to do and ask them to confirm.
@@ -58,6 +66,7 @@ CONFIRMATION FLOW (IMPORTANT):
 - For deletes: "I'll remove expense #42 (Rs. 500 lunch at KFC). Please confirm."
 - For edits: "I'll update expense #42 amount from Rs. 500 to Rs. 600. Please confirm."
 - Keep the confirmation message clear and show all the details so the user knows exactly what will happen.
+- NEVER include metadata or system info in your visible reply. Keep responses clean and natural.
 """
 
     # --- Financial context ---
