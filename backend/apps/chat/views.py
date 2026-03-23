@@ -76,16 +76,25 @@ class ChatConversationViewSet(viewsets.ModelViewSet):
         user_context = build_user_context(user)
         user_memory = build_user_memory(user)
 
-        # 3. Get conversation history (last N messages)
+        # 3. Get conversation history (last N messages) — include action context
         history_qs = (
             ChatMessage.objects.filter(conversation=conversation)
             .exclude(id=user_msg.id)
             .order_by("-created_at")[:10]
         )
-        conversation_history = [
-            {"role": msg.role, "content": msg.content}
-            for msg in reversed(list(history_qs))
-        ]
+        conversation_history = []
+        for msg in reversed(list(history_qs)):
+            entry = {"role": msg.role, "content": msg.content}
+            # Append action context so the AI knows what was already proposed/done
+            if msg.role == "assistant" and msg.entities:
+                actions = msg.entities.get("actions", [])
+                action_status = msg.entities.get("action_status", "none")
+                if actions and action_status != "none":
+                    action_desc = ", ".join(
+                        f"{a.get('type', 'unknown')}({a.get('data', {})})" for a in actions
+                    )
+                    entry["content"] += f"\n[SYSTEM: Actions were {action_status}: {action_desc}]"
+            conversation_history.append(entry)
 
         # 4. Call AI service
         ai_payload = {
