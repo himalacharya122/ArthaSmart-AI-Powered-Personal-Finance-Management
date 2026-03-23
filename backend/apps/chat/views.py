@@ -89,11 +89,33 @@ class ChatConversationViewSet(viewsets.ModelViewSet):
             if msg.role == "assistant" and msg.entities:
                 actions = msg.entities.get("actions", [])
                 action_status = msg.entities.get("action_status", "none")
+                action_results = msg.entities.get("action_results", {})
+
                 if actions and action_status != "none":
-                    action_desc = ", ".join(
-                        f"{a.get('type', 'unknown')}({a.get('data', {})})" for a in actions
-                    )
-                    entry["content"] += f"\n[SYSTEM: Actions were {action_status}: {action_desc}]"
+                    action_parts = []
+                    for a in actions:
+                        a_type = a.get("type", "unknown")
+                        a_data = a.get("data", {})
+                        action_parts.append(f"{a_type}({a_data})")
+                    action_desc = ", ".join(action_parts)
+
+                    # Include confirmed result IDs so the AI knows the actual saved IDs
+                    result_desc = ""
+                    if action_status == "confirmed" and action_results:
+                        executed = action_results.get("executed", [])
+                        if executed:
+                            result_parts = []
+                            for r in executed:
+                                r_type = r.get("type", "")
+                                r_id = r.get("id")
+                                if r_id:
+                                    result_parts.append(f"{r_type} saved as ID#{r_id}")
+                                elif r.get("deleted"):
+                                    result_parts.append(f"{r_type} deleted ID#{r.get('id', '?')}")
+                            if result_parts:
+                                result_desc = f" Results: {', '.join(result_parts)}"
+
+                    entry["content"] += f"\n[SYSTEM: Actions were {action_status}: {action_desc}{result_desc}]"
             conversation_history.append(entry)
 
         # 4. Call AI service
