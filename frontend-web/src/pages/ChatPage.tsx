@@ -6,12 +6,16 @@ import {
   useCreateConversation,
   useDeleteConversation,
   useSendMessage,
+  useConfirmActions,
+  useRejectActions,
 } from '@/hooks/useChat';
 import { Button } from '@/components/common/Button';
-import { EmptyState } from '@/components/common/EmptyState';
 import { CardSkeleton } from '@/components/common/LoadingSkeleton';
+import { ActionCard } from '@/components/chat/ActionCard';
+import { QuickActions } from '@/components/chat/QuickActions';
 import { formatRelativeDate } from '@/utils/format';
 import { cn } from '@/utils/cn';
+import type { Message } from '@/types/chat';
 
 export function ChatPage() {
   const [activeId, setActiveId] = useState<number | null>(null);
@@ -24,6 +28,8 @@ export function ChatPage() {
   const createConv = useCreateConversation();
   const deleteConv = useDeleteConversation();
   const sendMsg = useSendMessage();
+  const confirmAct = useConfirmActions();
+  const rejectAct = useRejectActions();
 
   const messages = conversation?.messages || [];
 
@@ -37,9 +43,9 @@ export function ChatPage() {
     });
   }
 
-  async function handleSend() {
-    if (!input.trim() || !activeId || sendMsg.isPending) return;
-    const content = input.trim();
+  async function handleSend(text?: string) {
+    const content = (text || input).trim();
+    if (!content || !activeId || sendMsg.isPending) return;
     setInput('');
     sendMsg.mutate({ conversationId: activeId, content });
   }
@@ -48,6 +54,22 @@ export function ChatPage() {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  }
+
+  function handleQuickAction(text: string) {
+    if (!activeId) {
+      createConv.mutate(undefined, {
+        onSuccess: (conv) => {
+          setActiveId(conv.id);
+          // Small delay to let the state settle before sending
+          setTimeout(() => {
+            sendMsg.mutate({ conversationId: conv.id, content: text });
+          }, 100);
+        },
+      });
+    } else {
+      setInput(text);
     }
   }
 
@@ -123,67 +145,31 @@ export function ChatPage() {
           <Bot className="h-5 w-5 text-accent-600" />
           <div>
             <h2 className="text-sm font-semibold text-primary-800">ArthaSmart AI</h2>
-            <p className="text-xs text-primary-400">Your financial assistant</p>
+            <p className="text-xs text-primary-400">Your personal finance buddy</p>
           </div>
         </div>
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-4 py-4">
           {!activeId ? (
-            <EmptyState
-              icon={<Bot className="h-12 w-12" />}
-              title="Start a conversation"
-              description="Select an existing conversation or create a new one to chat with ArthaSmart AI about your finances."
-              actionLabel="New Conversation"
-              onAction={handleNewConversation}
-            />
+            <QuickActions onSelect={handleQuickAction} />
           ) : chatLoading ? (
             <div className="space-y-4">
               {Array.from({ length: 3 }).map((_, i) => <CardSkeleton key={i} />)}
             </div>
           ) : messages.length === 0 ? (
-            <div className="flex h-full items-center justify-center">
-              <div className="text-center">
-                <Bot className="mx-auto mb-3 h-10 w-10 text-accent-500" />
-                <p className="text-sm text-primary-500">
-                  Ask me anything about your finances — budgets, spending patterns, savings tips, or quick expense logging.
-                </p>
-              </div>
-            </div>
+            <QuickActions onSelect={(text) => handleSend(text)} />
           ) : (
             <div className="space-y-4">
               {messages.map((msg) => (
-                <div
+                <ChatBubble
                   key={msg.id}
-                  className={cn('flex gap-3', msg.role === 'user' ? 'justify-end' : 'justify-start')}
-                >
-                  {msg.role === 'assistant' && (
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-accent-100">
-                      <Bot className="h-4 w-4 text-accent-600" />
-                    </div>
-                  )}
-                  <div
-                    className={cn(
-                      'max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
-                      msg.role === 'user'
-                        ? 'bg-primary-800 text-white rounded-br-md'
-                        : 'bg-primary-100 text-primary-800 rounded-bl-md',
-                    )}
-                  >
-                    <p className="whitespace-pre-wrap">{msg.content}</p>
-                    <p className={cn(
-                      'mt-1 text-[10px]',
-                      msg.role === 'user' ? 'text-primary-300' : 'text-primary-400',
-                    )}>
-                      {formatRelativeDate(msg.created_at)}
-                    </p>
-                  </div>
-                  {msg.role === 'user' && (
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary-200">
-                      <User className="h-4 w-4 text-primary-600" />
-                    </div>
-                  )}
-                </div>
+                  message={msg}
+                  onConfirm={(msgId) => confirmAct.mutate({ conversationId: activeId, messageId: msgId })}
+                  onReject={(msgId) => rejectAct.mutate({ conversationId: activeId, messageId: msgId })}
+                  isConfirming={confirmAct.isPending}
+                  isRejecting={rejectAct.isPending}
+                />
               ))}
               {sendMsg.isPending && (
                 <div className="flex gap-3">
@@ -191,7 +177,10 @@ export function ChatPage() {
                     <Bot className="h-4 w-4 text-accent-600" />
                   </div>
                   <div className="rounded-2xl rounded-bl-md bg-primary-100 px-4 py-3">
-                    <Loader2 className="h-4 w-4 animate-spin text-primary-500" />
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary-500" />
+                      <span className="text-sm text-primary-500">Thinking...</span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -208,13 +197,13 @@ export function ChatPage() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask about your finances..."
+                placeholder="Ask about your finances or log a transaction..."
                 rows={1}
                 className="flex-1 resize-none rounded-xl border border-primary-200 bg-primary-50 px-4 py-2.5 text-sm text-primary-800 placeholder:text-primary-400 focus:border-accent-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent-500"
               />
               <Button
                 variant="accent"
-                onClick={handleSend}
+                onClick={() => handleSend()}
                 disabled={!input.trim() || sendMsg.isPending}
                 loading={sendMsg.isPending}
               >
@@ -224,6 +213,72 @@ export function ChatPage() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/** Single chat message bubble with optional action card. */
+function ChatBubble({
+  message,
+  onConfirm,
+  onReject,
+  isConfirming,
+  isRejecting,
+}: {
+  message: Message;
+  onConfirm: (messageId: number) => void;
+  onReject: (messageId: number) => void;
+  isConfirming: boolean;
+  isRejecting: boolean;
+}) {
+  const isUser = message.role === 'user';
+  const entities = message.entities;
+  const hasActions = entities?.actions && entities.actions.length > 0;
+  const actionStatus = entities?.action_status || 'none';
+
+  return (
+    <div className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}>
+      {!isUser && (
+        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-accent-100">
+          <Bot className="h-4 w-4 text-accent-600" />
+        </div>
+      )}
+      <div className={cn('max-w-[75%]', isUser && 'order-first')}>
+        <div
+          className={cn(
+            'rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
+            isUser
+              ? 'bg-primary-800 text-white rounded-br-md'
+              : 'bg-primary-100 text-primary-800 rounded-bl-md',
+          )}
+        >
+          <p className="whitespace-pre-wrap">{message.content}</p>
+          <p className={cn(
+            'mt-1 text-[10px]',
+            isUser ? 'text-primary-300' : 'text-primary-400',
+          )}>
+            {formatRelativeDate(message.created_at)}
+          </p>
+        </div>
+
+        {/* Action card for assistant messages with CRUD actions */}
+        {!isUser && hasActions && entities?.actions && (
+          <ActionCard
+            actions={entities.actions}
+            status={actionStatus}
+            results={entities.action_results}
+            onConfirm={() => onConfirm(message.id)}
+            onReject={() => onReject(message.id)}
+            isConfirming={isConfirming}
+            isRejecting={isRejecting}
+          />
+        )}
+      </div>
+      {isUser && (
+        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary-200">
+          <User className="h-4 w-4 text-primary-600" />
+        </div>
+      )}
     </div>
   );
 }

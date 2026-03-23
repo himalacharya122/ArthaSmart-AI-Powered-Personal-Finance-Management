@@ -5,6 +5,8 @@ import {
   createConversation,
   deleteConversation,
   sendMessage,
+  confirmActions,
+  rejectActions,
 } from '@/api/chat';
 import toast from 'react-hot-toast';
 
@@ -56,5 +58,41 @@ export function useSendMessage() {
       qc.invalidateQueries({ queryKey: ['conversations'] });
     },
     onError: () => toast.error('Failed to send message'),
+  });
+}
+
+export function useConfirmActions() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ conversationId, messageId }: { conversationId: number; messageId: number }) =>
+      confirmActions(conversationId, messageId),
+    onSuccess: (data, variables) => {
+      qc.invalidateQueries({ queryKey: ['conversation', variables.conversationId] });
+      // Also refresh financial data since CRUD happened
+      qc.invalidateQueries({ queryKey: ['expenses'] });
+      qc.invalidateQueries({ queryKey: ['incomes'] });
+      qc.invalidateQueries({ queryKey: ['budgets'] });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+      const errors = data.action_results.errors || [];
+      if (errors.length > 0) {
+        toast.error('Some actions failed');
+      } else {
+        toast.success('Action confirmed and saved!');
+      }
+    },
+    onError: () => toast.error('Failed to confirm actions'),
+  });
+}
+
+export function useRejectActions() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ conversationId, messageId }: { conversationId: number; messageId: number }) =>
+      rejectActions(conversationId, messageId),
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: ['conversation', variables.conversationId] });
+      toast('Action cancelled');
+    },
+    onError: () => toast.error('Failed to cancel action'),
   });
 }

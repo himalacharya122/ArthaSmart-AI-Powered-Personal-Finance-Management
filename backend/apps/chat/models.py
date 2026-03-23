@@ -1,6 +1,7 @@
-"""AI chatbot conversation and message models."""
-from django.conf import settings # type: ignore
-from django.db import models # type: ignore
+"""AI chatbot conversation, message, and memory models."""
+
+from django.conf import settings  # type: ignore
+from django.db import models  # type: ignore
 
 
 class ChatConversation(models.Model):
@@ -99,3 +100,59 @@ class ChatMessage(models.Model):
 
     def __str__(self):
         return f"[{self.role}] {self.content[:50]}..."
+
+
+class UserAIMemory(models.Model):
+    """Accumulated AI knowledge about a user's financial behavior.
+
+    This is how the AI *learns* and *remembers* each user over time.
+    Updated after each conversation and periodically by background tasks.
+    """
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="ai_memory",
+    )
+
+    financial_personality = models.CharField(
+        max_length=50, blank=True,
+        help_text="saver, balanced, spender, impulsive, planned",
+    )
+
+    facts = models.JSONField(
+        default=list, blank=True,
+        help_text=(
+            "List of learned facts: "
+            "['Shops at Bhat-Bhateni weekly', 'Salary on 1st of month']"
+        ),
+    )
+
+    spending_patterns = models.JSONField(
+        default=dict, blank=True,
+        help_text=(
+            "{avg_daily_spend, top_merchants, peak_spending_days, "
+            "category_preferences}"
+        ),
+    )
+
+    goals = models.JSONField(
+        default=list, blank=True,
+        help_text="['Save 10000/month', 'Reduce dining out', 'Build emergency fund']",
+    )
+
+    conversation_summary = models.TextField(
+        blank=True,
+        help_text="Compressed summary of past conversations for context continuity",
+    )
+
+    last_updated = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "user_ai_memory"
+        verbose_name = "User AI Memory"
+        verbose_name_plural = "User AI Memories"
+
+    def __str__(self):
+        return f"AI Memory | {self.user.email} | {self.financial_personality or 'Unknown'}"
