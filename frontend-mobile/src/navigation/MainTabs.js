@@ -3,8 +3,8 @@
  *
  * Tabs: Home | Transactions | Scan | Chat | Settings
  *
- * - Clean, minimal icons
- * - Center "Scan" tab is slightly larger/highlighted
+ * - Clean, minimal icons — same size for all tabs
+ * - Center "Scan" tab has a dark circle background but same level as others
  * - Thin top border instead of shadow
  */
 import { View, StyleSheet, Platform } from 'react-native';
@@ -21,14 +21,10 @@ import { spacing } from '../theme/spacing';
 
 const Tab = createBottomTabNavigator();
 
-function ScanTabIcon({ focused }) {
+function ScanTabIcon() {
   return (
     <View style={styles.scanButton}>
-      <MaterialIcons
-        name="qr-code-scanner"
-        size={26}
-        color={colors.white}
-      />
+      <MaterialIcons name="photo-camera" size={22} color={colors.white} />
     </View>
   );
 }
@@ -39,8 +35,8 @@ export function MainTabs() {
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: true,
-        tabBarActiveTintColor: colors.primary[900],
-        tabBarInactiveTintColor: colors.primary[400],
+        tabBarActiveTintColor: colors.primary[800],
+        tabBarInactiveTintColor: colors.primary[500],
         tabBarLabelStyle: styles.tabLabel,
         tabBarStyle: styles.tabBar,
         tabBarHideOnKeyboard: true,
@@ -52,7 +48,7 @@ export function MainTabs() {
         options={{
           tabBarLabel: 'Home',
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="home" size={size} color={color} />
+            <MaterialIcons name="home-filled" size={size} color={color} />
           ),
         }}
       />
@@ -71,8 +67,7 @@ export function MainTabs() {
         component={ScannerScreen}
         options={{
           tabBarLabel: 'Scan',
-          tabBarIcon: ({ focused }) => <ScanTabIcon focused={focused} />,
-          tabBarLabelStyle: [styles.tabLabel, { color: colors.primary[900] }],
+          tabBarIcon: () => <ScanTabIcon />,
         }}
       />
       <Tab.Screen
@@ -112,22 +107,15 @@ const styles = StyleSheet.create({
   },
   tabLabel: {
     fontSize: 10,
-    fontWeight: '500',
+    fontWeight: '600',
     marginTop: 2,
   },
   scanButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: colors.primary[900],
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Platform.OS === 'ios' ? 0 : 4,
-    // Subtle shadow
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
   },
 });
