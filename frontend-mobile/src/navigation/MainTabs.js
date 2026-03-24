@@ -3,15 +3,14 @@
  *
  * Tabs: Home | Transactions | Scan | Chat | Settings
  *
- * - Clean, minimal icons — same size for all tabs
- * - Center "Scan" tab has a dark circle background but same level as others
+ * - Clean, minimal icons — same size and style for all tabs
  * - Thin top border instead of shadow
  */
-import { View, StyleSheet, Platform } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
 import { HomeScreen } from '../screens/home/HomeScreen';
-import { TransactionsScreen } from '../screens/transactions/TransactionsScreen';
+import { TransactionsStack } from './TransactionsStack';
 import { ScannerScreen } from '../screens/scanner/ScannerScreen';
 import { AIChatScreen } from '../screens/ai/AIChatScreen';
 import { SettingsScreen } from '../screens/settings/SettingsScreen';
@@ -21,13 +20,7 @@ import { spacing } from '../theme/spacing';
 
 const Tab = createBottomTabNavigator();
 
-function ScanTabIcon() {
-  return (
-    <View style={styles.scanButton}>
-      <MaterialIcons name="photo-camera" size={22} color={colors.white} />
-    </View>
-  );
-}
+// Scan tab now uses the same icon style as other tabs (no circle bg)
 
 export function MainTabs() {
   return (
@@ -54,7 +47,7 @@ export function MainTabs() {
       />
       <Tab.Screen
         name={SCREEN_NAMES.TRANSACTIONS_TAB}
-        component={TransactionsScreen}
+        component={TransactionsStack}
         options={{
           tabBarLabel: 'Transactions',
           tabBarIcon: ({ color, size }) => (
@@ -67,7 +60,9 @@ export function MainTabs() {
         component={ScannerScreen}
         options={{
           tabBarLabel: 'Scan',
-          tabBarIcon: () => <ScanTabIcon />,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="photo-camera" size={size} color={color} />
+          ),
         }}
       />
       <Tab.Screen
@@ -109,13 +104,5 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     marginTop: 2,
-  },
-  scanButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.primary[900],
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });
