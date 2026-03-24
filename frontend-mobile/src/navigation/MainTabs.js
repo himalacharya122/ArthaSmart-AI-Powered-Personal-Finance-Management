@@ -3,7 +3,7 @@
  *
  * Tabs: Home | Transactions | Scan | Chat | Settings
  *
- * - Clean, minimal icons — same size and style for all tabs
+ * - Clean, minimal icons
  * - Thin top border instead of shadow
  */
 import { StyleSheet, Platform } from 'react-native';
@@ -12,7 +12,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { HomeScreen } from '../screens/home/HomeScreen';
 import { TransactionsStack } from './TransactionsStack';
 import { ScannerScreen } from '../screens/scanner/ScannerScreen';
-import { AIChatScreen } from '../screens/ai/AIChatScreen';
+import { ChatStack } from './ChatStack';
 import { SettingsScreen } from '../screens/settings/SettingsScreen';
 import { SCREEN_NAMES } from '../utils/constants';
 import { colors } from '../theme/colors';
@@ -20,7 +20,6 @@ import { spacing } from '../theme/spacing';
 
 const Tab = createBottomTabNavigator();
 
-// Scan tab now uses the same icon style as other tabs (no circle bg)
 
 export function MainTabs() {
   return (
@@ -67,7 +66,7 @@ export function MainTabs() {
       />
       <Tab.Screen
         name={SCREEN_NAMES.CHAT_TAB}
-        component={AIChatScreen}
+        component={ChatStack}
         options={{
           tabBarLabel: 'Chat',
           tabBarIcon: ({ color, size }) => (
