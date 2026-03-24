@@ -12,7 +12,7 @@ export const useAuthStore = create((set, get) => ({
   user: null,
   accessToken: null,
   refreshToken: null,
-  isAuthenticated: true,
+  isAuthenticated: false,
   isLoading: true, // true while checking stored tokens on app launch
   hasSeenOnboarding: false,
 
@@ -56,20 +56,19 @@ export const useAuthStore = create((set, get) => ({
   login: async (email, password) => {
     const data = await authService.login(email, password);
 
-    const accessToken = data.access;
-    const refreshToken = data.refresh;
+    // Backend returns: { user: {...}, tokens: { access, refresh } }
+    const { access, refresh } = data.tokens;
     const user = data.user;
 
-    // Persist
     await Promise.all([
-      storage.setAccessToken(accessToken),
-      storage.setRefreshToken(refreshToken),
+      storage.setAccessToken(access),
+      storage.setRefreshToken(refresh),
       storage.setUser(user),
     ]);
 
     set({
-      accessToken,
-      refreshToken,
+      accessToken: access,
+      refreshToken: refresh,
       user,
       isAuthenticated: true,
     });
@@ -83,24 +82,21 @@ export const useAuthStore = create((set, get) => ({
   register: async ({ firstName, lastName, email, password }) => {
     const data = await authService.register({ firstName, lastName, email, password });
 
-    const accessToken = data.access;
-    const refreshToken = data.refresh;
+    const { access, refresh } = data.tokens;
     const user = data.user;
 
-    if (accessToken && user) {
-      await Promise.all([
-        storage.setAccessToken(accessToken),
-        storage.setRefreshToken(refreshToken),
-        storage.setUser(user),
-      ]);
+    await Promise.all([
+      storage.setAccessToken(access),
+      storage.setRefreshToken(refresh),
+      storage.setUser(user),
+    ]);
 
-      set({
-        accessToken,
-        refreshToken,
-        user,
-        isAuthenticated: true,
-      });
-    }
+    set({
+      accessToken: access,
+      refreshToken: refresh,
+      user,
+      isAuthenticated: true,
+    });
 
     return data;
   },
@@ -123,7 +119,7 @@ export const useAuthStore = create((set, get) => ({
       user: null,
       accessToken: null,
       refreshToken: null,
-      isAuthenticated: true,
+      isAuthenticated: false,
     });
   },
 
@@ -151,7 +147,7 @@ export const useAuthStore = create((set, get) => ({
       user: null,
       accessToken: null,
       refreshToken: null,
-      isAuthenticated: true,
+      isAuthenticated: false,
     });
   },
 }));
