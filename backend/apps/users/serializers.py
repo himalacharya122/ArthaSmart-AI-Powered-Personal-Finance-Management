@@ -84,6 +84,32 @@ class PasswordChangeSerializer(serializers.Serializer):
         return attrs
 
 
+class PasswordResetRequestSerializer(serializers.Serializer):
+    """Request a password reset email."""
+
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        return value.lower()
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    """Set a new password using the reset token."""
+
+    token = serializers.CharField()
+    uid = serializers.CharField()
+    new_password = serializers.CharField(write_only=True, min_length=8)
+    new_password_confirm = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        if attrs["new_password"] != attrs["new_password_confirm"]:
+            raise serializers.ValidationError(
+                {"new_password_confirm": "Passwords do not match."}
+            )
+        validate_password(attrs["new_password"])
+        return attrs
+
+
 class LogoutSerializer(serializers.Serializer):
     """Blacklist the refresh token on logout."""
 

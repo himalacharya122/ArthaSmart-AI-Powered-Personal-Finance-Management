@@ -44,16 +44,25 @@ export function RegisterScreen({ navigation }) {
       await register({ firstName, lastName, email, password });
       // Navigation happens automatically via RootNavigator
     } catch (error) {
-      const data = error?.response?.data;
-      // Backend may return field-specific errors
-      const message =
-        data?.email?.[0] ||
-        data?.username?.[0] ||
-        data?.password?.[0] ||
-        data?.non_field_errors?.[0] ||
-        data?.detail ||
-        data?.error ||
-        'Registration failed. Please try again.';
+      let message = 'Something went wrong. Please try again.';
+
+      if (error?.response?.data) {
+        const d = error.response.data;
+        // Check field-specific errors first
+        if (d.email?.[0]) message = d.email[0];
+        else if (d.username?.[0]) message = d.username[0];
+        else if (d.password?.[0]) message = d.password[0];
+        else if (d.password_confirm?.[0]) message = d.password_confirm[0];
+        else if (d.non_field_errors?.[0]) message = d.non_field_errors[0];
+        else if (typeof d.detail === 'string') message = d.detail;
+        else if (Array.isArray(d.detail)) message = d.detail[0];
+        else if (d.error) message = d.error;
+      } else if (error?.message?.includes('Network Error')) {
+        message = 'Cannot reach server. Make sure the backend is running and your device is on the same network.';
+      } else if (error?.code === 'ECONNABORTED') {
+        message = 'Request timed out. Please check your connection.';
+      }
+
       showToast(message, 'error', 4000);
     } finally {
       setLoading(false);

@@ -39,11 +39,21 @@ export function LoginScreen({ navigation }) {
       await login(email, password);
       // Navigation happens automatically via RootNavigator (isAuthenticated → MainTabs)
     } catch (error) {
-      const message =
-        error?.response?.data?.detail ||
-        error?.response?.data?.non_field_errors?.[0] ||
-        error?.response?.data?.error ||
-        'Invalid email or password. Please try again.';
+      let message = 'Something went wrong. Please try again.';
+
+      if (error?.response?.data) {
+        const d = error.response.data;
+        // Backend may return detail as string or array
+        if (typeof d.detail === 'string') message = d.detail;
+        else if (Array.isArray(d.detail)) message = d.detail[0];
+        else if (d.non_field_errors) message = d.non_field_errors[0];
+        else if (d.error) message = d.error;
+      } else if (error?.message?.includes('Network Error')) {
+        message = 'Cannot reach server. Make sure the backend is running and your device is on the same network.';
+      } else if (error?.code === 'ECONNABORTED') {
+        message = 'Request timed out. Please check your connection.';
+      }
+
       showToast(message, 'error', 4000);
     } finally {
       setLoading(false);
