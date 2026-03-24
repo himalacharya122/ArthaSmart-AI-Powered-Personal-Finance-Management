@@ -56,6 +56,7 @@ export const SCREEN_NAMES = {
   AI_CHAT: 'AIChat',
   INSIGHTS: 'Insights',
   ANOMALIES: 'Anomalies',
+  FINANCIAL_REPORT: 'FinancialReport',
 
   // Settings stack
   SETTINGS: 'Settings',
