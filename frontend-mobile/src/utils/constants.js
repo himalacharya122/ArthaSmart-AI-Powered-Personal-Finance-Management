@@ -14,7 +14,8 @@ const DEV_API_URL = Platform.select({
 });
 
 // For physical device testing via Expo Go, replace with LAN IP:
-// e.g., 'http://192.168.1.102:8000'
+// home 'http://192.168.1.102:8000'
+// college ipv4 address = 172.22.18.220
 export const API_BASE_URL = __DEV__
   ? 'http://192.168.1.102:8000'
   : 'https://api.arthasmart.com';
@@ -64,6 +65,8 @@ export const SCREEN_NAMES = {
   CATEGORIES: 'Categories',
   EXPORT_DATA: 'ExportData',
   ABOUT: 'About',
+  PRIVACY_POLICY: 'PrivacyPolicy',
+  TERMS_OF_SERVICE: 'TermsOfService',
 };
 
 export const CATEGORY_ICONS = {
