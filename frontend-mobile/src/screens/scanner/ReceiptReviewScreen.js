@@ -1,0 +1,625 @@
+/**
+ * ReceiptReviewScreen, Review and edit OCR-extracted receipt data.
+ *
+ * - Editable fields: merchant, amount, date, category, notes
+ * - Line items list from OCR
+ * - AI category suggestion banner
+ * - Save as expense → calls createExpense API
+ * - Save receipt locally for history
+ */
+import { useState, useEffect, useMemo } from 'react';
+import {
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
+  Image, Modal, Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialIcons } from '@expo/vector-icons';
+import { colors } from '../../theme/colors';
+import { typography } from '../../theme/typography';
+import { spacing, borderRadius, shadow } from '../../theme/spacing';
+import { SCREEN_NAMES, CATEGORY_ICONS } from '../../utils/constants';
+import { formatCurrency } from '../../utils/format';
+import { createExpense, getCategories } from '../../services/transactions';
+import { useAppStore } from '../../store/appStore';
+
+let AsyncStorage;
+try { AsyncStorage = require('@react-native-async-storage/async-storage').default; } catch { AsyncStorage = null; }
+const RECEIPTS_STORAGE_KEY = 'arthasmart_receipts';
+
+const DEFAULT_CATEGORIES = [
+  'Food & Dining', 'Groceries', 'Transport', 'Shopping',
+  'Utilities', 'Health', 'Education', 'Entertainment', 'Rent', 'Other',
+];
+
+export function ReceiptReviewScreen({ navigation, route }) {
+  const { receiptData, imageUri, source, isFromHistory } = route.params;
+  const showToast = useAppStore((s) => s.showToast);
+
+  // Editable fields
+  const [merchant, setMerchant] = useState(receiptData?.merchant || '');
+  const [amount, setAmount] = useState(receiptData?.amount ? String(receiptData.amount) : '');
+  const [date, setDate] = useState(receiptData?.date || new Date().toISOString().split('T')[0]);
+  const [category, setCategory] = useState(receiptData?.category || 'Other');
+  const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [showRawText, setShowRawText] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  const [categoriesMap, setCategoriesMap] = useState({}); // { name -> id }
+
+  const items = receiptData?.items || [];
+  const aiCategory = receiptData?.category;
+  const hasAiSuggestion = aiCategory && aiCategory !== 'Other' && aiCategory !== category;
+
+  const parsedAmount = parseFloat(amount) || 0;
+
+  // Fetch backend categories to get name→id mapping
+  useEffect(() => {
+    getCategories('expense')
+      .then((res) => {
+        const results = res.results || res || [];
+        const map = {};
+        results.forEach((c) => { map[c.name] = c.id; });
+        setCategoriesMap(map);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Normalize OCR date to YYYY-MM-DD
+  const normalizeDate = (raw) => {
+    if (!raw) return new Date().toISOString().split('T')[0];
+    // Already YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    // MM/DD/YYYY or DD/MM/YYYY — try to parse
+    const parts = raw.replace(/[.\-]/g, '/').split('/');
+    if (parts.length === 3) {
+      const [a, b, c] = parts.map(Number);
+      // YYYY/MM/DD
+      if (a > 1000) return `${a}-${String(b).padStart(2, '0')}-${String(c).padStart(2, '0')}`;
+      // DD/MM/YYYY or MM/DD/YYYY — assume MM/DD/YYYY
+      if (c > 1000) {
+        const month = a <= 12 ? a : b;
+        const day = a <= 12 ? b : a;
+        return `${c}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      }
+    }
+    return new Date().toISOString().split('T')[0];
+  };
+
+  // Save receipt to local storage
+  const saveReceiptLocally = async (savedAsExpense = false) => {
+    try {
+      if (!AsyncStorage) return;
+      const stored = await AsyncStorage.getItem(RECEIPTS_STORAGE_KEY);
+      const all = stored ? JSON.parse(stored) : [];
+      const receipt = {
+        id: `receipt_${Date.now()}`,
+        merchant,
+        amount: parsedAmount,
+        date,
+        category,
+        notes,
+        rawText: receiptData?.rawText || '',
+        imageUri,
+        source,
+        savedAsExpense,
+        savedAt: new Date().toISOString(),
+        ocrConfidence: receiptData?.ocrConfidence,
+      };
+      all.unshift(receipt);
+      // Keep max 100 receipts
+      if (all.length > 100) all.length = 100;
+      await AsyncStorage.setItem(RECEIPTS_STORAGE_KEY, JSON.stringify(all));
+    } catch (err) {
+      console.warn('Failed to save receipt locally:', err);
+    }
+  };
+
+  // Save as expense
+  const handleSaveAsExpense = async () => {
+    if (!parsedAmount || parsedAmount <= 0) {
+      showToast('Please enter a valid amount', 'error');
+      return;
+    }
+    setShowConfirmModal(false);
+    setSaving(true);
+    try {
+      const normalizedDate = normalizeDate(date);
+      const payload = {
+        amount: parsedAmount.toFixed(2),
+        description: merchant || 'Scanned Receipt',
+        date: normalizedDate,
+        currency: 'NPR',
+        merchant: merchant || undefined,
+      };
+      // Map category name → backend ID
+      const catId = categoriesMap[category];
+      if (catId) payload.category_id = catId;
+      // Add notes as metadata since backend has no notes field
+      if (notes) payload.metadata = { notes, source: source || 'ocr' };
+
+      await createExpense(payload);
+      await saveReceiptLocally(true);
+      showToast('Expense saved successfully!', 'success');
+      navigation.popToTop();
+    } catch (err) {
+      // Show detailed backend validation errors
+      const data = err?.response?.data;
+      let errMsg = 'Failed to save expense';
+      if (data) {
+        if (typeof data === 'string') errMsg = data;
+        else if (data.detail) errMsg = data.detail;
+        else if (data.error) errMsg = data.error;
+        else {
+          // Collect field-level errors
+          const fieldErrors = Object.entries(data)
+            .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+            .join('\n');
+          if (fieldErrors) errMsg = fieldErrors;
+        }
+      }
+      showToast(errMsg, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Save as draft (local only)
+  const handleSaveDraft = async () => {
+    await saveReceiptLocally(false);
+    showToast('Receipt saved as draft', 'success');
+    navigation.popToTop();
+  };
+
+  // Discard
+  const handleDiscard = () => {
+    Alert.alert('Discard Receipt?', 'This scanned receipt will not be saved.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Discard', style: 'destructive', onPress: () => navigation.popToTop() },
+    ]);
+  };
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleDiscard} style={styles.backBtn}>
+            <MaterialIcons name="close" size={24} color={colors.primary[800]} />
+          </TouchableOpacity>
+          <Text style={typography.h3}>Review Receipt</Text>
+          <TouchableOpacity onPress={() => setShowRawText(true)} style={styles.backBtn}>
+            <MaterialIcons name="text-snippet" size={22} color={colors.primary[600]} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* Receipt image thumbnail */}
+          {imageUri && (
+            <View style={styles.imageRow}>
+              <Image source={{ uri: imageUri }} style={styles.thumbImage} resizeMode="cover" />
+              <View style={styles.imageInfo}>
+                <Text style={styles.imageInfoTitle}>Receipt scanned</Text>
+                <Text style={styles.imageInfoSub}>
+                  {source === 'camera' ? 'Captured with camera' : 'Selected from gallery'}
+                </Text>
+                {receiptData?.ocrConfidence != null && (
+                  <View style={styles.confidenceBadge}>
+                    <MaterialIcons name="verified" size={14} color={colors.accent[600]} />
+                    <Text style={styles.confidenceText}>
+                      OCR confidence: {Math.round(receiptData.ocrConfidence)}%
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
+          {/* AI Category Suggestion */}
+          {hasAiSuggestion && (
+            <TouchableOpacity
+              style={styles.aiSuggestion}
+              activeOpacity={0.7}
+              onPress={() => setCategory(aiCategory)}
+            >
+              <MaterialIcons name="auto-awesome" size={18} color={colors.accent[700]} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.aiSuggestionLabel}>AI Suggestion</Text>
+                <Text style={styles.aiSuggestionText}>
+                  Looks like <Text style={{ fontWeight: '700' }}>{aiCategory}</Text>
+                </Text>
+              </View>
+              <View style={styles.acceptBtn}>
+                <Text style={styles.acceptBtnText}>Accept</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* Editable fields */}
+          <View style={styles.fieldsCard}>
+            {/* Merchant */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>Merchant / Store</Text>
+              <View style={styles.inputRow}>
+                <MaterialIcons name="store" size={20} color={colors.primary[400]} />
+                <TextInput
+                  style={styles.fieldInput}
+                  value={merchant}
+                  onChangeText={setMerchant}
+                  placeholder="e.g. Bhatbhateni"
+                  placeholderTextColor={colors.primary[300]}
+                />
+              </View>
+            </View>
+
+            {/* Amount */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>Total Amount</Text>
+              <View style={styles.inputRow}>
+                <Text style={styles.currencyPrefix}>Rs</Text>
+                <TextInput
+                  style={[styles.fieldInput, styles.amountInput]}
+                  value={amount}
+                  onChangeText={setAmount}
+                  placeholder="0.00"
+                  placeholderTextColor={colors.primary[300]}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+            </View>
+
+            {/* Date */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>Date</Text>
+              <View style={styles.inputRow}>
+                <MaterialIcons name="calendar-today" size={20} color={colors.primary[400]} />
+                <TextInput
+                  style={styles.fieldInput}
+                  value={date}
+                  onChangeText={setDate}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor={colors.primary[300]}
+                />
+              </View>
+            </View>
+
+            {/* Category */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>Category</Text>
+              <TouchableOpacity
+                style={styles.inputRow}
+                activeOpacity={0.7}
+                onPress={() => setShowCategoryPicker(true)}
+              >
+                <MaterialIcons
+                  name={CATEGORY_ICONS[category] || 'label'}
+                  size={20}
+                  color={colors.primary[400]}
+                />
+                <Text style={[styles.fieldInput, { paddingVertical: 2 }]}>{category}</Text>
+                <MaterialIcons name="chevron-right" size={20} color={colors.primary[300]} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Notes */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>Notes (optional)</Text>
+              <View style={[styles.inputRow, { alignItems: 'flex-start' }]}>
+                <MaterialIcons name="notes" size={20} color={colors.primary[400]} style={{ marginTop: 2 }} />
+                <TextInput
+                  style={[styles.fieldInput, { minHeight: 48, textAlignVertical: 'top' }]}
+                  value={notes}
+                  onChangeText={setNotes}
+                  placeholder="Add a note about this receipt"
+                  placeholderTextColor={colors.primary[300]}
+                  multiline
+                  numberOfLines={2}
+                />
+              </View>
+            </View>
+          </View>
+
+          {/* Line items */}
+          {items.length > 0 && (
+            <View style={styles.itemsCard}>
+              <Text style={styles.itemsTitle}>Extracted Items ({items.length})</Text>
+              {items.map((item, i) => (
+                <View key={`item-${i}`} style={styles.lineItem}>
+                  <Text style={styles.lineItemName} numberOfLines={1}>{item.name}</Text>
+                  <Text style={styles.lineItemPrice}>{formatCurrency(item.price)}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Spacer for buttons */}
+          <View style={{ height: 120 }} />
+        </ScrollView>
+
+        {/* Bottom action bar */}
+        <View style={styles.bottomBar}>
+          <TouchableOpacity style={styles.draftBtn} activeOpacity={0.7} onPress={handleSaveDraft}>
+            <MaterialIcons name="save-alt" size={20} color={colors.primary[600]} />
+            <Text style={styles.draftBtnText}>Save Draft</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.saveBtn, (!parsedAmount || saving) && { opacity: 0.5 }]}
+            activeOpacity={0.8}
+            onPress={() => setShowConfirmModal(true)}
+            disabled={!parsedAmount || saving}
+          >
+            {saving ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <>
+                <MaterialIcons name="check" size={20} color={colors.white} />
+                <Text style={styles.saveBtnText}>Save as Expense</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Category Picker Modal */}
+        <Modal visible={showCategoryPicker} transparent animationType="slide">
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowCategoryPicker(false)}
+          >
+            <View style={styles.pickerSheet}>
+              <View style={styles.sheetHandle} />
+              <Text style={styles.sheetTitle}>Select Category</Text>
+              <ScrollView style={{ maxHeight: 400 }}>
+                {DEFAULT_CATEGORIES.map((cat) => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[styles.catOption, category === cat && styles.catOptionActive]}
+                    activeOpacity={0.7}
+                    onPress={() => { setCategory(cat); setShowCategoryPicker(false); }}
+                  >
+                    <MaterialIcons
+                      name={CATEGORY_ICONS[cat] || 'label'}
+                      size={22}
+                      color={category === cat ? colors.accent[600] : colors.primary[500]}
+                    />
+                    <Text style={[styles.catOptionText, category === cat && styles.catOptionTextActive]}>
+                      {cat}
+                    </Text>
+                    {category === cat && (
+                      <MaterialIcons name="check-circle" size={20} color={colors.accent[500]} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* Raw Text Modal */}
+        <Modal visible={showRawText} transparent animationType="slide">
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowRawText(false)}
+          >
+            <View style={styles.pickerSheet}>
+              <View style={styles.sheetHandle} />
+              <Text style={styles.sheetTitle}>Raw OCR Text</Text>
+              <ScrollView style={{ maxHeight: 400 }}>
+                <Text style={styles.rawText}>{receiptData?.rawText || 'No text extracted'}</Text>
+              </ScrollView>
+              <TouchableOpacity
+                style={styles.closeSheetBtn}
+                onPress={() => setShowRawText(false)}
+              >
+                <Text style={styles.closeSheetBtnText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* Confirm Save Modal */}
+        <Modal visible={showConfirmModal} transparent animationType="fade">
+          <View style={styles.confirmOverlay}>
+            <View style={styles.confirmCard}>
+              <View style={styles.confirmIcon}>
+                <MaterialIcons name="receipt-long" size={32} color={colors.accent[600]} />
+              </View>
+              <Text style={styles.confirmTitle}>Save as Expense?</Text>
+              <View style={styles.confirmSummary}>
+                <View style={styles.confirmRow}>
+                  <Text style={styles.confirmLabel}>Merchant</Text>
+                  <Text style={styles.confirmValue}>{merchant || '—'}</Text>
+                </View>
+                <View style={styles.confirmRow}>
+                  <Text style={styles.confirmLabel}>Amount</Text>
+                  <Text style={[styles.confirmValue, { fontWeight: '700', color: colors.danger[500] }]}>
+                    {formatCurrency(parsedAmount)}
+                  </Text>
+                </View>
+                <View style={styles.confirmRow}>
+                  <Text style={styles.confirmLabel}>Category</Text>
+                  <Text style={styles.confirmValue}>{category}</Text>
+                </View>
+                <View style={styles.confirmRow}>
+                  <Text style={styles.confirmLabel}>Date</Text>
+                  <Text style={styles.confirmValue}>{date}</Text>
+                </View>
+              </View>
+              <View style={styles.confirmActions}>
+                <TouchableOpacity
+                  style={styles.confirmCancelBtn}
+                  onPress={() => setShowConfirmModal(false)}
+                >
+                  <Text style={styles.confirmCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.confirmSaveBtn} onPress={handleSaveAsExpense}>
+                  <MaterialIcons name="check" size={18} color={colors.white} />
+                  <Text style={styles.confirmSaveText}>Confirm</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.primary[50] },
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg, paddingVertical: spacing.sm,
+  },
+  backBtn: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary[100],
+    alignItems: 'center', justifyContent: 'center',
+  },
+  scrollContent: { flex: 1, paddingHorizontal: spacing.lg },
+
+  // Image row
+  imageRow: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white,
+    borderRadius: borderRadius.md, padding: spacing.sm + 2, marginBottom: spacing.md, ...shadow.sm,
+  },
+  thumbImage: { width: 60, height: 72, borderRadius: borderRadius.sm },
+  imageInfo: { flex: 1, marginLeft: spacing.md },
+  imageInfoTitle: { ...typography.body, fontWeight: '600', fontSize: 14 },
+  imageInfoSub: { ...typography.caption, marginTop: 2 },
+  confidenceBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: spacing.xs,
+    backgroundColor: colors.accent[50], paddingHorizontal: spacing.sm, paddingVertical: 2,
+    borderRadius: borderRadius.sm, alignSelf: 'flex-start',
+  },
+  confidenceText: { fontSize: 11, fontWeight: '600', color: colors.accent[700] },
+
+  // AI Suggestion
+  aiSuggestion: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    backgroundColor: colors.accent[50], borderRadius: borderRadius.md,
+    padding: spacing.md, marginBottom: spacing.md,
+    borderWidth: 1, borderColor: colors.accent[200],
+  },
+  aiSuggestionLabel: { fontSize: 10, fontWeight: '700', color: colors.accent[600], textTransform: 'uppercase', letterSpacing: 0.5 },
+  aiSuggestionText: { ...typography.bodySmall, color: colors.accent[800] },
+  acceptBtn: {
+    backgroundColor: colors.accent[600], paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.xs, borderRadius: borderRadius.sm,
+  },
+  acceptBtnText: { ...typography.buttonSmall, color: colors.white },
+
+  // Fields card
+  fieldsCard: {
+    backgroundColor: colors.white, borderRadius: borderRadius.lg,
+    padding: spacing.md, ...shadow.sm,
+  },
+  fieldGroup: { marginBottom: spacing.md },
+  fieldLabel: { ...typography.label, marginBottom: spacing.xs },
+  inputRow: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    backgroundColor: colors.primary[50], borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+    borderWidth: 1, borderColor: colors.primary[200],
+  },
+  fieldInput: { flex: 1, ...typography.body, fontSize: 15, color: colors.primary[800], padding: 0 },
+  currencyPrefix: { ...typography.body, fontWeight: '700', color: colors.primary[500] },
+  amountInput: { fontSize: 18, fontWeight: '600' },
+
+  // Line items
+  itemsCard: {
+    backgroundColor: colors.white, borderRadius: borderRadius.lg,
+    padding: spacing.md, marginTop: spacing.md, ...shadow.sm,
+  },
+  itemsTitle: { ...typography.label, fontSize: 14, marginBottom: spacing.sm },
+  lineItem: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: spacing.sm, borderBottomWidth: 0.5, borderBottomColor: colors.primary[100],
+  },
+  lineItemName: { ...typography.bodySmall, flex: 1, marginRight: spacing.sm },
+  lineItemPrice: { ...typography.bodySmall, fontWeight: '600', color: colors.primary[800] },
+
+  // Bottom bar
+  bottomBar: {
+    flexDirection: 'row', gap: spacing.md, paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md, backgroundColor: colors.white,
+    borderTopWidth: 0.5, borderTopColor: colors.primary[200], ...shadow.md,
+  },
+  draftBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs,
+    paddingVertical: spacing.sm + 2, paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md, borderWidth: 1.5, borderColor: colors.primary[300],
+  },
+  draftBtnText: { ...typography.button, color: colors.primary[600] },
+  saveBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs,
+    paddingVertical: spacing.sm + 4, backgroundColor: colors.primary[800],
+    borderRadius: borderRadius.md,
+  },
+  saveBtnText: { ...typography.button, color: colors.white },
+
+  // Modals
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  pickerSheet: {
+    backgroundColor: colors.white, borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl, padding: spacing.lg, paddingBottom: spacing.xxl,
+  },
+  sheetHandle: {
+    width: 36, height: 4, borderRadius: 2, backgroundColor: colors.primary[200],
+    alignSelf: 'center', marginBottom: spacing.md,
+  },
+  sheetTitle: { ...typography.h3, marginBottom: spacing.md },
+  catOption: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+    paddingVertical: spacing.sm + 2, paddingHorizontal: spacing.sm,
+    borderRadius: borderRadius.md, marginBottom: 2,
+  },
+  catOptionActive: { backgroundColor: colors.accent[50] },
+  catOptionText: { ...typography.body, flex: 1 },
+  catOptionTextActive: { color: colors.accent[700], fontWeight: '600' },
+  rawText: {
+    ...typography.bodySmall, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    backgroundColor: colors.primary[50], padding: spacing.md, borderRadius: borderRadius.md,
+    lineHeight: 20,
+  },
+  closeSheetBtn: {
+    alignItems: 'center', paddingVertical: spacing.sm + 2, marginTop: spacing.md,
+    backgroundColor: colors.primary[100], borderRadius: borderRadius.md,
+  },
+  closeSheetBtnText: { ...typography.button, color: colors.primary[600] },
+
+  // Confirm modal
+  confirmOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  confirmCard: {
+    width: '85%', backgroundColor: colors.white, borderRadius: borderRadius.xl,
+    padding: spacing.lg, alignItems: 'center', ...shadow.lg,
+  },
+  confirmIcon: {
+    width: 60, height: 60, borderRadius: 30, backgroundColor: colors.accent[50],
+    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
+  },
+  confirmTitle: { ...typography.h3, marginBottom: spacing.md },
+  confirmSummary: { width: '100%', marginBottom: spacing.lg },
+  confirmRow: {
+    flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing.sm,
+    borderBottomWidth: 0.5, borderBottomColor: colors.primary[100],
+  },
+  confirmLabel: { ...typography.bodySmall, color: colors.primary[500] },
+  confirmValue: { ...typography.body, fontWeight: '500', fontSize: 14 },
+  confirmActions: { flexDirection: 'row', gap: spacing.md, width: '100%' },
+  confirmCancelBtn: {
+    flex: 1, alignItems: 'center', paddingVertical: spacing.sm + 2,
+    borderRadius: borderRadius.md, borderWidth: 1.5, borderColor: colors.primary[300],
+  },
+  confirmCancelText: { ...typography.button, color: colors.primary[600] },
+  confirmSaveBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs,
+    paddingVertical: spacing.sm + 2, backgroundColor: colors.accent[600],
+    borderRadius: borderRadius.md,
+  },
+  confirmSaveText: { ...typography.button, color: colors.white },
+});
