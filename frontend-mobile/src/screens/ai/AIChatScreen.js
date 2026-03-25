@@ -1,5 +1,5 @@
 /**
- * AI Chat — Conversation screen with message bubbles, action cards, voice input.
+ * AI Chat, Conversation screen with message bubbles, action cards, voice input.
  */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
@@ -21,13 +21,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { colors, typography, spacing, borderRadius, shadow } from '../../theme';
-import { formatCurrency } from '../../utils/format';
+import { formatCurrency, formatRelativeDate } from '../../utils/format';
 import { SCREEN_NAMES } from '../../utils/constants';
 import { useAppStore } from '../../store/appStore';
 import * as chatService from '../../services/chat';
 import { Button } from '../../components/common/Button';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 
+// expo-av
 let Audio;
 try {
   Audio = require('expo-av').Audio;
@@ -55,7 +56,15 @@ export function AIChatScreen({ navigation, route }) {
   const [recording, setRecording] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
+  const [recentChats, setRecentChats] = useState([]);
   const flatListRef = useRef(null);
+
+  // Load recent conversations for the empty state
+  useEffect(() => {
+    chatService.getConversations({ ordering: '-updated_at', page_size: 4 })
+      .then((res) => setRecentChats(res.results || []))
+      .catch(() => {});
+  }, []);
 
   // Load conversation history
   useEffect(() => {
@@ -73,7 +82,7 @@ export function AIChatScreen({ navigation, route }) {
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
   }, []);
 
-  /* ────────── Send Message ────────── */
+  /* Send Message */
   const handleSend = async (text) => {
     const msg = (text || input).trim();
     if (!msg || sending || !conversationId) return;
@@ -103,7 +112,7 @@ export function AIChatScreen({ navigation, route }) {
     }
   };
 
-  /* ────────── Voice Recording ────────── */
+  /* Voice Recording (expo-av) */
   const startRecording = async () => {
     if (!Audio) {
       showToast('Audio not available on this device', 'error');
@@ -125,6 +134,7 @@ export function AIChatScreen({ navigation, route }) {
       setRecording(rec);
       setIsRecording(true);
     } catch (err) {
+      console.warn('Recording error:', err);
       showToast('Failed to start recording', 'error');
     }
   };
@@ -162,7 +172,7 @@ export function AIChatScreen({ navigation, route }) {
     }
   };
 
-  /* ────────── Actions ────────── */
+  /* Actions */
   const handleConfirm = async (messageId) => {
     try {
       const res = await chatService.confirmAction(conversationId, messageId);
@@ -183,7 +193,7 @@ export function AIChatScreen({ navigation, route }) {
     }
   };
 
-  /* ────────── Menu Actions ────────── */
+  /* Menu Actions */
   const handleDeleteConversation = () => {
     setMenuVisible(false);
     Alert.alert(
@@ -224,7 +234,7 @@ export function AIChatScreen({ navigation, route }) {
     );
   };
 
-  /* ────────── Render Message ────────── */
+  /* Render Message */
   const renderMessage = ({ item: msg }) => {
     const isUser = msg.role === 'user';
     const time = msg.created_at ? format(new Date(msg.created_at), 'h:mm a') : '';
@@ -393,6 +403,27 @@ export function AIChatScreen({ navigation, route }) {
               </View>
               <Text style={styles.emptyChatTitle}>Start a conversation</Text>
               <Text style={styles.emptyChatDesc}>Ask about your spending, log transactions, or get financial advice.</Text>
+              {recentChats.length > 0 && (
+                <View style={styles.recentSection}>
+                  <Text style={styles.recentLabel}>RECENT CHATS</Text>
+                  {recentChats.map((chat) => (
+                    <TouchableOpacity
+                      key={chat.id}
+                      style={styles.recentItem}
+                      onPress={() => navigation.replace(SCREEN_NAMES.AI_CHAT, { conversationId: chat.id })}
+                    >
+                      <MaterialIcons name="chat-bubble-outline" size={16} color={colors.primary[400]} />
+                      <View style={styles.recentInfo}>
+                        <Text style={styles.recentTitle} numberOfLines={1}>{chat.title || 'Conversation'}</Text>
+                        <Text style={styles.recentTime}>
+                          {chat.last_message_at ? formatRelativeDate(chat.last_message_at) : formatRelativeDate(chat.created_at)}
+                        </Text>
+                      </View>
+                      <MaterialIcons name="chevron-right" size={18} color={colors.primary[300]} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
           }
         />
@@ -555,4 +586,12 @@ const styles = StyleSheet.create({
   emptyChatIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.primary[50], alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
   emptyChatTitle: { ...typography.h3, marginBottom: spacing.xs },
   emptyChatDesc: { ...typography.bodySmall, color: colors.primary[500], textAlign: 'center', maxWidth: 260 },
+
+  // Recent chats in empty state
+  recentSection: { width: '100%', marginTop: spacing.xl, paddingHorizontal: spacing.sm },
+  recentLabel: { ...typography.caption, fontWeight: '700', color: colors.primary[400], letterSpacing: 0.5, marginBottom: spacing.sm },
+  recentItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary[50], borderRadius: borderRadius.md, padding: spacing.sm + 2, marginBottom: spacing.xs, gap: spacing.sm },
+  recentInfo: { flex: 1 },
+  recentTitle: { ...typography.bodySmall, color: colors.primary[700], fontWeight: '500', fontSize: 13 },
+  recentTime: { ...typography.caption, color: colors.primary[400], fontSize: 10, marginTop: 1 },
 });

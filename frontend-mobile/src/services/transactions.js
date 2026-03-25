@@ -86,3 +86,25 @@ export async function getCategories(type) {
   const { data } = await api.get('/api/v1/categories/', { params });
   return data;
 }
+
+/** Create a custom category. */
+export async function createCategory(payload) {
+  const { data } = await api.post('/api/v1/categories/', payload);
+  return data;
+}
+
+/** Update a category (rename, reorder). */
+export async function updateCategory(id, payload) {
+  const { data } = await api.patch(`/api/v1/categories/${id}/`, payload);
+  return data;
+}
+
+/** Delete a custom category. */
+export async function deleteCategory(id) {
+  await api.delete(`/api/v1/categories/${id}/`);
+}
+
+/** Delete user account. */
+export async function deleteAccount() {
+  await api.delete('/api/v1/auth/profile/');
+}

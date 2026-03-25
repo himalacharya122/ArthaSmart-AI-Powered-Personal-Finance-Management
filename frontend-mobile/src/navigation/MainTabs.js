@@ -9,11 +9,11 @@
 import { StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
-import { HomeScreen } from '../screens/home/HomeScreen';
+import { HomeStack } from './HomeStack';
 import { TransactionsStack } from './TransactionsStack';
-import { ScannerScreen } from '../screens/scanner/ScannerScreen';
+import { ScannerStack } from './ScannerStack';
 import { ChatStack } from './ChatStack';
-import { SettingsScreen } from '../screens/settings/SettingsScreen';
+import { SettingsStack } from './SettingsStack';
 import { SCREEN_NAMES } from '../utils/constants';
 import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
@@ -36,7 +36,7 @@ export function MainTabs() {
     >
       <Tab.Screen
         name={SCREEN_NAMES.HOME_TAB}
-        component={HomeScreen}
+        component={HomeStack}
         options={{
           tabBarLabel: 'Home',
           tabBarIcon: ({ color, size }) => (
@@ -56,7 +56,7 @@ export function MainTabs() {
       />
       <Tab.Screen
         name={SCREEN_NAMES.SCAN_TAB}
-        component={ScannerScreen}
+        component={ScannerStack}
         options={{
           tabBarLabel: 'Scan',
           tabBarIcon: ({ color, size }) => (
@@ -76,7 +76,7 @@ export function MainTabs() {
       />
       <Tab.Screen
         name={SCREEN_NAMES.SETTINGS_TAB}
-        component={SettingsScreen}
+        component={SettingsStack}
         options={{
           tabBarLabel: 'Settings',
           tabBarIcon: ({ color, size }) => (
