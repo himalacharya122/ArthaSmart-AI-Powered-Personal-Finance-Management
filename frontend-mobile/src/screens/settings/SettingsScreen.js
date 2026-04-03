@@ -4,7 +4,7 @@
  * Sections: Profile header, Account & Finance, AI Suggestions, Notifications,
  * Security, Data Management, Legal & About, Danger Zone (delete + logout).
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import { colors, typography, spacing, borderRadius } from '../../theme';
 import { SCREEN_NAMES } from '../../utils/constants';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/appStore';
+import * as biometricService from '../../services/biometric';
 
 function SettingsRow({ icon, label, onPress, rightElement, danger }) {
   return (
@@ -46,7 +47,38 @@ function SectionHeader({ label }) {
 export function SettingsScreen({ navigation }) {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const biometricEnabled = useAuthStore((s) => s.biometricEnabled);
+  const setBiometricEnabled = useAuthStore((s) => s.setBiometricEnabled);
   const showToast = useAppStore((s) => s.showToast);
+
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricLabel, setBiometricLabel] = useState('Biometric');
+
+  useEffect(() => {
+    (async () => {
+      const support = await biometricService.checkBiometricSupport();
+      setBiometricAvailable(support.available && support.enrolled);
+      if (support.available) {
+        const label = await biometricService.getBiometricLabel();
+        setBiometricLabel(label);
+      }
+    })();
+  }, []);
+
+  const handleBiometricToggle = async (value) => {
+    if (value) {
+      const result = await biometricService.authenticate(`Enable ${biometricLabel} for ArthaSmart`);
+      if (result.success) {
+        await setBiometricEnabled(true);
+        showToast(`${biometricLabel} lock enabled`, 'success');
+      } else {
+        showToast('Authentication failed. Try again.', 'error');
+      }
+    } else {
+      await setBiometricEnabled(false);
+      showToast(`${biometricLabel} lock disabled`, 'info');
+    }
+  };
 
   // Toggle states (local, would persist to backend/AsyncStorage in production)
   const [budgetAlerts, setBudgetAlerts] = useState(true);
@@ -164,6 +196,20 @@ export function SettingsScreen({ navigation }) {
         {/* Security */}
         <SectionHeader label="SECURITY" />
         <View style={styles.section}>
+          {biometricAvailable && (
+            <SettingsRow
+              icon="fingerprint"
+              label={`${biometricLabel} unlock`}
+              rightElement={
+                <Switch
+                  value={biometricEnabled}
+                  onValueChange={handleBiometricToggle}
+                  trackColor={{ true: colors.accent[400] }}
+                  thumbColor={colors.white}
+                />
+              }
+            />
+          )}
           <SettingsRow icon="lock-outline" label="Change password" onPress={() => showToast('Password change coming soon', 'info')} />
           <SettingsRow icon="security" label="Two-Factor Auth (2FA)" onPress={() => showToast('2FA coming soon', 'info')} />
           <SettingsRow icon="devices" label="Active sessions" onPress={() => showToast('Session management coming soon', 'info')} />

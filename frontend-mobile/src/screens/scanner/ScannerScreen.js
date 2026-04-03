@@ -21,14 +21,16 @@ import { spacing, borderRadius, shadow } from '../../theme/spacing';
 import { SCREEN_NAMES } from '../../utils/constants';
 import { formatRelativeDate, formatCurrency } from '../../utils/format';
 import { useAppStore } from '../../store/appStore';
+import { useAuthStore } from '../../store/authStore';
 
-// Local receipt storage key
-const RECEIPTS_STORAGE_KEY = 'arthasmart_receipts';
+// Per-user receipt storage key
 let AsyncStorage;
 try { AsyncStorage = require('@react-native-async-storage/async-storage').default; } catch { AsyncStorage = null; }
 
 export function ScannerScreen({ navigation }) {
   const showToast = useAppStore((s) => s.showToast);
+  const user = useAuthStore((s) => s.user);
+  const RECEIPTS_STORAGE_KEY = `arthasmart_receipts_${user?.id || 'guest'}`;
   const [recentScans, setRecentScans] = useState([]);
   const [loadingRecents, setLoadingRecents] = useState(true);
   const [picking, setPicking] = useState(false);

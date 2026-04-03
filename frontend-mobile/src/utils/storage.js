@@ -9,6 +9,10 @@ const KEYS = {
   USER: '@arthasmart/user',
   ONBOARDING_DONE: '@arthasmart/onboarding_done',
   PREFERENCES: '@arthasmart/preferences',
+  BIOMETRIC_ENABLED: '@arthasmart/biometric_enabled',
+  // Biometric re-login: persists across logout so user can re-auth with face/fingerprint
+  BIOMETRIC_REFRESH_TOKEN: '@arthasmart/biometric_refresh_token',
+  BIOMETRIC_USER: '@arthasmart/biometric_user',
 };
 
 export const storage = {
@@ -48,6 +52,37 @@ export const storage = {
   },
   async setOnboardingDone() {
     return AsyncStorage.setItem(KEYS.ONBOARDING_DONE, 'true');
+  },
+
+  // Biometric
+  async isBiometricEnabled() {
+    const val = await AsyncStorage.getItem(KEYS.BIOMETRIC_ENABLED);
+    return val === 'true';
+  },
+  async setBiometricEnabled(enabled) {
+    return AsyncStorage.setItem(KEYS.BIOMETRIC_ENABLED, enabled ? 'true' : 'false');
+  },
+
+  // Biometric re-login tokens (survive logout for Face ID / fingerprint login)
+  async getBiometricRefreshToken() {
+    return AsyncStorage.getItem(KEYS.BIOMETRIC_REFRESH_TOKEN);
+  },
+  async setBiometricRefreshToken(token) {
+    return AsyncStorage.setItem(KEYS.BIOMETRIC_REFRESH_TOKEN, token);
+  },
+  async getBiometricUser() {
+    const raw = await AsyncStorage.getItem(KEYS.BIOMETRIC_USER);
+    return raw ? JSON.parse(raw) : null;
+  },
+  async setBiometricUser(user) {
+    return AsyncStorage.setItem(KEYS.BIOMETRIC_USER, JSON.stringify(user));
+  },
+  async clearBiometricCredentials() {
+    await AsyncStorage.multiRemove([
+      KEYS.BIOMETRIC_REFRESH_TOKEN,
+      KEYS.BIOMETRIC_USER,
+      KEYS.BIOMETRIC_ENABLED,
+    ]);
   },
 
   // Preferences

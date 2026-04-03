@@ -1,6 +1,7 @@
 /**
  * About & Version, App info, build info, legal links, support.
  */
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -8,12 +9,15 @@ import {
   ScrollView,
   TouchableOpacity,
   Linking,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, typography, spacing, borderRadius } from '../../theme';
 import { SCREEN_NAMES } from '../../utils/constants';
 import { useAppStore } from '../../store/appStore';
+import { useAuthStore } from '../../store/authStore';
 
 const BUILD_INFO = [
   { label: 'VERSION', value: '1.0.0' },
@@ -35,6 +39,33 @@ const SUPPORT_ITEMS = [
 
 export function AboutScreen({ navigation }) {
   const showToast = useAppStore((s) => s.showToast);
+  const reset = useAuthStore((s) => s.reset);
+  const [tapCount, setTapCount] = useState(0);
+
+  // Dev tool: tap version badge 5 times --> option to reset app
+  const handleVersionTap = () => {
+    const next = tapCount + 1;
+    setTapCount(next);
+    if (next >= 5) {
+      setTapCount(0);
+      Alert.alert(
+        'Developer Options',
+        'Choose an action:',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Clear All Data (Reset)',
+            style: 'destructive',
+            onPress: async () => {
+              await AsyncStorage.clear();
+              reset();
+              showToast('All data cleared. Restart the app.', 'success');
+            },
+          },
+        ],
+      );
+    }
+  };
 
   const handlePress = (item) => {
     if (item.screen) {
@@ -67,10 +98,10 @@ export function AboutScreen({ navigation }) {
           </View>
           <Text style={styles.appName}>ArthaSmart</Text>
           <Text style={styles.appTagline}>AI-powered personal finance</Text>
-          <View style={styles.versionBadge}>
+          <TouchableOpacity style={styles.versionBadge} activeOpacity={0.7} onPress={handleVersionTap}>
             <View style={styles.versionDot} />
             <Text style={styles.versionText}>Version 1.0.0 · Up to date</Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Build Info */}

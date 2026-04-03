@@ -4,7 +4,7 @@
  * - Editable fields: merchant, amount, date, category, notes
  * - Line items list from OCR
  * - AI category suggestion banner
- * - Save as expense → calls createExpense API
+ * - Save as expense --> calls createExpense API
  * - Save receipt locally for history
  */
 import { useState, useEffect, useMemo } from 'react';
@@ -21,19 +21,21 @@ import { SCREEN_NAMES, CATEGORY_ICONS } from '../../utils/constants';
 import { formatCurrency } from '../../utils/format';
 import { createExpense, getCategories } from '../../services/transactions';
 import { useAppStore } from '../../store/appStore';
-
-let AsyncStorage;
-try { AsyncStorage = require('@react-native-async-storage/async-storage').default; } catch { AsyncStorage = null; }
-const RECEIPTS_STORAGE_KEY = 'arthasmart_receipts';
+import { useAuthStore } from '../../store/authStore';
 
 const DEFAULT_CATEGORIES = [
   'Food & Dining', 'Groceries', 'Transport', 'Shopping',
   'Utilities', 'Health', 'Education', 'Entertainment', 'Rent', 'Other',
 ];
 
+let AsyncStorage;
+try { AsyncStorage = require('@react-native-async-storage/async-storage').default; } catch { AsyncStorage = null; }
+
 export function ReceiptReviewScreen({ navigation, route }) {
   const { receiptData, imageUri, source, isFromHistory } = route.params;
   const showToast = useAppStore((s) => s.showToast);
+  const user = useAuthStore((s) => s.user);
+  const RECEIPTS_STORAGE_KEY = `arthasmart_receipts_${user?.id || 'guest'}`;
 
   // Editable fields
   const [merchant, setMerchant] = useState(receiptData?.merchant || '');
@@ -77,7 +79,7 @@ export function ReceiptReviewScreen({ navigation, route }) {
       const [a, b, c] = parts.map(Number);
       // YYYY/MM/DD
       if (a > 1000) return `${a}-${String(b).padStart(2, '0')}-${String(c).padStart(2, '0')}`;
-      // DD/MM/YYYY or MM/DD/YYYY — assume MM/DD/YYYY
+      // DD/MM/YYYY or MM/DD/YYYY - assume MM/DD/YYYY
       if (c > 1000) {
         const month = a <= 12 ? a : b;
         const day = a <= 12 ? b : a;
@@ -141,8 +143,15 @@ export function ReceiptReviewScreen({ navigation, route }) {
 
       await createExpense(payload);
       await saveReceiptLocally(true);
-      showToast('Expense saved successfully!', 'success');
-      navigation.popToTop();
+      navigation.replace(SCREEN_NAMES.SUCCESS, {
+        type: 'receipt_saved',
+        data: {
+          merchant: merchant || 'Scanned Receipt',
+          amount: parsedAmount,
+          itemCount: items.length,
+          confidence: receiptData?.ocrConfidence,
+        },
+      });
     } catch (err) {
       // Show detailed backend validation errors
       const data = err?.response?.data;

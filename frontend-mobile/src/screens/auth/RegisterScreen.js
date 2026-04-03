@@ -42,7 +42,8 @@ export function RegisterScreen({ navigation }) {
     setLoading(true);
     try {
       await register({ firstName, lastName, email, password });
-      // Navigation happens automatically via RootNavigator
+      showToast('Account created! Check your email for a verification code.', 'success', 4000);
+      navigation.replace(SCREEN_NAMES.VERIFY_EMAIL, { email });
     } catch (error) {
       let message = 'Something went wrong. Please try again.';
 

@@ -14,10 +14,11 @@ import { useForm, Controller } from 'react-hook-form';
 import { MaterialIcons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { colors, typography, spacing, borderRadius, shadow } from '../../theme';
-import { CATEGORY_ICONS } from '../../utils/constants';
+import { CATEGORY_ICONS, SCREEN_NAMES } from '../../utils/constants';
 import { formatCurrency } from '../../utils/format';
 import { useAppStore } from '../../store/appStore';
 import * as txnService from '../../services/transactions';
+import { isOnline, enqueue } from '../../services/offline';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
 import { ConfirmModal } from '../../components/common/Modal';
@@ -133,13 +134,51 @@ export function AddExpenseScreen({ navigation, route }) {
       if (isEdit) {
         await txnService.updateExpense(editData.id, payload);
         showToast('Expense updated', 'success');
+        setShowConfirm(false);
+        navigation.goBack();
       } else {
-        await txnService.createExpense(payload);
-        showToast('Expense added', 'success');
+        if (isOnline()) {
+          await txnService.createExpense(payload);
+        } else {
+          await enqueue({ type: 'expense', payload });
+          showToast('Saved offline — will sync when connected', 'info', 3000);
+        }
+        setShowConfirm(false);
+        navigation.replace(SCREEN_NAMES.SUCCESS, {
+          type: 'expense_logged',
+          data: {
+            merchant: formData.merchant || formData.description,
+            amount: formData.amount,
+            category: selectedCategoryObj?.name || 'Other',
+            date: `Today · ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`,
+          },
+        });
       }
-      setShowConfirm(false);
-      navigation.goBack();
     } catch (error) {
+      // If network error, queue offline
+      if (!isOnline() || error?.message?.includes('Network Error')) {
+        const payload = {
+          amount: formData.amount,
+          description: formData.description,
+          merchant: formData.merchant,
+          date: formData.date,
+          category_id: selectedCategory,
+          currency: 'NPR',
+        };
+        await enqueue({ type: 'expense', payload });
+        showToast('Saved offline — will sync when connected', 'info', 3000);
+        setShowConfirm(false);
+        navigation.replace(SCREEN_NAMES.SUCCESS, {
+          type: 'expense_logged',
+          data: {
+            merchant: formData.merchant || formData.description,
+            amount: formData.amount,
+            category: selectedCategoryObj?.name || 'Other',
+            date: 'Pending sync',
+          },
+        });
+        return;
+      }
       const msg = error?.response?.data?.detail
         || error?.response?.data?.amount?.[0]
         || 'Failed to save expense. Please try again.';
