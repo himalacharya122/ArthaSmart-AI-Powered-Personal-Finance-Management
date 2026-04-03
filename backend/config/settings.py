@@ -199,6 +199,34 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_TIMEZONE = "Asia/Kathmandu"
 
+# Cache, use Redis if available, fall back to local memory in development
+REDIS_URL = config("REDIS_URL", default="redis://localhost:6379/0")
+if DEBUG:
+    # In development, use local memory cache so the app works without Redis
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "arthasmart-dev-cache",
+        }
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_URL,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            },
+        }
+    }
+
+# Google OAuth
+GOOGLE_CLIENT_IDS = [
+    config("GOOGLE_ANDROID_CLIENT_ID", default=""),
+    config("GOOGLE_IOS_CLIENT_ID", default=""),
+    config("GOOGLE_WEB_CLIENT_ID", default=""),
+]
+
 # Internationalization
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Asia/Kathmandu"

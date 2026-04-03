@@ -9,6 +9,9 @@ app_name = "users"
 urlpatterns = [
     # Auth
     path("register/", views.RegisterView.as_view(), name="register"),
+    path("verify-email/", views.VerifyEmailView.as_view(), name="verify-email"),
+    path("resend-verification/", views.ResendVerificationView.as_view(), name="resend-verification"),
+    path("google/", views.GoogleAuthView.as_view(), name="google-auth"),
     path("login/", views.LoginView.as_view(), name="login"),
     path("logout/", views.LogoutView.as_view(), name="logout"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token-refresh"),

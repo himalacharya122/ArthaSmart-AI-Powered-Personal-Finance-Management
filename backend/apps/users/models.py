@@ -1,6 +1,10 @@
 """Custom User model for ArthaSmart."""
+import random
+import string
+
 from django.contrib.auth.models import AbstractUser # type: ignore
 from django.db import models # type: ignore
+from django.utils import timezone # type: ignore
 
 
 class User(AbstractUser):
@@ -34,3 +38,40 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.email
+
+
+class EmailVerification(models.Model):
+    """Stores 6-digit verification codes sent via email after registration."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="email_verifications")
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = "email_verifications"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.email} — {self.code}"
+
+    @property
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+
+    @classmethod
+    def generate_code(cls):
+        """Generate a random 6-digit code."""
+        return "".join(random.choices(string.digits, k=6))
+
+    @classmethod
+    def create_for_user(cls, user):
+        """Create a new verification code for a user, invalidating old ones."""
+        cls.objects.filter(user=user, is_used=False).update(is_used=True)
+        code = cls.generate_code()
+        return cls.objects.create(
+            user=user,
+            code=code,
+            expires_at=timezone.now() + timezone.timedelta(minutes=15),
+        )
