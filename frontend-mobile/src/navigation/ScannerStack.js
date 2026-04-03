@@ -9,6 +9,7 @@ import { ScannerScreen } from '../screens/scanner/ScannerScreen';
 import { ScanProcessingScreen } from '../screens/scanner/ScanProcessingScreen';
 import { ReceiptReviewScreen } from '../screens/scanner/ReceiptReviewScreen';
 import { ReceiptHistoryScreen } from '../screens/scanner/ReceiptHistoryScreen';
+import { SuccessScreen } from '../screens/common/SuccessScreen';
 import { SCREEN_NAMES } from '../utils/constants';
 
 const Stack = createStackNavigator();
@@ -20,6 +21,7 @@ export function ScannerStack() {
       <Stack.Screen name={SCREEN_NAMES.SCAN_PROCESSING} component={ScanProcessingScreen} />
       <Stack.Screen name={SCREEN_NAMES.SCAN_REVIEW} component={ReceiptReviewScreen} />
       <Stack.Screen name={SCREEN_NAMES.RECEIPTS_HISTORY} component={ReceiptHistoryScreen} />
+      <Stack.Screen name={SCREEN_NAMES.SUCCESS} component={SuccessScreen} />
     </Stack.Navigator>
   );
 }

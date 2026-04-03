@@ -14,10 +14,11 @@ import { useForm, Controller } from 'react-hook-form';
 import { MaterialIcons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { colors, typography, spacing, borderRadius } from '../../theme';
-import { CATEGORY_ICONS } from '../../utils/constants';
+import { CATEGORY_ICONS, SCREEN_NAMES } from '../../utils/constants';
 import { formatCurrency } from '../../utils/format';
 import { useAppStore } from '../../store/appStore';
 import * as txnService from '../../services/transactions';
+import { isOnline, enqueue } from '../../services/offline';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
 import { ConfirmModal } from '../../components/common/Modal';
@@ -127,13 +128,50 @@ export function AddIncomeScreen({ navigation, route }) {
       if (isEdit) {
         await txnService.updateIncome(editData.id, payload);
         showToast('Income updated', 'success');
+        setShowConfirm(false);
+        navigation.goBack();
       } else {
-        await txnService.createIncome(payload);
-        showToast('Income added', 'success');
+        if (isOnline()) {
+          await txnService.createIncome(payload);
+        } else {
+          await enqueue({ type: 'income', payload });
+          showToast('Saved offline — will sync when connected', 'info', 3000);
+        }
+        setShowConfirm(false);
+        navigation.replace(SCREEN_NAMES.SUCCESS, {
+          type: 'income_logged',
+          data: {
+            merchant: formData.source_name || formData.description,
+            amount: formData.amount,
+            category: selectedCategoryObj?.name || 'Other',
+            date: `Today · ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`,
+          },
+        });
       }
-      setShowConfirm(false);
-      navigation.goBack();
     } catch (error) {
+      if (!isOnline() || error?.message?.includes('Network Error')) {
+        const payload = {
+          amount: formData.amount,
+          source_name: formData.source_name,
+          description: formData.description,
+          date: formData.date,
+          category_id: selectedCategory,
+          currency: 'NPR',
+        };
+        await enqueue({ type: 'income', payload });
+        showToast('Saved offline — will sync when connected', 'info', 3000);
+        setShowConfirm(false);
+        navigation.replace(SCREEN_NAMES.SUCCESS, {
+          type: 'income_logged',
+          data: {
+            merchant: formData.source_name || formData.description,
+            amount: formData.amount,
+            category: selectedCategoryObj?.name || 'Other',
+            date: 'Pending sync',
+          },
+        });
+        return;
+      }
       const msg = error?.response?.data?.detail
         || error?.response?.data?.amount?.[0]
         || error?.response?.data?.source_name?.[0]

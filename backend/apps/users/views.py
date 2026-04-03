@@ -18,14 +18,17 @@ from rest_framework_simplejwt.exceptions import TokenError # type: ignore
 from apps.reports.models import AuditLog
 from apps.shared.utils import get_client_ip
 
-from .models import User
+from .models import User, EmailVerification
 from .serializers import (
+    EmailVerifySerializer,
+    GoogleAuthSerializer,
     LoginSerializer,
     LogoutSerializer,
     PasswordChangeSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
     RegisterSerializer,
+    ResendVerificationSerializer,
     UserProfileUpdateSerializer,
     UserSerializer,
     get_tokens_for_user,
@@ -37,7 +40,7 @@ logger = logging.getLogger(__name__)
 # Auth views
 
 class RegisterView(generics.CreateAPIView):
-    """POST /api/v1/auth/register/ — Create a new account."""
+    """POST /api/v1/auth/register/ — Create account and send verification email."""
 
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
@@ -56,12 +59,260 @@ class RegisterView(generics.CreateAPIView):
             user_agent=request.META.get("HTTP_USER_AGENT", ""),
         )
 
+        # Send verification email
+        verification = EmailVerification.create_for_user(user)
+        subject = "ArthaSmart — Verify Your Email"
+        message = (
+            f"Hi {user.first_name or user.username},\n\n"
+            f"Welcome to ArthaSmart! Your verification code is:\n\n"
+            f"    {verification.code}\n\n"
+            f"This code expires in 15 minutes.\n\n"
+            f"— ArthaSmart Team"
+        )
+        try:
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email],
+                fail_silently=False,
+            )
+            logger.info("Verification email sent to %s", user.email)
+        except Exception as exc:
+            logger.error("Failed to send verification email: %s", exc)
+
+        return Response(
+            {
+                "detail": "Account created. Please check your email for a verification code.",
+                "email": user.email,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class VerifyEmailView(APIView):
+    """POST /api/v1/auth/verify-email/ — Verify email with 6-digit code."""
+
+    permission_classes = [AllowAny]
+    serializer_class = EmailVerifySerializer
+
+    def post(self, request):
+        serializer = EmailVerifySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data["email"]
+        code = serializer.validated_data["code"]
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response(
+                {"detail": "No account found with this email."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if user.is_email_verified:
+            return Response(
+                {"detail": "Email is already verified. You can sign in."},
+                status=status.HTTP_200_OK,
+            )
+
+        verification = (
+            EmailVerification.objects.filter(
+                user=user, code=code, is_used=False
+            )
+            .order_by("-created_at")
+            .first()
+        )
+
+        if not verification:
+            return Response(
+                {"detail": "Invalid verification code."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if verification.is_expired:
+            return Response(
+                {"detail": "Verification code has expired. Please request a new one."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        verification.is_used = True
+        verification.save(update_fields=["is_used"])
+
+        user.is_email_verified = True
+        user.save(update_fields=["is_email_verified"])
+
+        logger.info("Email verified for user %s", user.email)
+
+        return Response(
+            {"detail": "Email verified successfully. You can now sign in."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class ResendVerificationView(APIView):
+    """POST /api/v1/auth/resend-verification/ — Resend verification code."""
+
+    permission_classes = [AllowAny]
+    serializer_class = ResendVerificationSerializer
+
+    def post(self, request):
+        serializer = ResendVerificationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data["email"]
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response(
+                {"detail": "If an account with that email exists, a new code has been sent."},
+                status=status.HTTP_200_OK,
+            )
+
+        if user.is_email_verified:
+            return Response(
+                {"detail": "Email is already verified."},
+                status=status.HTTP_200_OK,
+            )
+
+        verification = EmailVerification.create_for_user(user)
+        subject = "ArthaSmart — Your New Verification Code"
+        message = (
+            f"Hi {user.first_name or user.username},\n\n"
+            f"Your new verification code is:\n\n"
+            f"    {verification.code}\n\n"
+            f"This code expires in 15 minutes.\n\n"
+            f"— ArthaSmart Team"
+        )
+        try:
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email],
+                fail_silently=False,
+            )
+        except Exception as exc:
+            logger.error("Failed to resend verification email: %s", exc)
+            return Response(
+                {"detail": "Failed to send email. Please try again later."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        return Response(
+            {"detail": "A new verification code has been sent to your email."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class GoogleAuthView(APIView):
+    """POST /api/v1/auth/google/ — Authenticate with Google OAuth."""
+
+    permission_classes = [AllowAny]
+    serializer_class = GoogleAuthSerializer
+
+    def post(self, request):
+        from google.oauth2 import id_token as google_id_token # type: ignore
+        from google.auth.transport import requests as google_requests # type: ignore
+
+        serializer = GoogleAuthSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        token = serializer.validated_data["token"]
+
+        # Try to verify as ID token first, fall back to userinfo endpoint
+        user_info = None
+
+        # Method 1: Verify as Google ID token
+        try:
+            id_info = google_id_token.verify_oauth2_token(
+                token, google_requests.Request()
+            )
+            # Check audience matches one of our client IDs
+            valid_client_ids = [cid for cid in settings.GOOGLE_CLIENT_IDS if cid]
+            if valid_client_ids and id_info.get("aud") not in valid_client_ids:
+                return Response(
+                    {"detail": "Invalid token audience."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            user_info = {
+                "email": id_info.get("email"),
+                "first_name": id_info.get("given_name", ""),
+                "last_name": id_info.get("family_name", ""),
+                "picture": id_info.get("picture", ""),
+                "email_verified": id_info.get("email_verified", False),
+            }
+        except Exception:
+            pass
+
+        # Method 2: Use token as access token to fetch user info
+        if not user_info:
+            try:
+                import requests as http_requests # type: ignore
+                resp = http_requests.get(
+                    "https://www.googleapis.com/oauth2/v3/userinfo",
+                    headers={"Authorization": f"Bearer {token}"},
+                    timeout=10,
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    user_info = {
+                        "email": data.get("email"),
+                        "first_name": data.get("given_name", ""),
+                        "last_name": data.get("family_name", ""),
+                        "picture": data.get("picture", ""),
+                        "email_verified": data.get("email_verified", False),
+                    }
+            except Exception:
+                pass
+
+        if not user_info or not user_info.get("email"):
+            return Response(
+                {"detail": "Invalid or expired Google token."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        email = user_info["email"].lower()
+
+        # Find or create user
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            username = email.split("@")[0]
+            # Ensure unique username
+            base_username = username
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}{counter}"
+                counter += 1
+
+            user = User.objects.create_user(
+                email=email,
+                username=username,
+                first_name=user_info.get("first_name", ""),
+                last_name=user_info.get("last_name", ""),
+                password=None,  # No password for social accounts
+            )
+            user.is_email_verified = True  # Google already verified
+            user.save(update_fields=["is_email_verified"])
+
+        AuditLog.objects.create(
+            user=user,
+            action="login",
+            resource_type="user",
+            resource_id=user.id,
+            ip_address=get_client_ip(request),
+            user_agent=request.META.get("HTTP_USER_AGENT", ""),
+            details={"method": "google_oauth"},
+        )
+
         return Response(
             {
                 "user": UserSerializer(user).data,
                 "tokens": get_tokens_for_user(user),
             },
-            status=status.HTTP_201_CREATED,
+            status=status.HTTP_200_OK,
         )
 
 
@@ -170,18 +421,19 @@ class PasswordResetRequestView(APIView):
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.pk))
 
-        # Build reset link (for now, point to a web page or deep link)
-        reset_url = f"arthasmart://reset-password?uid={uid}&token={token}"
+        # Build reset links
+        web_reset_url = f"http://localhost:5173/reset-password/{uid}/{token}"
+        mobile_reset_url = f"arthasmart://reset-password?uid={uid}&token={token}"
 
         # Send email
         subject = "ArthaSmart — Reset Your Password"
         message = (
             f"Hi {user.first_name or user.username},\n\n"
             f"We received a request to reset your password.\n\n"
-            f"Your password reset code:\n"
-            f"  UID: {uid}\n"
-            f"  Token: {token}\n\n"
-            f"Or use this link: {reset_url}\n\n"
+            f"Click this link to reset your password:\n"
+            f"  {web_reset_url}\n\n"
+            f"Or open this link in the mobile app:\n"
+            f"  {mobile_reset_url}\n\n"
             f"This link expires in 1 hour.\n\n"
             f"If you didn't request this, you can safely ignore this email.\n\n"
             f"— ArthaSmart Team"

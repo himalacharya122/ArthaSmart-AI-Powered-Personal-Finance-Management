@@ -59,6 +59,14 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"detail": "Account is deactivated."}
             )
+        if not user.is_email_verified:
+            raise serializers.ValidationError(
+                {
+                    "detail": "Please verify your email before signing in.",
+                    "email": user.email,
+                    "code": "EMAIL_NOT_VERIFIED",
+                }
+            )
         attrs["user"] = user
         return attrs
 
@@ -108,6 +116,30 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
             )
         validate_password(attrs["new_password"])
         return attrs
+
+
+class EmailVerifySerializer(serializers.Serializer):
+    """Verify email with a 6-digit code."""
+
+    email = serializers.EmailField()
+    code = serializers.CharField(min_length=6, max_length=6)
+
+    def validate_email(self, value):
+        return value.lower()
+
+
+class ResendVerificationSerializer(serializers.Serializer):
+    """Resend email verification code."""
+
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        return value.lower()
+
+
+class GoogleAuthSerializer(serializers.Serializer):
+    """Authenticate with a Google OAuth token."""
+    token = serializers.CharField(help_text="Google access token or ID token")
 
 
 class LogoutSerializer(serializers.Serializer):

@@ -31,8 +31,16 @@ export function LoginPage() {
       toast.success(`Welcome back, ${res.user.first_name}!`);
       navigate('/dashboard');
     } catch (err) {
-      const axiosErr = err as AxiosError<ApiError>;
-      const message = axiosErr.response?.data?.detail || 'Invalid credentials. Please try again.';
+      const axiosErr = err as AxiosError<ApiError & { code?: string; email?: string }>;
+      const resData = axiosErr.response?.data;
+
+      if (resData?.code === 'EMAIL_NOT_VERIFIED') {
+        toast.error('Please verify your email first.');
+        navigate('/verify-email', { state: { email: resData.email || data.email } });
+        return;
+      }
+
+      const message = resData?.detail || 'Invalid credentials. Please try again.';
       setError('root', { message });
     }
   }

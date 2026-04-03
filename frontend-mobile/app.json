@@ -1,7 +1,8 @@
 {
   "expo": {
-    "name": "frontend-mobile",
-    "slug": "frontend-mobile",
+    "name": "ArthaSmart",
+    "slug": "arthasmart",
+    "scheme": "arthasmart",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -12,9 +13,14 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.arthasmart.app",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "ArthaSmart uses Face ID for secure, quick access to your finances."
+      }
     },
     "android": {
+      "package": "com.arthasmart.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -27,7 +33,8 @@
     },
     "plugins": [
       "expo-sqlite",
-      "expo-audio"
+      "expo-audio",
+      "expo-web-browser"
     ]
   }
 }

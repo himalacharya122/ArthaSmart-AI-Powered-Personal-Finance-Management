@@ -20,15 +20,17 @@ import { spacing, borderRadius, shadow } from '../../theme/spacing';
 import { SCREEN_NAMES, CATEGORY_ICONS } from '../../utils/constants';
 import { formatCurrency, formatDate } from '../../utils/format';
 import { useAppStore } from '../../store/appStore';
+import { useAuthStore } from '../../store/authStore';
 
 let AsyncStorage;
 try { AsyncStorage = require('@react-native-async-storage/async-storage').default; } catch { AsyncStorage = null; }
-const RECEIPTS_STORAGE_KEY = 'arthasmart_receipts';
 
 const FILTERS = ['All', 'Saved', 'Drafts'];
 
 export function ReceiptHistoryScreen({ navigation }) {
   const showToast = useAppStore((s) => s.showToast);
+  const user = useAuthStore((s) => s.user);
+  const RECEIPTS_STORAGE_KEY = `arthasmart_receipts_${user?.id || 'guest'}`;
   const [receipts, setReceipts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');

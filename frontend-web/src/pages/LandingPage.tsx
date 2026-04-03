@@ -8,10 +8,13 @@ import {
   Wallet,
   ArrowRight,
   CheckCircle2,
-  Star,
+  Zap,
+  Sparkles,
+  TrendingUp
 } from 'lucide-react';
 import { Button } from '@/components/common/Button';
 import { APP_NAME } from '@/utils/constants';
+import { useAuthStore } from '@/store/authStore';
 
 const features = [
   {
@@ -60,68 +63,183 @@ const stats = [
 ] as const;
 
 export function LandingPage() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
   return (
     <div className="min-h-screen bg-white">
       {/* Nav */}
       <nav className="border-b border-primary-100">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
+        <div className="mx-auto flex h-16 max-w-full bg-primary-950 items-center justify-between px-4 lg:px-16">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-700 text-sm font-bold text-white">
               A
             </div>
-            <span className="text-xl font-bold text-primary-800">{APP_NAME}</span>
+            <span className="text-xl font-bold text-white">{APP_NAME}</span>
           </div>
           <div className="flex items-center gap-3">
-            <Link to="/login">
-              <Button variant="ghost" size="sm">Sign in</Button>
-            </Link>
-            <Link to="/register">
-              <Button variant="accent" size="sm">Get Started</Button>
-            </Link>
+            {isAuthenticated ? (
+              <Link to="/dashboard">
+                <Button variant="accent" size="sm">Go to Dashboard</Button>
+              </Link>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="ghost" size="sm" className='text-white hover:text-primary-950'>Sign in</Button>
+                </Link>
+                <Link to="/register">
+                  <Button variant="accent" size="sm">Get Started</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
 
       {/* Hero */}
-      <section className="mx-auto max-w-6xl px-4 py-20 text-center lg:py-28">
-        <div className="mx-auto max-w-3xl">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-50 px-3 py-1 text-sm font-medium text-accent-700">
-            <Star className="h-3.5 w-3.5" />
-            AI-Powered Financial Intelligence
-          </span>
-          <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-primary-800 sm:text-5xl lg:text-6xl">
-            Take control of your
-            <span className="text-accent-500"> finances</span>
-          </h1>
-          <p className="mt-6 text-lg text-primary-400 sm:text-xl">
-            {APP_NAME} is the AI-powered personal finance system that tracks your spending,
-            scans receipts, detects anomalies, and gives you insights that actually help
-            you save money.
-          </p>
-          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <Link to="/register">
-              <Button variant="primary" size="lg">
-                Start Free <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link to="/login">
-              <Button variant="secondary" size="lg">
-                Sign in to Dashboard
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats strip */}
-      <section className="border-y border-primary-100 bg-primary-700">
-        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-4 py-10 sm:grid-cols-4">
-          {stats.map((stat) => (
-            <div key={stat.label} className="text-center">
-              <p className="text-3xl font-bold text-white">{stat.value}</p>
-              <p className="mt-1 text-sm text-primary-200">{stat.label}</p>
+      <section className="mx-auto max-w-full px-4 xl:px-36 py-10 lg:py-14">
+        <div className="grid grid-cols-1 gap-4 xl:gap-8 lg:grid-cols-2 lg:grid-rows-[auto_auto]">
+ 
+          {/* Left Card */}
+          <div className="flex flex-col justify-between rounded-2xl border border-primary-100 bg-white p-8 lg:row-span-2 lg:min-h-[520px]">
+            <div>
+              {/* Headline */}
+              <h1 className="font-semibold tracking-tight text-primary-800" style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', lineHeight: 1.1 }}>
+                Take control of your{' '}
+                <span className="text-accent-500">finances</span>{' '}
+                with innovations
+              </h1>
+ 
+              <p className="mt-4 text-sm leading-relaxed text-black/70">
+                {APP_NAME} is the AI-powered personal finance system that tracks your spending,
+                scans receipts, detects anomalies, and gives you insights that actually help
+                you save money.
+              </p>
+ 
+              {/* Stats */}
+              <div className="mt-8 grid grid-cols-2 gap-3">
+                {stats.slice(0, 2).map((stat) => (
+                  <div key={stat.label} className="rounded-xl bg-primary-50 p-4">
+                    <p className="text-2xl font-bold tracking-tight text-primary-800">{stat.value}</p>
+                    <p className="mt-1 text-xs text-primary-400">{stat.label}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
+ 
+            {/* CTA */}
+            <div className="mt-8">
+              {isAuthenticated ? (
+                <Link to="/dashboard" className="block">
+                  <Button variant="primary" size="lg" className="w-full justify-center">
+                    Go to Dashboard
+                  </Button>
+                </Link>
+              ) : (
+                <>
+                  <Link to="/register" className="block">
+                    <Button variant="primary" size="lg" className="w-full justify-center">
+                      Start Free
+                    </Button>
+                  </Link>
+                  <Link to="/login" className="mt-3 block text-center text-sm text-black/70">
+                    Already have an account? <span className="text-accent-600 font-semibold">Sign in</span>
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+ 
+          {/* Right top */}
+          <div className="relative overflow-hidden rounded-2xl bg-primary-700 p-8 text-white lg:min-h-[260px]">
+            {/* Decorative blobs */}
+            <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-primary-600 opacity-40" />
+            <div className="pointer-events-none absolute -bottom-8 left-1/3 h-32 w-32 rounded-full bg-accent-500 opacity-20" />
+ 
+            <div className="relative">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white">
+                <Zap className="h-3 w-3" />
+                AI - Assistant
+              </span>
+              <h2 className="mt-4 text-2xl font-bold leading-tight text-white">
+                AI-Powered<br />Insights
+              </h2>
+              <p className="mt-2 text-sm text-primary-200">
+                Spending patterns, anomaly detection &amp; personalised advice.
+              </p>
+ 
+              {/* Mini animated waveform */}
+              <div className="mt-6 flex items-end gap-1" aria-hidden="true">
+                {[18, 32, 24, 40, 28, 16, 36, 22, 38, 26].map((h, i) => (
+                  <div
+                    key={i}
+                    className="w-1.5 rounded-sm bg-accent-400 opacity-80"
+                    style={{
+                      height: `${h}px`,
+                      animation: `waveBar 1.4s ease-in-out ${i * 0.12}s infinite alternate`,
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+ 
+            {/* Floating pill badges */}
+            <div className="absolute bottom-6 right-6 flex flex-col items-end gap-2">
+              <div className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-primary-800 shadow-sm">
+                <TrendingUp className="h-3 w-3 text-accent-500" />
+                Smart Budgeting
+              </div>
+              <div className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-primary-800 shadow-sm">
+                <Sparkles className="h-3 w-3 text-accent-500" />
+                Receipt Scanner
+              </div>
+            </div>
+          </div>
+ 
+          {/* Right Bottom */}
+          <div className="grid grid-cols-2 gap-4">
+ 
+            {/* Mini stats card */}
+            <div className="flex flex-col justify-between rounded-2xl border border-primary-100 bg-primary-50 p-5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-700">
+                <BarChart3 className="h-5 w-5 text-white" />
+              </div>
+              {/* Mock mini bar chart */}
+              <div className="my-4 flex items-end gap-1" aria-hidden="true">
+                {[40, 65, 45, 80, 55, 90, 70].map((h, i) => (
+                  <div
+                    key={i}
+                    className="flex-1 rounded-sm"
+                    style={{
+                      height: `${h * 0.6}px`,
+                      background: i === 5 ? 'var(--color-accent-500, #f59e0b)' : '#cbd5e1',
+                    }}
+                  />
+                ))}
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-primary-800">Reports &amp; Analytics</p>
+                <p className="mt-0.5 text-xs text-primary-400">Visual spending breakdowns</p>
+              </div>
+            </div>
+ 
+            {/* Security card */}
+            <div className="flex flex-col justify-between rounded-2xl bg-primary-800 p-5 text-white">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+                <Shield className="h-5 w-5 text-white" />
+              </div>
+              {/* Mock "phone screen" feel */}
+              <div className="my-3 space-y-1.5">
+                <div className="h-1.5 w-full rounded-full bg-white/20" />
+                <div className="h-1.5 w-4/5 rounded-full bg-white/15" />
+                <div className="h-1.5 w-3/5 rounded-full bg-accent-400/60" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-white">Bank-Grade Security</p>
+                <p className="mt-0.5 text-xs text-primary-300">Encrypted &amp; private</p>
+              </div>
+            </div>
+ 
+          </div>
         </div>
       </section>
 

@@ -31,6 +31,24 @@ export async function register({ firstName, lastName, email, password }) {
 }
 
 /**
+ * Verify email with 6-digit code.
+ * @returns {{ detail: string }}
+ */
+export async function verifyEmail(email, code) {
+  const { data } = await api.post('/api/v1/auth/verify-email/', { email, code });
+  return data;
+}
+
+/**
+ * Resend email verification code.
+ * @returns {{ detail: string }}
+ */
+export async function resendVerification(email) {
+  const { data } = await api.post('/api/v1/auth/resend-verification/', { email });
+  return data;
+}
+
+/**
  * Request password reset email.
  */
 export async function forgotPassword(email) {
