@@ -7,6 +7,10 @@ import type {
   PasswordChangeRequest,
   ProfileUpdateRequest,
   User,
+  VerifyEmailRequest,
+  ResendVerificationRequest,
+  ForgotPasswordRequest,
+  ResetPasswordRequest,
 } from '@/types/auth';
 
 export async function login(data: LoginRequest): Promise<LoginResponse> {
@@ -35,4 +39,24 @@ export async function updateProfile(data: ProfileUpdateRequest): Promise<User> {
 
 export async function changePassword(data: PasswordChangeRequest): Promise<void> {
   await apiClient.post('/auth/password/change/', data);
+}
+
+export async function verifyEmail(data: VerifyEmailRequest): Promise<{ detail: string }> {
+  const res = await apiClient.post<{ detail: string }>('/auth/verify-email/', data);
+  return res.data;
+}
+
+export async function resendVerification(data: ResendVerificationRequest): Promise<{ detail: string }> {
+  const res = await apiClient.post<{ detail: string }>('/auth/resend-verification/', data);
+  return res.data;
+}
+
+export async function forgotPassword(data: ForgotPasswordRequest): Promise<{ detail: string }> {
+  const res = await apiClient.post<{ detail: string }>('/auth/password/reset/', data);
+  return res.data;
+}
+
+export async function resetPassword(data: ResetPasswordRequest): Promise<{ detail: string }> {
+  const res = await apiClient.post<{ detail: string }>('/auth/password/reset/confirm/', data);
+  return res.data;
 }

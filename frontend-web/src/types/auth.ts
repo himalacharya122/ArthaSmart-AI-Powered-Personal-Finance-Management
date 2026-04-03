@@ -10,6 +10,7 @@ export interface User {
   profile_picture: string | null;
   date_joined: string;
   is_active: boolean;
+  is_email_verified: boolean;
 }
 
 export interface Tokens {
@@ -37,8 +38,8 @@ export interface RegisterRequest {
 }
 
 export interface RegisterResponse {
-  user: User;
-  tokens: Tokens;
+  detail: string;
+  email: string;
 }
 
 export interface PasswordChangeRequest {
@@ -53,4 +54,24 @@ export interface ProfileUpdateRequest {
   phone_number?: string;
   preferred_currency?: string;
   timezone?: string;
+}
+
+export interface VerifyEmailRequest {
+  email: string;
+  code: string;
+}
+
+export interface ResendVerificationRequest {
+  email: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  uid: string;
+  token: string;
+  new_password: string;
+  new_password_confirm: string;
 }

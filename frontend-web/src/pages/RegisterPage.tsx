@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
-import { useAuthStore } from '@/store/authStore';
 import { register as registerApi } from '@/api/auth';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
@@ -14,7 +13,6 @@ import toast from 'react-hot-toast';
 
 export function RegisterPage() {
   const navigate = useNavigate();
-  const authLogin = useAuthStore((s) => s.login);
   const [showPassword, setShowPassword] = useState(false);
 
   const {
@@ -27,10 +25,9 @@ export function RegisterPage() {
 
   async function onSubmit(data: RegisterRequest) {
     try {
-      const res = await registerApi(data);
-      authLogin(res.tokens, res.user);
-      toast.success('Account created! Welcome to ArthaSmart.');
-      navigate('/dashboard');
+      await registerApi(data);
+      toast.success('Account created! Check your email for a verification code.');
+      navigate('/verify-email', { state: { email: data.email } });
     } catch (err) {
       const axiosErr = err as AxiosError<ApiError>;
       const apiErrors = axiosErr.response?.data?.errors;

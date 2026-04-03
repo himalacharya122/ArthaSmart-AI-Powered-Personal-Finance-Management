@@ -1,4 +1,5 @@
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
 import { API_BASE_URL } from '@/utils/constants';
 
@@ -42,6 +43,7 @@ apiClient.interceptors.response.use(
         return apiClient(original);
       } catch {
         useAuthStore.getState().logout();
+        toast.error('Session expired. Please sign in again.');
         window.location.href = '/login';
         return Promise.reject(error);
       }
