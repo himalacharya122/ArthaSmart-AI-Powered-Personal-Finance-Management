@@ -4,7 +4,7 @@ import logging
 from datetime import date
 from decimal import Decimal
 
-from django.db.models import Count, Sum  # type: ignore
+from django.db.models import Count, Q, Sum  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -119,8 +119,14 @@ def build_user_context(user) -> dict:
     # Sort by date descending
     recent_transactions.sort(key=lambda x: x["date"], reverse=True)
 
-    # Available category names
-    category_list = list(Category.objects.filter(type="expense").values_list("name", flat=True))
+    # Available category names — system categories (user=None) + this user's own categories only.
+    # Never expose custom categories belonging to other users (prevents hallucinations).
+    category_list = list(
+        Category.objects.filter(type="expense")
+        .filter(Q(user__isnull=True) | Q(user=user))
+        .values_list("name", flat=True)
+        .distinct()
+    )
 
     return {
         "user_id": user.id,
