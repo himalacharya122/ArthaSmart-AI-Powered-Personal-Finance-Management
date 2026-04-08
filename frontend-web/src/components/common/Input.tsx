@@ -14,13 +14,16 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="space-y-1">
         {label && (
-          <label htmlFor={inputId} className="block text-xs font-semibold uppercase tracking-wide text-primary-600">
+          <label
+            htmlFor={inputId}
+            className="block text-sm font-bold text-primary-950/80"
+          >
             {label}
           </label>
         )}
-        <div className="relative">
+        <div className="relative mt-2">
           {icon && (
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-primary-400 pointer-events-none">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-primary-950/50 pointer-events-none">
               {icon}
             </div>
           )}
@@ -28,8 +31,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             className={cn(
-              'block w-full rounded-md border border-primary-200 bg-white px-3 py-2.5 text-primary-800 placeholder-primary-300 transition-colors',
-              'focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500',
+              'block w-full rounded-md border border-primary-950/20 bg-white py-3 pl-10 pr-10 text-primary-950 placeholder-primary-950/50 focus:border-primary-950/40 transition-colors focus:outline-none focus:ring-0',
               error && 'border-danger-500 focus:border-danger-500 focus:ring-danger-500',
               icon && 'pl-10',
               className,
@@ -37,7 +39,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
         </div>
-        {error && <p className="text-sm text-danger-500">{error}</p>}
+        {error && <p className="mt-1 text-sm text-danger-600">{error}</p>}
       </div>
     );
   },

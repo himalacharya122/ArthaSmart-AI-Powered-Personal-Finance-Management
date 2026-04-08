@@ -46,109 +46,150 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface px-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary-700 text-lg font-bold text-white">
-            A
+    <div className="min-h-screen flex flex-col bg-white">
+      {/* Header */}
+      <nav className="sticky top-0 z-50 w-full border-b border-primary-950/20 bg-white/80 backdrop-blur-lg">
+        <div className="mx-auto w-full max-w-5xl px-4">
+          <div className="flex h-16 items-center">
+            <Link to="/" className="text-lg font-bold text-primary-950">
+              {APP_NAME}
+            </Link>
           </div>
-          <h1 className="text-3xl font-bold text-primary-800">Welcome back</h1>
-          <p className="mt-1 text-primary-400">Sign in to continue tracking</p>
         </div>
+      </nav>
 
-        {/* Form card */}
-        <div className="rounded-xl bg-card p-8 shadow-sm">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            {errors.root && (
-              <div className="rounded-md bg-danger-50 p-3 text-sm text-danger-500">
-                {errors.root.message}
-              </div>
-            )}
+      {/* Main */}
+      <main className="flex-1 flex justify-center px-4 py-4 sm:py-16">
+        <div className="w-full max-w-xl">
+          <div className="bg-white text-left py-8 sm:p-12 sm:rounded-xl sm:border sm:border-primary-950/20 sm:shadow-[0_0_25px_rgba(0,0,0,0.1)] border-0 shadow-none rounded-none">
 
-            <Input
-              label="Email Address"
-              type="email"
-              placeholder="you@example.com"
-              icon={<Mail className="h-4 w-4" />}
-              error={errors.email?.message}
-              {...register('email', {
-                required: 'Email is required',
-                pattern: { value: /^\S+@\S+$/, message: 'Invalid email' },
-              })}
-            />
+            {/* Title */}
+            <h1 className="text-xl font-bold text-primary-950/80">
+              Welcome back! Sign in to your account
+            </h1>
 
-            <div>
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-semibold uppercase tracking-wide text-primary-600">
-                  Password
-                </label>
-                <Link to="/forgot-password" className="text-xs text-primary-500 hover:text-primary-700">
-                  Forgot password?
-                </Link>
-              </div>
-              <div className="relative mt-1">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-primary-400 pointer-events-none">
-                  <Lock className="h-4 w-4" />
+            <form onSubmit={handleSubmit(onSubmit)} className="mt-8">
+              {errors.root && (
+                <div className="rounded-md bg-danger-50 p-3 text-sm text-danger-600">
+                  {errors.root.message}
                 </div>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password"
-                  className="block w-full rounded-md border border-primary-200 bg-white py-2.5 pl-10 pr-10 text-primary-800 placeholder-primary-300 transition-colors focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-                  {...register('password', { required: 'Password is required' })}
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-primary-400"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="mt-1 text-sm text-danger-500">{errors.password.message}</p>
               )}
+
+              <Input
+                label="Email Address"
+                type="email"
+                placeholder="you@example.com"
+                icon={<Mail className="h-4 w-4" />}
+                error={errors.email?.message}
+                {...register('email', {
+                  required: 'Email is required',
+                  pattern: { value: /^\S+@\S+$/, message: 'Invalid email' },
+                })}
+              />
+
+              {/* Password */}
+              <div className="mt-5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-bold text-primary-950/80">
+                    Password
+                  </label>
+
+                  <Link
+                    to="/forgot-password"
+                    className="text-sm font-bold text-accent-800 underline"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+
+                <div className="relative mt-2">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Enter your password"
+                    icon={<Lock className="h-4 w-4" />}
+                    error={errors.password?.message}
+                    {...register('password', {
+                      required: 'Password is required',
+                    })}
+                  />
+
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-primary-950/50"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                fullWidth
+                loading={isSubmitting}
+                variant="primary"
+                size="lg"
+                className="mt-6 rounded-lg"
+              >
+                Sign in
+              </Button>
+
+              <p className="mt-5 text-sm text-center text-primary-950/70">
+                Don&apos;t have an account?{' '}
+                <Link
+                  to="/register"
+                  className="font-semibold text-primary-950 hover:text-primary-950 underline"
+                >
+                  Create one
+                </Link>
+              </p>
+            </form>
+
+            {/* Divider */}
+            <div className="my-6 flex items-center gap-3">
+              <div className="h-px flex-1 bg-primary-950/20" />
+              <span className="text-xs text-primary-950/50 font-medium">
+                or continue with
+              </span>
+              <div className="h-px flex-1 bg-primary-950/20" />
             </div>
 
-            <Button type="submit" fullWidth loading={isSubmitting} variant="primary" size="lg">
-              Sign in
-            </Button>
-          </form>
+            {/* Google */}
+            <button
+              type="button"
+              onClick={() => toast('Google sign-in coming soon!')}
+              className="flex w-full items-center justify-center gap-3 rounded-md border border-primary-950/20 bg-white px-4 py-3 text-sm font-medium text-primary-950 hover:bg-primary-50"
+            >
+              <svg className="h-5 w-5" viewBox="0 0 24 24">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+              Continue with Google
+            </button>
 
-          {/* Divider */}
-          <div className="my-6 flex items-center gap-4">
-            <div className="h-px flex-1 bg-primary-100" />
-            <span className="text-xs text-primary-400">or continue with</span>
-            <div className="h-px flex-1 bg-primary-100" />
           </div>
-
-          {/* Google sign-in */}
-          <button
-            type="button"
-            onClick={() => toast('Google sign-in coming soon!')}
-            className="flex w-full items-center justify-center gap-3 rounded-md border border-primary-200 bg-white px-4 py-2.5 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-50"
-          >
-            <svg className="h-5 w-5" viewBox="0 0 24 24">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-            </svg>
-            Continue with Google
-          </button>
-
-          <p className="mt-6 text-center text-sm text-primary-400">
-            Don&apos;t have an account?{' '}
-            <Link to="/register" className="font-semibold text-primary-700 hover:text-primary-800">
-              Create one
-            </Link>
-          </p>
         </div>
+      </main>
 
-        <p className="mt-6 text-center text-xs text-primary-300">
-          &copy; 2026 {APP_NAME}. All rights reserved.
-        </p>
-      </div>
+      {/* Footer */}
+      <footer className="bg-black">
+        <div className="mx-auto w-full max-w-full px-6 py-6">
+          <div className="flex flex-col items-center justify-between sm:flex-row">
+            <Link to="/" className="flex items-center">
+              <span className="font-semibold text-white">{APP_NAME}</span>
+            </Link>
+            <p className="text-sm text-white/70">
+              &copy; 2026 {APP_NAME}. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

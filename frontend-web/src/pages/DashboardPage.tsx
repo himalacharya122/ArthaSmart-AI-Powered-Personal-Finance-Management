@@ -6,7 +6,6 @@ import {
   TrendingUp,
   Bell,
   Brain,
-  ArrowRight,
 } from 'lucide-react';
 import { useDashboard, useIncomeVsExpense } from '@/hooks/useDashboard';
 import { useAuthStore } from '@/store/authStore';
@@ -29,7 +28,9 @@ export function DashboardPage() {
     return (
       <div className="py-16 text-center">
         <p className="text-danger-500">Failed to load dashboard</p>
-        <p className="mt-1 text-sm text-primary-400">Please check your connection and try again.</p>
+        <p className="mt-1 text-sm text-primary-950/70">
+          Please check your connection and try again.
+        </p>
       </div>
     );
   }
@@ -38,10 +39,12 @@ export function DashboardPage() {
     <div>
       {/* Greeting */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-primary-800">
+        <h1 className="text-2xl font-bold text-primary-950">
           {user ? `Welcome back, ${user.first_name}` : 'Dashboard'}
         </h1>
-        <p className="mt-1 text-sm text-primary-400">Here&apos;s your financial overview</p>
+        <p className="mt-1 text-sm font-medium text-primary-950/70">
+          Here&apos;s your financial overview
+        </p>
       </div>
 
       {/* Summary cards */}
@@ -79,7 +82,7 @@ export function DashboardPage() {
         />
       </div>
 
-      {/* Alerts row */}
+      {/* Alerts */}
       {dashboard && (dashboard.unread_notifications > 0 || dashboard.unread_insights > 0) && (
         <div className="mt-4 flex flex-wrap gap-3">
           {dashboard.unread_notifications > 0 && (
@@ -88,16 +91,18 @@ export function DashboardPage() {
               className="inline-flex items-center gap-2 rounded-lg border border-warning-400 bg-warning-50 px-4 py-2 text-sm font-medium text-warning-700 hover:bg-warning-100"
             >
               <Bell className="h-4 w-4" />
-              {dashboard.unread_notifications} unread notification{dashboard.unread_notifications !== 1 ? 's' : ''}
+              {dashboard.unread_notifications} unread notification
+              {dashboard.unread_notifications !== 1 ? 's' : ''}
             </Link>
           )}
           {dashboard.unread_insights > 0 && (
             <Link
-              to="/chat"
-              className="inline-flex items-center gap-2 rounded-lg border border-primary-200 bg-primary-50 px-4 py-2 text-sm font-medium text-primary-700 hover:bg-primary-100"
+              to="/insights"
+              className="inline-flex items-center gap-2 rounded-lg border border-primary-950/20 bg-primary-50 px-4 py-2 text-sm font-medium text-primary-800 hover:bg-primary-100"
             >
               <Brain className="h-4 w-4" />
-              {dashboard.unread_insights} new AI insight{dashboard.unread_insights !== 1 ? 's' : ''}
+              {dashboard.unread_insights} new AI insight
+              {dashboard.unread_insights !== 1 ? 's' : ''}
             </Link>
           )}
         </div>
@@ -105,29 +110,29 @@ export function DashboardPage() {
 
       {/* Charts row */}
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        {/* Spending by category */}
-        <Card>
+        <Card className="border border-primary-950/20">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-semibold text-primary-800">Spending by Category</h2>
-            <Link to="/reports" className="text-xs font-medium text-primary-500 hover:text-primary-700">
-              View all <ArrowRight className="ml-1 inline h-3 w-3" />
+            <h2 className="font-semibold text-primary-950">Spending by Category</h2>
+            <Link
+              to="/reports"
+              className="text-sm font-semibold text-accent-600 underline hover:text-accent-700"
+            >
+              View all
             </Link>
           </div>
-          {isLoading ? (
-            <div className="space-y-3">
-              <CardSkeleton />
-            </div>
-          ) : (
+          {isLoading ? <CardSkeleton /> : (
             <SpendingChart categories={dashboard?.top_categories || []} currency={currency} />
           )}
         </Card>
 
-        {/* Income vs Expense */}
-        <Card>
+        <Card className="border border-primary-950/20">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-semibold text-primary-800">Income vs Expenses</h2>
-            <Link to="/reports" className="text-xs font-medium text-primary-500 hover:text-primary-700">
-              View all <ArrowRight className="ml-1 inline h-3 w-3" />
+            <h2 className="font-semibold text-primary-950">Income vs Expenses</h2>
+            <Link
+              to="/reports"
+              className="text-sm font-semibold text-accent-600 underline hover:text-accent-700"
+            >
+              View all
             </Link>
           </div>
           <IncomeExpenseChart data={monthlyData || []} />
@@ -136,31 +141,32 @@ export function DashboardPage() {
 
       {/* Bottom row */}
       <div className="mt-6 grid gap-6 lg:grid-cols-5">
-        {/* Recent expenses — wider */}
-        <Card className="lg:col-span-3">
+        <Card className="lg:col-span-3 border border-primary-950/20">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-semibold text-primary-800">Recent Expenses</h2>
-            <Link to="/expenses" className="text-xs font-medium text-primary-500 hover:text-primary-700">
-              View all <ArrowRight className="ml-1 inline h-3 w-3" />
+            <h2 className="font-semibold text-primary-950">Recent Expenses</h2>
+            <Link
+              to="/expenses"
+              className="text-sm font-semibold text-accent-600 underline hover:text-accent-700"
+            >
+              View all
             </Link>
           </div>
-          {isLoading ? (
-            <div className="space-y-3">
-              <CardSkeleton />
-            </div>
-          ) : (
+          {isLoading ? <CardSkeleton /> : (
             <RecentExpenses expenses={dashboard?.recent_expenses || []} currency={currency} />
           )}
         </Card>
 
-        {/* Top categories — narrower */}
-        <Card className="lg:col-span-2">
-          <h2 className="mb-4 font-semibold text-primary-800">Top Categories</h2>
-          {isLoading ? (
-            <div className="space-y-3">
-              <CardSkeleton />
-            </div>
-          ) : (
+        <Card className="lg:col-span-2 border border-primary-950/20">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="font-semibold text-primary-950">Top Categories</h2>
+            <Link
+              to="/categories"
+              className="text-sm font-semibold text-accent-600 underline hover:text-accent-700"
+            >
+              View all
+            </Link>
+          </div>
+          {isLoading ? <CardSkeleton /> : (
             <TopCategories categories={dashboard?.top_categories || []} currency={currency} />
           )}
         </Card>
