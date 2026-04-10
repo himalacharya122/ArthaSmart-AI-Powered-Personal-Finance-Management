@@ -29,7 +29,11 @@ class ChatConversationViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return ChatConversation.objects.filter(user=self.request.user)
+        qs = ChatConversation.objects.filter(user=self.request.user, is_active=True)
+        # List endpoint: hide empty conversations (no messages sent yet)
+        if self.action == "list":
+            qs = qs.filter(last_message_at__isnull=False)
+        return qs
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -93,14 +97,11 @@ class ChatConversationViewSet(viewsets.ModelViewSet):
                 action_results = msg.entities.get("action_results", {})
 
                 if actions and action_status != "none":
-                    action_parts = []
-                    for a in actions:
-                        a_type = a.get("type", "unknown")
-                        a_data = a.get("data", {})
-                        action_parts.append(f"{a_type}({a_data})")
+                    # Only include action types - NOT amounts/data, to prevent AI double-counting
+                    action_parts = [a.get("type", "unknown") for a in actions]
                     action_desc = ", ".join(action_parts)
 
-                    # Include confirmed result IDs so the AI knows the actual saved IDs
+                    # Include only the saved IDs so AI can reference them for follow-up edits/deletes
                     result_desc = ""
                     if action_status == "confirmed" and action_results:
                         executed = action_results.get("executed", [])
@@ -110,9 +111,9 @@ class ChatConversationViewSet(viewsets.ModelViewSet):
                                 r_type = r.get("type", "")
                                 r_id = r.get("id")
                                 if r_id:
-                                    result_parts.append(f"{r_type} saved as ID#{r_id}")
+                                    result_parts.append(f"{r_type} ID#{r_id}")
                                 elif r.get("deleted"):
-                                    result_parts.append(f"{r_type} deleted ID#{r.get('id', '?')}")
+                                    result_parts.append(f"{r_type} deleted")
                             if result_parts:
                                 result_desc = f" Results: {', '.join(result_parts)}"
 
