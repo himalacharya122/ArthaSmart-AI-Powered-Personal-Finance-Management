@@ -1,10 +1,12 @@
-"""Chat processing endpoint — the core AI brain."""
+"""Chat processing endpoint - the core AI brain."""
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 import time
+import uuid
 
 from fastapi import APIRouter, Depends  # type: ignore
 
@@ -29,7 +31,19 @@ _CLEANUP_PATTERNS = [
     re.compile(r"\[SYSTEM:.*?\]", re.DOTALL),
     re.compile(r"MEMORY EXTRACTION:.*?(?=\n\n|\Z)", re.DOTALL),
     re.compile(r"\*\*MEMORY EXTRACTION\*\*:.*?(?=\n\n|\Z)", re.DOTALL),
+    # Raw function call blobs that some models write in text instead of as tool calls
+    re.compile(r"<function=\w+>.*?</function>", re.DOTALL),
+    re.compile(r"<function_calls>.*?</function_calls>", re.DOTALL),
+    re.compile(r"<invoke>.*?</invoke>", re.DOTALL),
+    # Bare JSON that sometimes follows a leaked function name line
+    re.compile(r"^<function=.*$", re.MULTILINE),
 ]
+
+# Pattern to extract text-format tool calls written by the LLM in content instead of tool_calls
+_TEXT_TOOL_CALL_PATTERN = re.compile(
+    r"<function=(\w+)>(.*?)</function>",
+    re.DOTALL,
+)
 
 
 def _clean_reply(text: str) -> str:
@@ -39,6 +53,37 @@ def _clean_reply(text: str) -> str:
     # Collapse multiple blank lines
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
+
+
+def _extract_text_tool_calls(content: str) -> list[dict]:
+    """Fallback: extract tool calls written as raw text by the LLM.
+
+    Some Groq models occasionally write tool calls in the content as
+    <function=name>{...}</function> instead of using the structured
+    tool_calls API field. This extracts them so actions are not lost.
+    """
+    matches = _TEXT_TOOL_CALL_PATTERN.findall(content)
+    extracted = []
+    for func_name, args_str in matches:
+        args_str = args_str.strip()
+        try:
+            json.loads(args_str)  # validate JSON
+        except (json.JSONDecodeError, ValueError):
+            logger.warning("Text tool call had invalid JSON for %s: %s", func_name, args_str[:100])
+            continue
+        extracted.append(
+            {
+                "id": f"tc_{uuid.uuid4().hex[:8]}",
+                "type": "function",
+                "function": {
+                    "name": func_name,
+                    "arguments": args_str,
+                },
+            }
+        )
+    if extracted:
+        logger.info("Extracted %d text-format tool call(s) from LLM content", len(extracted))
+    return extracted
 
 
 @router.post(
@@ -53,9 +98,10 @@ async def process_chat(request: ChatRequest) -> ChatResponse:
     1. Build system prompt with user context + memory
     2. Build message list with conversation history
     3. Call Groq LLM with tool definitions
+    3b. Fallback: if LLM wrote tool calls as text, extract them
     4. Parse tool calls --> actions
     5. Handle tool calls: if tools were called, run a second LLM call
-       with tool results to get a natural language reply
+       with tool results to get a natural language "please confirm" reply
     6. Extract memory updates
     7. Return structured response
     """
@@ -78,11 +124,18 @@ async def process_chat(request: ChatRequest) -> ChatResponse:
     tool_calls = result["tool_calls"]
     total_tokens = result["tokens_used"]
 
+    # 3b. Fallback: if the LLM wrote tool calls as raw text instead of structured tool_calls,
+    #     extract them before cleaning so the actions are not silently lost.
+    if not tool_calls and content:
+        text_tool_calls = _extract_text_tool_calls(content)
+        if text_tool_calls:
+            tool_calls = text_tool_calls
+
     # 4. Parse tool calls into actions
     actions = parse_tool_calls(tool_calls)
 
-    # 5. If tools were called, ALWAYS get a clean follow-up reply
-    #    (even if the LLM returned content alongside tool calls, it's often polluted)
+    # 5. If tools were called, get a clean "please confirm" follow-up reply.
+    #    The tool result message must be unambiguous: the action is PENDING, not done.
     if tool_calls:
         # Build tool result messages to feed back
         tool_messages = list(messages)
@@ -94,7 +147,7 @@ async def process_chat(request: ChatRequest) -> ChatResponse:
                 "tool_calls": tool_calls,
             }
         )
-        # Add tool results (simulated — Django will execute the real actions)
+        # Add tool results - explicitly tell the model the action is PENDING, not executed
         for tc in tool_calls:
             func_name = tc["function"]["name"]
             tool_messages.append(
@@ -113,13 +166,13 @@ async def process_chat(request: ChatRequest) -> ChatResponse:
         content = followup["content"] or "Done!"
         total_tokens += followup["tokens_used"]
 
-    # 6. Clean the reply — strip any leaked metadata
+    # 6. Clean the reply - strip any leaked metadata
     content = _clean_reply(content or "")
 
     # 7. Detect intent
     intent = detect_intent(tool_calls, content, request.message)
 
-    # 8. Extract memory updates (from original content, before cleaning)
+    # 8. Extract memory updates
     memory_updates = extract_memory_updates(content)
 
     elapsed_ms = int((time.perf_counter() - start) * 1000)
