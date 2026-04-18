@@ -8,7 +8,7 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Modal,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useForm, Controller } from 'react-hook-form';
@@ -23,6 +23,8 @@ import { Button } from '../../components/common/Button';
 import * as biometricService from '../../services/biometric';
 import { useGoogleAuthRequest } from '../../services/googleAuth';
 import { storage } from '../../utils/storage';
+
+import logo from '../../assets/logo_primary.png';
 
 export function LoginScreen({ navigation }) {
   const login = useAuthStore((s) => s.login);
@@ -150,12 +152,10 @@ export function LoginScreen({ navigation }) {
       const status = error?.response?.status;
 
       if (code === 'WRONG_PASSWORD') {
-        // Email is correct but password is wrong — show inline below password field
         setAuthError('Incorrect password.');
       } else if (code === 'EMAIL_NOT_VERIFIED') {
         setAuthError('Please verify your email before signing in.');
       } else if (code === 'EMAIL_NOT_FOUND' || status === 400 || status === 401) {
-        // Email not found or other auth failure — use ambiguous toast
         showToast('Invalid email or password.', 'error', 3500);
       } else if (error?.message?.includes('Network Error')) {
         showToast('Cannot reach server. Check your connection.', 'error', 4000);
@@ -184,7 +184,7 @@ export function LoginScreen({ navigation }) {
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.logoContainer}>
-              <MaterialIcons name="account-balance-wallet" size={40} color={colors.accent[600]} />
+              <Image source={logo} style={styles.logo} resizeMode="contain" />
             </View>
             <Text style={styles.title}>Welcome Back</Text>
             <Text style={styles.subtitle}>Sign in to continue managing your finances</Text>
@@ -325,11 +325,13 @@ const styles = StyleSheet.create({
   logoContainer: {
     width: 72,
     height: 72,
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.accent[50],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
+  },
+  logo: {
+    width: 64,
+    height: 64,
   },
   title: {
     ...typography.h1,
