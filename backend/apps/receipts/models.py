@@ -1,6 +1,7 @@
 """Receipt and OCR processing model."""
-from django.conf import settings # type: ignore
-from django.db import models # type: ignore
+
+from django.conf import settings  # type: ignore
+from django.db import models  # type: ignore
 
 
 class Receipt(models.Model):
@@ -28,7 +29,8 @@ class Receipt(models.Model):
     image = models.ImageField(upload_to="receipts/images/")
     ocr_raw_text = models.TextField(blank=True)
     ocr_parsed_data = models.JSONField(
-        default=dict, blank=True,
+        default=dict,
+        blank=True,
         help_text="Structured data: {merchant, items[], total, date, currency}",
     )
     ocr_confidence = models.FloatField(null=True, blank=True)
@@ -38,7 +40,8 @@ class Receipt(models.Model):
         default=Status.PENDING,
     )
     processing_time_ms = models.IntegerField(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text="How long OCR processing took in milliseconds",
     )
     source_device = models.ForeignKey(

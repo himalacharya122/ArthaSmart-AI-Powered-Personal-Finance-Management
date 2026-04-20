@@ -1,6 +1,7 @@
 """Report generation and audit logging models."""
-from django.conf import settings # type: ignore
-from django.db import models # type: ignore
+
+from django.conf import settings  # type: ignore
+from django.db import models  # type: ignore
 
 
 class AuditLog(models.Model):
@@ -31,7 +32,8 @@ class AuditLog(models.Model):
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     user_agent = models.TextField(blank=True)
     changes = models.JSONField(
-        default=dict, blank=True,
+        default=dict,
+        blank=True,
         help_text="Before/after values for updates",
     )
     created_at = models.DateTimeField(auto_now_add=True)

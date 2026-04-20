@@ -1,12 +1,13 @@
 """Views for expenses, incomes, and recurring transactions."""
-from django.db.models import Sum # type: ignore
-from django.db.models.functions import TruncMonth # type: ignore
-from django_filters.rest_framework import DjangoFilterBackend # type: ignore
-from rest_framework import viewsets # type: ignore
-from rest_framework.decorators import action # type: ignore
-from rest_framework.filters import OrderingFilter, SearchFilter # type: ignore
-from rest_framework.permissions import IsAuthenticated # type: ignore
-from rest_framework.response import Response # type: ignore
+
+from django.db.models import Sum  # type: ignore
+from django.db.models.functions import TruncMonth  # type: ignore
+from django_filters.rest_framework import DjangoFilterBackend  # type: ignore
+from rest_framework import viewsets  # type: ignore
+from rest_framework.decorators import action  # type: ignore
+from rest_framework.filters import OrderingFilter, SearchFilter  # type: ignore
+from rest_framework.permissions import IsAuthenticated  # type: ignore
+from rest_framework.response import Response  # type: ignore
 
 from apps.shared.permissions import IsOwner
 
@@ -20,8 +21,8 @@ from .serializers import (
     RecurringTransactionSerializer,
 )
 
-
 # Expenses
+
 
 class ExpenseViewSet(viewsets.ModelViewSet):
     """CRUD for expenses with soft delete, filtering, and summary."""
@@ -71,29 +72,32 @@ class ExpenseViewSet(viewsets.ModelViewSet):
             .order_by("-month")[:12]
         )
 
-        return Response({
-            "total": str(total),
-            "by_category": [
-                {
-                    "category_id": item["category__id"],
-                    "name": item["category__name"] or "Uncategorized",
-                    "color": item["category__color"] or "#94A3B8",
-                    "icon": item["category__icon"] or "circle-dot",
-                    "total": str(item["total"]),
-                }
-                for item in by_category
-            ],
-            "by_month": [
-                {
-                    "month": item["month"].strftime("%Y-%m"),
-                    "total": str(item["total"]),
-                }
-                for item in by_month
-            ],
-        })
+        return Response(
+            {
+                "total": str(total),
+                "by_category": [
+                    {
+                        "category_id": item["category__id"],
+                        "name": item["category__name"] or "Uncategorized",
+                        "color": item["category__color"] or "#94A3B8",
+                        "icon": item["category__icon"] or "circle-dot",
+                        "total": str(item["total"]),
+                    }
+                    for item in by_category
+                ],
+                "by_month": [
+                    {
+                        "month": item["month"].strftime("%Y-%m"),
+                        "total": str(item["total"]),
+                    }
+                    for item in by_month
+                ],
+            }
+        )
 
 
 # Incomes
+
 
 class IncomeViewSet(viewsets.ModelViewSet):
     """CRUD for incomes with soft delete, filtering, and summary."""
@@ -130,11 +134,7 @@ class IncomeViewSet(viewsets.ModelViewSet):
 
         total = qs.aggregate(total=Sum("amount"))["total"] or 0
 
-        by_source = (
-            qs.values("source_name")
-            .annotate(total=Sum("amount"))
-            .order_by("-total")
-        )
+        by_source = qs.values("source_name").annotate(total=Sum("amount")).order_by("-total")
 
         by_month = (
             qs.annotate(month=TruncMonth("date"))
@@ -143,23 +143,26 @@ class IncomeViewSet(viewsets.ModelViewSet):
             .order_by("-month")[:12]
         )
 
-        return Response({
-            "total": str(total),
-            "by_source": [
-                {"source_name": item["source_name"], "total": str(item["total"])}
-                for item in by_source
-            ],
-            "by_month": [
-                {
-                    "month": item["month"].strftime("%Y-%m"),
-                    "total": str(item["total"]),
-                }
-                for item in by_month
-            ],
-        })
+        return Response(
+            {
+                "total": str(total),
+                "by_source": [
+                    {"source_name": item["source_name"], "total": str(item["total"])}
+                    for item in by_source
+                ],
+                "by_month": [
+                    {
+                        "month": item["month"].strftime("%Y-%m"),
+                        "total": str(item["total"]),
+                    }
+                    for item in by_month
+                ],
+            }
+        )
 
 
 # Recurring Transactions
+
 
 class RecurringTransactionViewSet(viewsets.ModelViewSet):
     """CRUD for recurring transaction rules with pause/resume."""

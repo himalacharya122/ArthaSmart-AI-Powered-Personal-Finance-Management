@@ -1,4 +1,5 @@
 """Shared utility functions for ArthaSmart API."""
+
 import secrets
 
 

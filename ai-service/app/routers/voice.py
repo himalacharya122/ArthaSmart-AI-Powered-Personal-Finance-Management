@@ -4,7 +4,15 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status  # type: ignore
+from fastapi import (  # type: ignore
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+    status,
+)
 
 from app.core.rate_limiter import rate_limiter
 from app.core.security import verify_service_key
@@ -87,7 +95,7 @@ async def transcribe_endpoint(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Transcription failed. Please try again.",
-        )
+        ) from exc
 
     if not result.get("text"):
         raise HTTPException(

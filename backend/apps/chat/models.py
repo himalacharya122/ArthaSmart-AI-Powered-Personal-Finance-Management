@@ -23,7 +23,8 @@ class ChatConversation(models.Model):
     )
     last_message_at = models.DateTimeField(null=True, blank=True)
     metadata = models.JSONField(
-        default=dict, blank=True,
+        default=dict,
+        blank=True,
         help_text="Context summary, model version, etc.",
     )
     created_at = models.DateTimeField(auto_now_add=True)
@@ -57,11 +58,13 @@ class ChatMessage(models.Model):
     role = models.CharField(max_length=10, choices=Role.choices)
     content = models.TextField()
     intent = models.CharField(
-        max_length=50, blank=True,
+        max_length=50,
+        blank=True,
         help_text="Detected intent: add_expense, query_balance, get_insight, general",
     )
     entities = models.JSONField(
-        default=dict, blank=True,
+        default=dict,
+        blank=True,
         help_text="Extracted entities: {amount, category, merchant, date}",
     )
     expense = models.ForeignKey(
@@ -81,11 +84,13 @@ class ChatMessage(models.Model):
         help_text="If this message created an income",
     )
     tokens_used = models.IntegerField(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text="LLM tokens consumed (for API cost tracking)",
     )
     response_time_ms = models.IntegerField(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text="AI response generation time in ms",
     )
     created_at = models.DateTimeField(auto_now_add=True)
@@ -116,28 +121,28 @@ class UserAIMemory(models.Model):
     )
 
     financial_personality = models.CharField(
-        max_length=50, blank=True,
+        max_length=50,
+        blank=True,
         help_text="saver, balanced, spender, impulsive, planned",
     )
 
     facts = models.JSONField(
-        default=list, blank=True,
+        default=list,
+        blank=True,
         help_text=(
-            "List of learned facts: "
-            "['Shops at Bhat-Bhateni weekly', 'Salary on 1st of month']"
+            "List of learned facts: " "['Shops at Bhat-Bhateni weekly', 'Salary on 1st of month']"
         ),
     )
 
     spending_patterns = models.JSONField(
-        default=dict, blank=True,
-        help_text=(
-            "{avg_daily_spend, top_merchants, peak_spending_days, "
-            "category_preferences}"
-        ),
+        default=dict,
+        blank=True,
+        help_text=("{avg_daily_spend, top_merchants, peak_spending_days, " "category_preferences}"),
     )
 
     goals = models.JSONField(
-        default=list, blank=True,
+        default=list,
+        blank=True,
         help_text="['Save 10000/month', 'Reduce dining out', 'Build emergency fund']",
     )
 

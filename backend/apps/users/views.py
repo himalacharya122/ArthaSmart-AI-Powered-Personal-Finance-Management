@@ -1,24 +1,23 @@
 """Authentication and user profile views."""
+
 import logging
 
-from django.contrib.auth.tokens import default_token_generator # type: ignore
-from django.core.mail import send_mail # type: ignore
-from django.conf import settings # type: ignore
-from django.template.loader import render_to_string # type: ignore
-from django.utils.encoding import force_bytes, force_str # type: ignore
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode # type: ignore
-
-from rest_framework import generics, status # type: ignore
-from rest_framework.permissions import AllowAny, IsAuthenticated # type: ignore
-from rest_framework.response import Response # type: ignore
-from rest_framework.views import APIView # type: ignore
-from rest_framework_simplejwt.tokens import RefreshToken # type: ignore
-from rest_framework_simplejwt.exceptions import TokenError # type: ignore
+from django.conf import settings  # type: ignore
+from django.contrib.auth.tokens import default_token_generator  # type: ignore
+from django.core.mail import send_mail  # type: ignore
+from django.utils.encoding import force_bytes, force_str  # type: ignore
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode  # type: ignore
+from rest_framework import generics, status  # type: ignore
+from rest_framework.permissions import AllowAny, IsAuthenticated  # type: ignore
+from rest_framework.response import Response  # type: ignore
+from rest_framework.views import APIView  # type: ignore
+from rest_framework_simplejwt.exceptions import TokenError  # type: ignore
+from rest_framework_simplejwt.tokens import RefreshToken  # type: ignore
 
 from apps.reports.models import AuditLog
 from apps.shared.utils import get_client_ip
 
-from .models import User, EmailVerification
+from .models import EmailVerification, User
 from .serializers import (
     EmailVerifySerializer,
     GoogleAuthSerializer,
@@ -38,6 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 # Auth views
+
 
 class RegisterView(generics.CreateAPIView):
     """POST /api/v1/auth/register/ — Create account and send verification email."""
@@ -118,9 +118,7 @@ class VerifyEmailView(APIView):
             )
 
         verification = (
-            EmailVerification.objects.filter(
-                user=user, code=code, is_used=False
-            )
+            EmailVerification.objects.filter(user=user, code=code, is_used=False)
             .order_by("-created_at")
             .first()
         )
@@ -214,8 +212,8 @@ class GoogleAuthView(APIView):
     serializer_class = GoogleAuthSerializer
 
     def post(self, request):
-        from google.oauth2 import id_token as google_id_token # type: ignore
-        from google.auth.transport import requests as google_requests # type: ignore
+        from google.auth.transport import requests as google_requests  # type: ignore
+        from google.oauth2 import id_token as google_id_token  # type: ignore
 
         serializer = GoogleAuthSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -226,9 +224,7 @@ class GoogleAuthView(APIView):
 
         # Method 1: Verify as Google ID token
         try:
-            id_info = google_id_token.verify_oauth2_token(
-                token, google_requests.Request()
-            )
+            id_info = google_id_token.verify_oauth2_token(token, google_requests.Request())
             # Check audience matches one of our client IDs
             valid_client_ids = [cid for cid in settings.GOOGLE_CLIENT_IDS if cid]
             if valid_client_ids and id_info.get("aud") not in valid_client_ids:
@@ -243,13 +239,14 @@ class GoogleAuthView(APIView):
                 "picture": id_info.get("picture", ""),
                 "email_verified": id_info.get("email_verified", False),
             }
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Google id_token verification failed: %s", exc)
 
         # Method 2: Use token as access token to fetch user info
         if not user_info:
             try:
-                import requests as http_requests # type: ignore
+                import requests as http_requests  # type: ignore
+
                 resp = http_requests.get(
                     "https://www.googleapis.com/oauth2/v3/userinfo",
                     headers={"Authorization": f"Bearer {token}"},
@@ -264,8 +261,8 @@ class GoogleAuthView(APIView):
                         "picture": data.get("picture", ""),
                         "email_verified": data.get("email_verified", False),
                     }
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Google userinfo fetch failed: %s", exc)
 
         if not user_info or not user_info.get("email"):
             return Response(
@@ -382,9 +379,7 @@ class PasswordChangeView(APIView):
     serializer_class = PasswordChangeSerializer
 
     def post(self, request):
-        serializer = PasswordChangeSerializer(
-            data=request.data, context={"request": request}
-        )
+        serializer = PasswordChangeSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
 
         request.user.set_password(serializer.validated_data["new_password"])
@@ -502,6 +497,7 @@ class PasswordResetConfirmView(APIView):
 
 
 # Profile views
+
 
 class ProfileView(generics.RetrieveUpdateAPIView):
     """GET/PATCH /api/v1/auth/profile/ — View or update current user profile."""

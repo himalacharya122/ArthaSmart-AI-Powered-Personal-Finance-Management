@@ -2,8 +2,8 @@
 
 import logging
 
-from fastapi import FastAPI # type: ignore
-from fastapi.middleware.cors import CORSMiddleware # type: ignore
+from fastapi import FastAPI  # type: ignore
+from fastapi.middleware.cors import CORSMiddleware  # type: ignore
 
 from app.config import get_settings
 from app.routers import chat, health, insights, voice

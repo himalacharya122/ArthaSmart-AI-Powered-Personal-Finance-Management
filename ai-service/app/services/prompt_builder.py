@@ -95,7 +95,9 @@ FINANCIAL SNAPSHOT (this month):
         prompt += "\nACTIVE BUDGETS:\n"
         for b in user_context.active_budgets:
             status = "OVER BUDGET" if b.percentage_used >= 100 else f"{b.percentage_used:.0f}% used"
-            prompt += f"- {b.name}: {currency} {b.spent:,.2f} / {currency} {b.amount:,.2f} ({status})\n"
+            prompt += (
+                f"- {b.name}: {currency} {b.spent:,.2f} / {currency} {b.amount:,.2f} ({status})\n"
+            )
 
     # Top categories
     if user_context.top_categories:
@@ -108,7 +110,9 @@ FINANCIAL SNAPSHOT (this month):
         prompt += "\nRECENT TRANSACTIONS (for reference):\n"
         for t in user_context.recent_transactions[:10]:
             label = t.merchant or t.source_name or t.description
-            prompt += f"- [{t.type.upper()}] ID#{t.id}: {currency} {t.amount:,.2f} — {label} ({t.date})\n"
+            prompt += (
+                f"- [{t.type.upper()}] ID#{t.id}: {currency} {t.amount:,.2f} — {label} ({t.date})\n"
+            )
 
     # Available categories
     if user_context.category_list:

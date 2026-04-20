@@ -18,6 +18,7 @@ from app.config import get_settings
 @dataclass
 class _UserWindow:
     """Sliding window for a single user."""
+
     timestamps: list[float] = field(default_factory=list)
 
     def count_in_window(self, window_seconds: float) -> int:

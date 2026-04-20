@@ -1,5 +1,6 @@
 """Serializers for chat conversations and messages."""
-from rest_framework import serializers # type: ignore
+
+from rest_framework import serializers  # type: ignore
 
 from .models import ChatConversation, ChatMessage
 
@@ -10,8 +11,15 @@ class ChatMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatMessage
         fields = [
-            "id", "role", "content", "intent", "entities",
-            "expense", "income", "tokens_used", "response_time_ms",
+            "id",
+            "role",
+            "content",
+            "intent",
+            "entities",
+            "expense",
+            "income",
+            "tokens_used",
+            "response_time_ms",
             "created_at",
         ]
         read_only_fields = fields
@@ -23,8 +31,13 @@ class ChatConversationListSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatConversation
         fields = [
-            "id", "title", "is_active", "message_count",
-            "last_message_at", "created_at", "updated_at",
+            "id",
+            "title",
+            "is_active",
+            "message_count",
+            "last_message_at",
+            "created_at",
+            "updated_at",
         ]
 
 
@@ -36,13 +49,22 @@ class ChatConversationDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatConversation
         fields = [
-            "id", "title", "is_active", "message_count",
-            "last_message_at", "metadata",
-            "created_at", "updated_at", "messages",
+            "id",
+            "title",
+            "is_active",
+            "message_count",
+            "last_message_at",
+            "metadata",
+            "created_at",
+            "updated_at",
+            "messages",
         ]
         read_only_fields = [
-            "id", "message_count", "last_message_at",
-            "created_at", "updated_at",
+            "id",
+            "message_count",
+            "last_message_at",
+            "created_at",
+            "updated_at",
         ]
 
 

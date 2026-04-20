@@ -31,15 +31,19 @@ def generate_insights_for_user(user) -> list[AIInsight]:
 
     today = date.today()
     first_of_month = today.replace(day=1)
-    thirty_days_ago = today - timedelta(days=30)
+    today - timedelta(days=30)
 
     # Build the request payload
     expenses_month = Expense.objects.filter(
-        user=user, is_deleted=False, date__gte=first_of_month,
+        user=user,
+        is_deleted=False,
+        date__gte=first_of_month,
     ).aggregate(total=Sum("amount"))["total"] or Decimal("0")
 
     income_month = Income.objects.filter(
-        user=user, is_deleted=False, date__gte=first_of_month,
+        user=user,
+        is_deleted=False,
+        date__gte=first_of_month,
     ).aggregate(total=Sum("amount"))["total"] or Decimal("0")
 
     savings_rate = 0.0
@@ -57,12 +61,14 @@ def generate_insights_for_user(user) -> list[AIInsight]:
     for c in cat_data:
         total = float(c["total"] or 0)
         count = c["count"] or 1
-        categories.append({
-            "name": c["category__name"] or "Uncategorized",
-            "total": total,
-            "count": count,
-            "avg_per_transaction": total / count if count > 0 else 0,
-        })
+        categories.append(
+            {
+                "name": c["category__name"] or "Uncategorized",
+                "total": total,
+                "count": count,
+                "avg_per_transaction": total / count if count > 0 else 0,
+            }
+        )
 
     # Monthly history (last 6 months)
     monthly_history = []
@@ -70,30 +76,38 @@ def generate_insights_for_user(user) -> list[AIInsight]:
         m_start = (first_of_month - timedelta(days=30 * i)).replace(day=1)
         m_end = (m_start + timedelta(days=32)).replace(day=1) - timedelta(days=1)
         m_exp = float(
-            Expense.objects.filter(user=user, is_deleted=False, date__gte=m_start, date__lte=m_end)
-            .aggregate(total=Sum("amount"))["total"] or 0
+            Expense.objects.filter(
+                user=user, is_deleted=False, date__gte=m_start, date__lte=m_end
+            ).aggregate(total=Sum("amount"))["total"]
+            or 0
         )
         m_inc = float(
-            Income.objects.filter(user=user, is_deleted=False, date__gte=m_start, date__lte=m_end)
-            .aggregate(total=Sum("amount"))["total"] or 0
+            Income.objects.filter(
+                user=user, is_deleted=False, date__gte=m_start, date__lte=m_end
+            ).aggregate(total=Sum("amount"))["total"]
+            or 0
         )
-        monthly_history.append({
-            "month": m_start.strftime("%Y-%m"),
-            "income": m_inc,
-            "expense": m_exp,
-        })
+        monthly_history.append(
+            {
+                "month": m_start.strftime("%Y-%m"),
+                "income": m_inc,
+                "expense": m_exp,
+            }
+        )
 
     # Active budgets
     active_budgets = []
     for b in Budget.objects.filter(user=user, is_active=True).select_related("category"):
-        active_budgets.append({
-            "name": b.name,
-            "category": b.category.name if b.category else "",
-            "amount": float(b.amount),
-            "spent": float(b.spent or 0),
-            "remaining": float(b.remaining),
-            "percentage_used": float(b.percentage_used),
-        })
+        active_budgets.append(
+            {
+                "name": b.name,
+                "category": b.category.name if b.category else "",
+                "amount": float(b.amount),
+                "spent": float(b.spent or 0),
+                "remaining": float(b.remaining),
+                "percentage_used": float(b.percentage_used),
+            }
+        )
 
     # User memory
     user_memory = {}
@@ -104,8 +118,8 @@ def generate_insights_for_user(user) -> list[AIInsight]:
             "facts": mem.facts or [],
             "goals": mem.goals or [],
         }
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("No AI memory for user %s: %s", user.id, exc)
 
     payload = {
         "user_id": user.id,
@@ -171,7 +185,9 @@ def check_expense_anomaly(user, expense) -> bool:
     ninety_days_ago = date.today() - timedelta(days=90)
     cat_stats = (
         Expense.objects.filter(
-            user=user, category=category, is_deleted=False,
+            user=user,
+            category=category,
+            is_deleted=False,
             date__gte=ninety_days_ago,
         )
         .exclude(id=expense.id)
@@ -192,7 +208,9 @@ def check_expense_anomaly(user, expense) -> bool:
     # Recent expenses in this category
     recent = list(
         Expense.objects.filter(
-            user=user, category=category, is_deleted=False,
+            user=user,
+            category=category,
+            is_deleted=False,
         )
         .exclude(id=expense.id)
         .order_by("-date")[:10]
@@ -261,12 +279,16 @@ def update_user_memory(user) -> dict:
 
     # 30-day totals
     exp_total = float(
-        Expense.objects.filter(user=user, is_deleted=False, date__gte=thirty_days_ago)
-        .aggregate(total=Sum("amount"))["total"] or 0
+        Expense.objects.filter(user=user, is_deleted=False, date__gte=thirty_days_ago).aggregate(
+            total=Sum("amount")
+        )["total"]
+        or 0
     )
     inc_total = float(
-        Income.objects.filter(user=user, is_deleted=False, date__gte=thirty_days_ago)
-        .aggregate(total=Sum("amount"))["total"] or 0
+        Income.objects.filter(user=user, is_deleted=False, date__gte=thirty_days_ago).aggregate(
+            total=Sum("amount")
+        )["total"]
+        or 0
     )
 
     # Category breakdown
@@ -280,12 +302,14 @@ def update_user_memory(user) -> dict:
     for c in cat_data:
         total = float(c["total"] or 0)
         count = c["count"] or 1
-        categories.append({
-            "name": c["category__name"] or "Uncategorized",
-            "total": total,
-            "count": count,
-            "avg_per_transaction": total / count,
-        })
+        categories.append(
+            {
+                "name": c["category__name"] or "Uncategorized",
+                "total": total,
+                "count": count,
+                "avg_per_transaction": total / count,
+            }
+        )
 
     # Daily expenses
     daily_data = (
@@ -319,8 +343,8 @@ def update_user_memory(user) -> dict:
             "goals": mem.goals or [],
             "spending_patterns": mem.spending_patterns or {},
         }
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("No AI memory for user %s: %s", user.id, exc)
 
     payload = {
         "user_id": user.id,
@@ -349,6 +373,7 @@ def update_user_memory(user) -> dict:
 
     # Update UserAIMemory
     from apps.chat.models import UserAIMemory  # type: ignore
+
     memory, _ = UserAIMemory.objects.get_or_create(user=user)
 
     if data.get("financial_personality"):

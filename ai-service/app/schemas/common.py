@@ -1,6 +1,6 @@
 """Shared schema definitions."""
 
-from pydantic import BaseModel # type: ignore
+from pydantic import BaseModel  # type: ignore
 
 
 class HealthResponse(BaseModel):

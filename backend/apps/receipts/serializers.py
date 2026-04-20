@@ -1,5 +1,6 @@
 """Serializers for receipt management and OCR processing."""
-from rest_framework import serializers # type: ignore
+
+from rest_framework import serializers  # type: ignore
 
 from .models import Receipt
 
@@ -10,8 +11,12 @@ class ReceiptListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Receipt
         fields = [
-            "id", "image", "status", "ocr_confidence",
-            "expense", "created_at",
+            "id",
+            "image",
+            "status",
+            "ocr_confidence",
+            "expense",
+            "created_at",
         ]
 
 
@@ -21,14 +26,29 @@ class ReceiptDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Receipt
         fields = [
-            "id", "image", "ocr_raw_text", "ocr_parsed_data",
-            "ocr_confidence", "status", "processing_time_ms",
-            "expense", "source_device", "error_message", "created_at",
+            "id",
+            "image",
+            "ocr_raw_text",
+            "ocr_parsed_data",
+            "ocr_confidence",
+            "status",
+            "processing_time_ms",
+            "expense",
+            "source_device",
+            "error_message",
+            "created_at",
         ]
         read_only_fields = [
-            "id", "ocr_raw_text", "ocr_parsed_data", "ocr_confidence",
-            "status", "processing_time_ms", "expense",
-            "source_device", "error_message", "created_at",
+            "id",
+            "ocr_raw_text",
+            "ocr_parsed_data",
+            "ocr_confidence",
+            "status",
+            "processing_time_ms",
+            "expense",
+            "source_device",
+            "error_message",
+            "created_at",
         ]
 
 

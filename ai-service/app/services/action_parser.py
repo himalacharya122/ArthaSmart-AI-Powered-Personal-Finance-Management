@@ -70,9 +70,7 @@ def extract_memory_updates(content: str | None) -> list[MemoryUpdate]:
             # The full sentence containing the trigger
             for sentence in content.split("."):
                 if trigger in sentence.lower():
-                    updates.append(
-                        MemoryUpdate(type="goal", content=sentence.strip())
-                    )
+                    updates.append(MemoryUpdate(type="goal", content=sentence.strip()))
                     break
 
     return updates

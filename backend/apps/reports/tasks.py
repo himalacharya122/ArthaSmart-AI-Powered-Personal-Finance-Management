@@ -1,6 +1,8 @@
 """Background tasks for reports."""
+
 import logging
-from celery import shared_task # type: ignore
+
+from celery import shared_task  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -8,10 +10,11 @@ logger = logging.getLogger(__name__)
 @shared_task
 def generate_monthly_report(user_id, month=None, year=None):
     """Generate a monthly financial report for a user."""
-    from apps.users.models import User
+    from django.utils import timezone  # type: ignore
+
     from apps.expenses.models import Expense
     from apps.reports.models import AuditLog
-    from django.utils import timezone # type: ignore
+    from apps.users.models import User
 
     try:
         user = User.objects.get(id=user_id)
@@ -32,7 +35,9 @@ def generate_monthly_report(user_id, month=None, year=None):
         category_breakdown = {}
         for expense in expenses:
             cat_name = expense.category.name if expense.category else "Uncategorized"
-            category_breakdown[cat_name] = category_breakdown.get(cat_name, 0) + float(expense.amount)
+            category_breakdown[cat_name] = category_breakdown.get(cat_name, 0) + float(
+                expense.amount
+            )
 
         AuditLog.objects.create(
             user=user,
@@ -48,7 +53,9 @@ def generate_monthly_report(user_id, month=None, year=None):
             },
         )
 
-        logger.info("Monthly report generated for user %s: %d/%d", user.email, target_month, target_year)
+        logger.info(
+            "Monthly report generated for user %s: %d/%d", user.email, target_month, target_year
+        )
         return {"total": float(total), "count": count, "categories": category_breakdown}
     except Exception as exc:
         logger.error("Monthly report failed for user %s: %s", user_id, exc)

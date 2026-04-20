@@ -1,8 +1,10 @@
 """Background tasks for notifications."""
+
 import logging
-from celery import shared_task # type: ignore
-from django.core.mail import send_mail # type: ignore
-from django.conf import settings # type: ignore
+
+from celery import shared_task  # type: ignore
+from django.conf import settings  # type: ignore
+from django.core.mail import send_mail  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -21,13 +23,14 @@ def send_email_task(self, subject, message, recipient_list, from_email=None):
         logger.info("Email sent to %s", recipient_list)
     except Exception as exc:
         logger.error("Failed to send email: %s", exc)
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc) from exc
 
 
 @shared_task
 def send_budget_alert(user_id, budget_name, spent_percentage):
     """Send budget threshold alert email."""
     from apps.users.models import User
+
     try:
         user = User.objects.get(id=user_id)
         subject = f"ArthaSmart — Budget Alert: {budget_name}"

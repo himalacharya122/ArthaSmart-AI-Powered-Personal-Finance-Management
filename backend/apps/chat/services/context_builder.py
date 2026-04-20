@@ -1,10 +1,10 @@
 """Build rich financial context for AI requests."""
 
 import logging
-from datetime import date, timedelta
+from datetime import date
 from decimal import Decimal
 
-from django.db.models import Sum, Count  # type: ignore
+from django.db.models import Count, Sum  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -23,19 +23,19 @@ def build_user_context(user) -> dict:
     first_of_month = today.replace(day=1)
 
     # Monthly totals
-    expenses_this_month = (
-        Expense.objects.filter(
-            user=user, is_deleted=False, date__gte=first_of_month, date__lte=today,
-        ).aggregate(total=Sum("amount"))["total"]
-        or Decimal("0")
-    )
+    expenses_this_month = Expense.objects.filter(
+        user=user,
+        is_deleted=False,
+        date__gte=first_of_month,
+        date__lte=today,
+    ).aggregate(total=Sum("amount"))["total"] or Decimal("0")
 
-    income_this_month = (
-        Income.objects.filter(
-            user=user, is_deleted=False, date__gte=first_of_month, date__lte=today,
-        ).aggregate(total=Sum("amount"))["total"]
-        or Decimal("0")
-    )
+    income_this_month = Income.objects.filter(
+        user=user,
+        is_deleted=False,
+        date__gte=first_of_month,
+        date__lte=today,
+    ).aggregate(total=Sum("amount"))["total"] or Decimal("0")
 
     savings_rate = 0.0
     if income_this_month > 0:
@@ -45,26 +45,34 @@ def build_user_context(user) -> dict:
     active_budgets = []
     for budget in Budget.objects.filter(user=user, is_active=True).select_related("category"):
         spent = budget.spent or Decimal("0")
-        active_budgets.append({
-            "name": budget.name,
-            "category": budget.category.name if budget.category else "",
-            "amount": float(budget.amount),
-            "spent": float(spent),
-            "remaining": float(budget.remaining),
-            "percentage_used": float(budget.percentage_used),
-        })
+        active_budgets.append(
+            {
+                "name": budget.name,
+                "category": budget.category.name if budget.category else "",
+                "amount": float(budget.amount),
+                "spent": float(spent),
+                "remaining": float(budget.remaining),
+                "percentage_used": float(budget.percentage_used),
+            }
+        )
 
     # Top spending categories this month
     top_cats = (
         Expense.objects.filter(
-            user=user, is_deleted=False, date__gte=first_of_month,
+            user=user,
+            is_deleted=False,
+            date__gte=first_of_month,
         )
         .values("category__name")
         .annotate(total=Sum("amount"), count=Count("id"))
         .order_by("-total")[:5]
     )
     top_categories = [
-        {"name": c["category__name"] or "Uncategorized", "total": float(c["total"]), "count": c["count"]}
+        {
+            "name": c["category__name"] or "Uncategorized",
+            "total": float(c["total"]),
+            "count": c["count"],
+        }
         for c in top_cats
     ]
 
@@ -82,36 +90,37 @@ def build_user_context(user) -> dict:
 
     recent_transactions = []
     for exp in recent_expenses:
-        recent_transactions.append({
-            "id": exp.id,
-            "type": "expense",
-            "description": exp.description,
-            "merchant": exp.merchant,
-            "source_name": "",
-            "amount": float(exp.amount),
-            "category": exp.category.name if exp.category else "",
-            "date": exp.date.isoformat(),
-        })
+        recent_transactions.append(
+            {
+                "id": exp.id,
+                "type": "expense",
+                "description": exp.description,
+                "merchant": exp.merchant,
+                "source_name": "",
+                "amount": float(exp.amount),
+                "category": exp.category.name if exp.category else "",
+                "date": exp.date.isoformat(),
+            }
+        )
     for inc in recent_incomes:
-        recent_transactions.append({
-            "id": inc.id,
-            "type": "income",
-            "description": inc.description,
-            "merchant": "",
-            "source_name": inc.source_name,
-            "amount": float(inc.amount),
-            "category": inc.category.name if inc.category else "",
-            "date": inc.date.isoformat(),
-        })
+        recent_transactions.append(
+            {
+                "id": inc.id,
+                "type": "income",
+                "description": inc.description,
+                "merchant": "",
+                "source_name": inc.source_name,
+                "amount": float(inc.amount),
+                "category": inc.category.name if inc.category else "",
+                "date": inc.date.isoformat(),
+            }
+        )
 
     # Sort by date descending
     recent_transactions.sort(key=lambda x: x["date"], reverse=True)
 
     # Available category names
-    category_list = list(
-        Category.objects.filter(type="expense")
-        .values_list("name", flat=True)
-    )
+    category_list = list(Category.objects.filter(type="expense").values_list("name", flat=True))
 
     return {
         "user_id": user.id,

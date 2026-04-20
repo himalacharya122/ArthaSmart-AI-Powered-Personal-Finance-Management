@@ -1,0 +1,68 @@
+# ArthaSmart - AI Service tooling config
+# Tools configured here:
+#   - Ruff   : linter + formatter
+#   - Bandit : security-focused static analysis
+#   - Pytest : test runner
+#
+# Local usage (from ./ai-service):
+#   pip install -r requirements-dev.txt
+#   ruff check .
+#   ruff format .
+#   bandit -c pyproject.toml -r app api services models
+#   pytest
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+extend-exclude = [
+    "venv",
+    ".venv",
+    "models/cache",
+    "**/__pycache__/**",
+]
+
+[tool.ruff.lint]
+# FastAPI-flavored ruleset.
+# E/W    : pycodestyle, F : pyflakes, I : isort, B : flake8-bugbear,
+# UP     : pyupgrade, S : flake8-bandit lite, C4 : comprehensions,
+# SIM    : simplifications, ASYNC : async correctness, RUF : ruff-specific.
+select = [
+    "E", "W", "F", "I", "B", "UP", "S", "C4", "SIM", "ASYNC", "RUF",
+]
+ignore = [
+    "E501",   # line length handled by formatter
+    "B008",   # FastAPI uses Depends() as default arg
+    "S101",   # allow `assert` (tests)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S", "B"]
+"**/test_*.py" = ["S", "B"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "api", "services", "models"]
+combine-as-imports = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+docstring-code-format = true
+
+# -------------------------------------------------------------------
+# Bandit
+# -------------------------------------------------------------------
+[tool.bandit]
+exclude_dirs = ["venv", ".venv", "tests", "*/tests/*"]
+# B101: assert in tests. B104: 0.0.0.0 bind is intentional for container runtime.
+skips = ["B101", "B104"]
+
+# -------------------------------------------------------------------
+# Pytest
+# -------------------------------------------------------------------
+[tool.pytest.ini_options]
+python_files = ["test_*.py", "*_test.py"]
+addopts = "-ra --strict-markers"
+testpaths = ["tests"]
+asyncio_mode = "auto"

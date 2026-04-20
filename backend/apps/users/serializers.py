@@ -1,13 +1,14 @@
 """Serializers for authentication and user profile."""
-from django.contrib.auth import authenticate # type: ignore
-from django.contrib.auth.password_validation import validate_password # type: ignore
-from rest_framework import serializers # type: ignore
-from rest_framework_simplejwt.tokens import RefreshToken # type: ignore
+
+from django.contrib.auth import authenticate  # type: ignore
+from django.contrib.auth.password_validation import validate_password  # type: ignore
+from rest_framework import serializers  # type: ignore
+from rest_framework_simplejwt.tokens import RefreshToken  # type: ignore
 
 from .models import User
 
-
 # Auth serializers
+
 
 class RegisterSerializer(serializers.ModelSerializer):
     """Create a new user account and return JWT tokens."""
@@ -18,8 +19,12 @@ class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            "email", "username", "first_name", "last_name",
-            "password", "password_confirm",
+            "email",
+            "username",
+            "first_name",
+            "last_name",
+            "password",
+            "password_confirm",
         ]
 
     def validate_email(self, value):
@@ -27,9 +32,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         if attrs["password"] != attrs.pop("password_confirm"):
-            raise serializers.ValidationError(
-                {"password_confirm": "Passwords do not match."}
-            )
+            raise serializers.ValidationError({"password_confirm": "Passwords do not match."})
         validate_password(attrs["password"])
         return attrs
 
@@ -52,13 +55,9 @@ class LoginSerializer(serializers.Serializer):
             password=password,
         )
         if not user:
-            raise serializers.ValidationError(
-                {"detail": "Invalid email or password."}
-            )
+            raise serializers.ValidationError({"detail": "Invalid email or password."})
         if not user.is_active:
-            raise serializers.ValidationError(
-                {"detail": "Account is deactivated."}
-            )
+            raise serializers.ValidationError({"detail": "Account is deactivated."})
         if not user.is_email_verified:
             raise serializers.ValidationError(
                 {
@@ -85,9 +84,7 @@ class PasswordChangeSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if attrs["new_password"] != attrs["new_password_confirm"]:
-            raise serializers.ValidationError(
-                {"new_password_confirm": "Passwords do not match."}
-            )
+            raise serializers.ValidationError({"new_password_confirm": "Passwords do not match."})
         validate_password(attrs["new_password"])
         return attrs
 
@@ -111,9 +108,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if attrs["new_password"] != attrs["new_password_confirm"]:
-            raise serializers.ValidationError(
-                {"new_password_confirm": "Passwords do not match."}
-            )
+            raise serializers.ValidationError({"new_password_confirm": "Passwords do not match."})
         validate_password(attrs["new_password"])
         return attrs
 
@@ -139,6 +134,7 @@ class ResendVerificationSerializer(serializers.Serializer):
 
 class GoogleAuthSerializer(serializers.Serializer):
     """Authenticate with a Google OAuth token."""
+
     token = serializers.CharField(help_text="Google access token or ID token")
 
 
@@ -150,16 +146,26 @@ class LogoutSerializer(serializers.Serializer):
 
 # User profile serializers
 
+
 class UserSerializer(serializers.ModelSerializer):
     """Read-only representation of the user (embedded in auth responses)."""
 
     class Meta:
         model = User
         fields = [
-            "id", "email", "username", "first_name", "last_name",
-            "phone_number", "preferred_currency", "monthly_income_goal",
-            "timezone", "profile_picture", "is_email_verified",
-            "date_joined", "updated_at",
+            "id",
+            "email",
+            "username",
+            "first_name",
+            "last_name",
+            "phone_number",
+            "preferred_currency",
+            "monthly_income_goal",
+            "timezone",
+            "profile_picture",
+            "is_email_verified",
+            "date_joined",
+            "updated_at",
         ]
         read_only_fields = fields
 
@@ -170,13 +176,18 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            "first_name", "last_name", "phone_number",
-            "preferred_currency", "monthly_income_goal",
-            "timezone", "profile_picture",
+            "first_name",
+            "last_name",
+            "phone_number",
+            "preferred_currency",
+            "monthly_income_goal",
+            "timezone",
+            "profile_picture",
         ]
 
 
 # Token helper
+
 
 def get_tokens_for_user(user):
     """Generate access + refresh tokens for a user."""

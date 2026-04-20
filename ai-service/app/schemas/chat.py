@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field # type: ignore
-
+from pydantic import BaseModel, Field  # type: ignore
 
 # User Context (sent by Django with every chat request)
 

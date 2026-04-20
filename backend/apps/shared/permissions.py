@@ -1,5 +1,6 @@
 """Shared permission classes for ArthaSmart API."""
-from rest_framework.permissions import BasePermission # type: ignore
+
+from rest_framework.permissions import BasePermission  # type: ignore
 
 
 class IsOwner(BasePermission):

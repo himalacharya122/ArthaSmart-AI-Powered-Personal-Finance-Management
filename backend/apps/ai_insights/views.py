@@ -1,4 +1,5 @@
 """AI insights views."""
+
 import logging
 
 from django_filters.rest_framework import DjangoFilterBackend  # type: ignore

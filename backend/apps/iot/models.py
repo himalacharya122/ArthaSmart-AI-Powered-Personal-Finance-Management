@@ -1,6 +1,7 @@
 """IoT device and NFC tag models."""
-from django.conf import settings # type: ignore
-from django.db import models # type: ignore
+
+from django.conf import settings  # type: ignore
+from django.db import models  # type: ignore
 
 
 class IoTDevice(models.Model):
@@ -20,14 +21,17 @@ class IoTDevice(models.Model):
         help_text="User-friendly name, e.g., 'Kitchen Scanner'",
     )
     device_type = models.CharField(
-        max_length=20, choices=DeviceType.choices,
+        max_length=20,
+        choices=DeviceType.choices,
     )
     device_id = models.CharField(
-        max_length=100, unique=True,
+        max_length=100,
+        unique=True,
         help_text="Hardware identifier",
     )
     api_key = models.CharField(
-        max_length=255, unique=True,
+        max_length=255,
+        unique=True,
         help_text="API key for device authentication",
     )
     api_key_expires_at = models.DateTimeField(null=True, blank=True)

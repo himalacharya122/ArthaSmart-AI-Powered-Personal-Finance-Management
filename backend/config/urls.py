@@ -1,7 +1,8 @@
 """URL configuration for ArthaSmart."""
-from django.contrib import admin # type: ignore
-from django.urls import include, path # type: ignore
-from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView # type: ignore
+
+from django.contrib import admin  # type: ignore
+from django.urls import include, path  # type: ignore
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView  # type: ignore
 
 urlpatterns = [
     # Admin

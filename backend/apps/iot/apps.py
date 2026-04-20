@@ -1,5 +1,5 @@
-from django.apps import AppConfig # type: ignore
+from django.apps import AppConfig  # type: ignore
 
 
 class IotConfig(AppConfig):
-    name = 'apps.iot'
+    name = "apps.iot"

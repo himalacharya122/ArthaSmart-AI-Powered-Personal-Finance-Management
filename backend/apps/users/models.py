@@ -1,10 +1,11 @@
 """Custom User model for ArthaSmart."""
-import random
+
+import secrets
 import string
 
-from django.contrib.auth.models import AbstractUser # type: ignore
-from django.db import models # type: ignore
-from django.utils import timezone # type: ignore
+from django.contrib.auth.models import AbstractUser  # type: ignore
+from django.db import models  # type: ignore
+from django.utils import timezone  # type: ignore
 
 
 class User(AbstractUser):
@@ -14,14 +15,20 @@ class User(AbstractUser):
     phone_number = models.CharField(max_length=20, blank=True)
     preferred_currency = models.CharField(max_length=3, default="NPR")
     monthly_income_goal = models.DecimalField(
-        max_digits=12, decimal_places=2, null=True, blank=True,
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
         help_text="User's target monthly income for budgeting",
     )
     profile_picture = models.ImageField(
-        upload_to="profiles/", blank=True, null=True,
+        upload_to="profiles/",
+        blank=True,
+        null=True,
     )
     timezone = models.CharField(
-        max_length=50, default="Asia/Kathmandu",
+        max_length=50,
+        default="Asia/Kathmandu",
         help_text="IANA timezone for recurring transaction scheduling",
     )
     is_email_verified = models.BooleanField(default=False)
@@ -63,7 +70,7 @@ class EmailVerification(models.Model):
     @classmethod
     def generate_code(cls):
         """Generate a random 6-digit code."""
-        return "".join(random.choices(string.digits, k=6))
+        return "".join(secrets.choice(string.digits) for _ in range(6))
 
     @classmethod
     def create_for_user(cls, user):

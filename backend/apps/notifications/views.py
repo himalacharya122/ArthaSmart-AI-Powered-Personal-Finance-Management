@@ -1,11 +1,12 @@
 """Notification management views."""
-from django_filters.rest_framework import DjangoFilterBackend # type: ignore
-from rest_framework import mixins, status, viewsets # type: ignore
-from rest_framework.decorators import action # type: ignore
-from rest_framework.filters import OrderingFilter # type: ignore
-from rest_framework.permissions import IsAuthenticated # type: ignore
-from rest_framework.response import Response # type: ignore
-from rest_framework.views import APIView # type: ignore
+
+from django_filters.rest_framework import DjangoFilterBackend  # type: ignore
+from rest_framework import mixins, viewsets  # type: ignore
+from rest_framework.decorators import action  # type: ignore
+from rest_framework.filters import OrderingFilter  # type: ignore
+from rest_framework.permissions import IsAuthenticated  # type: ignore
+from rest_framework.response import Response  # type: ignore
+from rest_framework.views import APIView  # type: ignore
 
 from .models import Notification, NotificationPreference
 from .serializers import (
@@ -77,6 +78,8 @@ class NotificationPreferenceView(APIView):
             )
             results.append(pref)
 
-        return Response({
-            "preferences": NotificationPreferenceSerializer(results, many=True).data,
-        })
+        return Response(
+            {
+                "preferences": NotificationPreferenceSerializer(results, many=True).data,
+            }
+        )

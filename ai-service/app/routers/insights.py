@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Depends # type: ignore
+from fastapi import APIRouter, Depends  # type: ignore
 
 from app.core.security import verify_service_key
 from app.schemas.insights import (

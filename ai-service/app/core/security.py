@@ -1,6 +1,6 @@
 """Service-to-service authentication."""
 
-from fastapi import Header, HTTPException, status # type: ignore
+from fastapi import Header, HTTPException, status  # type: ignore
 
 from app.config import get_settings
 

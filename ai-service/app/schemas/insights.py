@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field # type: ignore
+from pydantic import BaseModel, Field  # type: ignore
 
 
 class CategorySpending(BaseModel):
     """Category spending summary."""
+
     name: str
     total: float
     count: int
@@ -15,6 +16,7 @@ class CategorySpending(BaseModel):
 
 class MonthlyTotal(BaseModel):
     """Monthly income/expense total."""
+
     month: str
     income: float = 0.0
     expense: float = 0.0
@@ -22,6 +24,7 @@ class MonthlyTotal(BaseModel):
 
 class InsightRequest(BaseModel):
     """Request to generate insights for a user."""
+
     user_id: int
     first_name: str = ""
     preferred_currency: str = "NPR"
@@ -36,6 +39,7 @@ class InsightRequest(BaseModel):
 
 class InsightItem(BaseModel):
     """A single AI-generated insight."""
+
     insight_type: str  # spending_pattern, anomaly, prediction, suggestion
     severity: str = "info"  # info, warning, critical
     title: str
@@ -45,6 +49,7 @@ class InsightItem(BaseModel):
 
 class InsightResponse(BaseModel):
     """Response from insight generation."""
+
     insights: list[InsightItem]
     tokens_used: int = 0
     response_time_ms: int = 0
@@ -52,6 +57,7 @@ class InsightResponse(BaseModel):
 
 class AnomalyCheckRequest(BaseModel):
     """Request to check if an expense is anomalous."""
+
     expense_amount: float
     expense_category: str
     expense_merchant: str = ""
@@ -65,6 +71,7 @@ class AnomalyCheckRequest(BaseModel):
 
 class AnomalyCheckResponse(BaseModel):
     """Anomaly detection result."""
+
     is_anomaly: bool = False
     confidence: float = 0.0  # 0-1
     reason: str = ""
@@ -74,6 +81,7 @@ class AnomalyCheckResponse(BaseModel):
 
 class MemoryUpdateRequest(BaseModel):
     """Request to analyze spending patterns and update user memory."""
+
     user_id: int
     first_name: str = ""
     preferred_currency: str = "NPR"
@@ -87,6 +95,7 @@ class MemoryUpdateRequest(BaseModel):
 
 class MemoryUpdateResponse(BaseModel):
     """Updated user memory from analysis."""
+
     financial_personality: str = ""
     spending_patterns: dict = Field(default_factory=dict)
     new_facts: list[str] = []

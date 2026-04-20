@@ -1,6 +1,7 @@
 """Budget tracking model with alert thresholds."""
-from django.conf import settings # type: ignore
-from django.db import models # type: ignore
+
+from django.conf import settings  # type: ignore
+from django.db import models  # type: ignore
 
 
 class Budget(models.Model):
@@ -19,11 +20,14 @@ class Budget(models.Model):
     )
     name = models.CharField(max_length=255)
     amount = models.DecimalField(
-        max_digits=12, decimal_places=2,
+        max_digits=12,
+        decimal_places=2,
         help_text="Budget limit amount",
     )
     spent = models.DecimalField(
-        max_digits=12, decimal_places=2, default=0,
+        max_digits=12,
+        decimal_places=2,
+        default=0,
         help_text="Current spent amount (cached, updated by signals/tasks)",
     )
     currency = models.CharField(max_length=3, default="NPR")

@@ -1,4 +1,4 @@
-from django.contrib import admin # type: ignore
+from django.contrib import admin  # type: ignore
 
 from .models import AuditLog, CurrencyRate
 
@@ -9,7 +9,16 @@ class AuditLogAdmin(admin.ModelAdmin):
     list_filter = ("action", "resource_type")
     search_fields = ("user__email", "resource_type")
     ordering = ("-created_at",)
-    readonly_fields = ("user", "action", "resource_type", "resource_id", "ip_address", "user_agent", "changes", "created_at")
+    readonly_fields = (
+        "user",
+        "action",
+        "resource_type",
+        "resource_id",
+        "ip_address",
+        "user_agent",
+        "changes",
+        "created_at",
+    )
 
 
 @admin.register(CurrencyRate)

@@ -1,4 +1,5 @@
 """Shared ViewSet mixins for ArthaSmart API."""
+
 from apps.reports.models import AuditLog
 
 

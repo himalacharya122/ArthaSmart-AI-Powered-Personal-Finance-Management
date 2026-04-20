@@ -54,3 +54,8 @@ docs/database
 docs/uml
 docs/wireframes
 docs/
+.claude/
+
+# ruff cache
+.ruff_cache/
+.bandit/

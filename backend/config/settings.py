@@ -1,11 +1,11 @@
 """
 Django settings for ArthaSmart - Smart Budgeting System.
 """
-import os
+
 from datetime import timedelta
 from pathlib import Path
 
-from decouple import Csv, config # type: ignore
+from decouple import Csv, config  # type: ignore
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -244,5 +244,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Sentry (Error Monitoring)
 SENTRY_DSN = config("SENTRY_DSN", default="")
 if SENTRY_DSN:
-    import sentry_sdk # type: ignore
+    import sentry_sdk  # type: ignore
+
     sentry_sdk.init(dsn=SENTRY_DSN, traces_sample_rate=0.1)
