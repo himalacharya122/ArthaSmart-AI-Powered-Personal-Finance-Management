@@ -66,3 +66,4 @@ python_files = ["test_*.py", "*_test.py"]
 addopts = "-ra --strict-markers"
 testpaths = ["tests"]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
