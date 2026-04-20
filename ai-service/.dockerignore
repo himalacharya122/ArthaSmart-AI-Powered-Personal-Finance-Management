@@ -1,0 +1,30 @@
+# Local virtualenvs
+venv/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Cached ML models (rebuilt on demand, often huge)
+models/*.pkl
+models/*.h5
+models/*.pt
+models/cache/
+
+# Git / editor
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

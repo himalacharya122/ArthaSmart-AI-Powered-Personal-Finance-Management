@@ -1,6 +1,7 @@
 """AI-generated insights and analytics results."""
-from django.conf import settings # type: ignore
-from django.db import models # type: ignore
+
+from django.conf import settings  # type: ignore
+from django.db import models  # type: ignore
 
 
 class AIInsight(models.Model):
@@ -23,12 +24,14 @@ class AIInsight(models.Model):
         related_name="ai_insights",
     )
     insight_type = models.CharField(
-        max_length=50, choices=InsightType.choices,
+        max_length=50,
+        choices=InsightType.choices,
     )
     title = models.CharField(max_length=255)
     description = models.TextField()
     data = models.JSONField(
-        default=dict, blank=True,
+        default=dict,
+        blank=True,
         help_text="Chart data, numbers, supporting evidence",
     )
     severity = models.CharField(

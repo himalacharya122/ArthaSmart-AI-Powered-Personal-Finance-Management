@@ -1,9 +1,10 @@
 """IoT device and NFC tag management views (deprioritized — basic CRUD only)."""
-from django.utils import timezone # type: ignore
-from rest_framework import viewsets # type: ignore
-from rest_framework.decorators import action # type: ignore
-from rest_framework.permissions import IsAuthenticated # type: ignore
-from rest_framework.response import Response # type: ignore
+
+from django.utils import timezone  # type: ignore
+from rest_framework import viewsets  # type: ignore
+from rest_framework.decorators import action  # type: ignore
+from rest_framework.permissions import IsAuthenticated  # type: ignore
+from rest_framework.response import Response  # type: ignore
 
 from apps.shared.permissions import IsOwner
 from apps.shared.utils import generate_api_key
@@ -32,10 +33,12 @@ class IoTDeviceViewSet(viewsets.ModelViewSet):
         device.api_key = generate_api_key(prefix="ask_iot")
         device.api_key_expires_at = timezone.now() + timezone.timedelta(days=365)
         device.save(update_fields=["api_key", "api_key_expires_at"])
-        return Response({
-            "api_key": device.api_key,
-            "api_key_expires_at": device.api_key_expires_at,
-        })
+        return Response(
+            {
+                "api_key": device.api_key,
+                "api_key_expires_at": device.api_key_expires_at,
+            }
+        )
 
 
 class NFCTagViewSet(viewsets.ModelViewSet):

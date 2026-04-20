@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-import time
 
 from app.config import get_settings
 from app.schemas.insights import MemoryUpdateRequest, MemoryUpdateResponse
@@ -18,15 +17,11 @@ def analyze_and_update_memory(request: MemoryUpdateRequest) -> MemoryUpdateRespo
 
     This is called periodically (weekly) to build the user's financial profile.
     """
-    start = time.perf_counter()
-
     # --- Statistical patterns ---
     patterns = _calculate_patterns(request)
 
     # --- LLM personality analysis ---
     personality, new_facts, summary, tokens = _llm_personality_analysis(request, patterns)
-
-    elapsed = int((time.perf_counter() - start) * 1000)
 
     return MemoryUpdateResponse(
         financial_personality=personality,
@@ -67,6 +62,7 @@ def _calculate_patterns(req: MemoryUpdateRequest) -> dict:
     # Peak spending days (by day of week)
     if req.daily_expenses:
         from datetime import datetime
+
         day_totals: dict[str, list[float]] = {}
         for d in req.daily_expenses:
             try:
@@ -128,7 +124,10 @@ Example:
         response = client.chat.completions.create(
             model=get_settings().llm_model,
             messages=[
-                {"role": "system", "content": "You are a financial behavior analyst. Return only valid JSON."},
+                {
+                    "role": "system",
+                    "content": "You are a financial behavior analyst. Return only valid JSON.",
+                },
                 {"role": "user", "content": prompt},
             ],
             max_tokens=400,

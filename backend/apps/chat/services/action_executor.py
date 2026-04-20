@@ -3,8 +3,6 @@
 import logging
 from datetime import date
 
-from django.db.models import Q  # type: ignore
-
 logger = logging.getLogger(__name__)
 
 
@@ -22,8 +20,6 @@ def execute_actions(user, actions: list[dict]) -> dict:
             "errors": [...],    # Failed actions with error messages
         }
     """
-    from apps.categories.models import Category  # type: ignore
-    from apps.expenses.models import Expense, Income  # type: ignore
 
     results = {"executed": [], "errors": []}
 
@@ -58,17 +54,21 @@ def execute_actions(user, actions: list[dict]) -> dict:
 
             else:
                 logger.warning("Unknown action type: %s", action_type)
-                results["errors"].append({
-                    "type": action_type,
-                    "error": f"Unknown action type: {action_type}",
-                })
+                results["errors"].append(
+                    {
+                        "type": action_type,
+                        "error": f"Unknown action type: {action_type}",
+                    }
+                )
 
         except Exception as exc:
             logger.error("Failed to execute %s: %s", action_type, exc)
-            results["errors"].append({
-                "type": action_type,
-                "error": str(exc),
-            })
+            results["errors"].append(
+                {
+                    "type": action_type,
+                    "error": str(exc),
+                }
+            )
 
     return results
 

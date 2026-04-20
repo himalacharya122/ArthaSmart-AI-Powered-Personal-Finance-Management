@@ -1,6 +1,8 @@
 """Background tasks for AI insights."""
+
 import logging
-from celery import shared_task # type: ignore
+
+from celery import shared_task  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -8,11 +10,13 @@ logger = logging.getLogger(__name__)
 @shared_task
 def generate_daily_insights(user_id):
     """Generate daily spending insights for a user."""
-    from apps.users.models import User
-    from apps.expenses.models import Expense
-    from apps.ai_insights.models import Insight
-    from django.utils import timezone # type: ignore
     from datetime import timedelta
+
+    from django.utils import timezone  # type: ignore
+
+    from apps.ai_insights.models import Insight
+    from apps.expenses.models import Expense
+    from apps.users.models import User
 
     try:
         user = User.objects.get(id=user_id)
@@ -39,26 +43,23 @@ def generate_daily_insights(user_id):
 @shared_task
 def detect_anomalies(user_id):
     """Detect unusual spending patterns for a user."""
-    from apps.users.models import User
-    from apps.expenses.models import Expense
-    from apps.ai_insights.models import Insight
-    from django.utils import timezone # type: ignore
     from datetime import timedelta
-    from django.db.models import Avg # type: ignore
+
+    from django.utils import timezone  # type: ignore
+
+    from apps.ai_insights.models import Insight
+    from apps.expenses.models import Expense
+    from apps.users.models import User
 
     try:
         user = User.objects.get(id=user_id)
         today = timezone.now().date()
 
         # Compare this week vs 4-week average
-        this_week = Expense.objects.filter(
-            user=user, date__gte=today - timedelta(days=7)
-        )
+        this_week = Expense.objects.filter(user=user, date__gte=today - timedelta(days=7))
         this_week_total = sum(float(e.amount) for e in this_week)
 
-        four_weeks = Expense.objects.filter(
-            user=user, date__gte=today - timedelta(days=28)
-        )
+        four_weeks = Expense.objects.filter(user=user, date__gte=today - timedelta(days=28))
         four_week_total = sum(float(e.amount) for e in four_weeks)
         weekly_avg = four_week_total / 4 if four_week_total else 0
 
@@ -69,7 +70,11 @@ def detect_anomalies(user_id):
                 insight_type="anomaly",
                 title="Spending Spike Detected",
                 description=f"Your spending this week is {spike:.0f}% above your 4-week average.",
-                data={"this_week": float(this_week_total), "avg": float(weekly_avg), "spike_pct": float(spike)},
+                data={
+                    "this_week": float(this_week_total),
+                    "avg": float(weekly_avg),
+                    "spike_pct": float(spike),
+                },
             )
             logger.info("Anomaly detected for user %s: %.0f%% spike", user.email, spike)
     except Exception as exc:

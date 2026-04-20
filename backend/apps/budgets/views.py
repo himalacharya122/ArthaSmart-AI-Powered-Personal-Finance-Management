@@ -1,11 +1,12 @@
 """Budget management views."""
-from django.db.models import Sum # type: ignore
-from django_filters.rest_framework import DjangoFilterBackend # type: ignore
-from rest_framework import viewsets # type: ignore
-from rest_framework.decorators import action # type: ignore
-from rest_framework.filters import OrderingFilter, SearchFilter # type: ignore
-from rest_framework.permissions import IsAuthenticated # type: ignore
-from rest_framework.response import Response # type: ignore
+
+from django.db.models import Sum  # type: ignore
+from django_filters.rest_framework import DjangoFilterBackend  # type: ignore
+from rest_framework import viewsets  # type: ignore
+from rest_framework.decorators import action  # type: ignore
+from rest_framework.filters import OrderingFilter, SearchFilter  # type: ignore
+from rest_framework.permissions import IsAuthenticated  # type: ignore
+from rest_framework.response import Response  # type: ignore
 
 from apps.expenses.models import Expense
 from apps.shared.permissions import IsOwner
@@ -48,9 +49,7 @@ class BudgetViewSet(viewsets.ModelViewSet):
         if budget.category:
             filters["category"] = budget.category
 
-        total = Expense.objects.filter(**filters).aggregate(
-            total=Sum("amount")
-        )["total"] or 0
+        total = Expense.objects.filter(**filters).aggregate(total=Sum("amount"))["total"] or 0
 
         budget.spent = total
         budget.save(update_fields=["spent"])
@@ -75,10 +74,12 @@ class BudgetViewSet(viewsets.ModelViewSet):
             budget.save(update_fields=["alert_sent"])
             alert_triggered = True
 
-        return Response({
-            "alert_triggered": alert_triggered,
-            "percentage_used": budget.percentage_used,
-            "spent": str(budget.spent),
-            "amount": str(budget.amount),
-            "remaining": str(budget.remaining),
-        })
+        return Response(
+            {
+                "alert_triggered": alert_triggered,
+                "percentage_used": budget.percentage_used,
+                "spent": str(budget.spent),
+                "amount": str(budget.amount),
+                "remaining": str(budget.remaining),
+            }
+        )

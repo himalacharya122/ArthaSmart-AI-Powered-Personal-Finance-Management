@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import logging
-import math
-import time
 
 from app.config import get_settings
 from app.schemas.insights import AnomalyCheckRequest, AnomalyCheckResponse
@@ -20,8 +18,6 @@ def check_anomaly(request: AnomalyCheckRequest) -> AnomalyCheckResponse:
     2. Pattern: compare against recent category expenses
     3. LLM: nuanced interpretation of flagged items
     """
-    start = time.perf_counter()
-
     # Statistical check
     z_score = 0.0
     is_stat_anomaly = False
@@ -54,7 +50,6 @@ def check_anomaly(request: AnomalyCheckRequest) -> AnomalyCheckResponse:
     is_anomaly = confidence >= 0.5
 
     if not is_anomaly:
-        elapsed = int((time.perf_counter() - start) * 1000)
         return AnomalyCheckResponse(
             is_anomaly=False,
             confidence=confidence,
@@ -106,7 +101,10 @@ Example: {{"reason": "This is 3x your usual food spending.", "suggestion": "Chec
         response = client.chat.completions.create(
             model=get_settings().llm_model_fallback,  # Use faster model for anomaly checks
             messages=[
-                {"role": "system", "content": "You are a financial anomaly analyst. Return only JSON."},
+                {
+                    "role": "system",
+                    "content": "You are a financial anomaly analyst. Return only JSON.",
+                },
                 {"role": "user", "content": prompt},
             ],
             max_tokens=150,
@@ -114,6 +112,7 @@ Example: {{"reason": "This is 3x your usual food spending.", "suggestion": "Chec
         )
 
         import json
+
         content = response.choices[0].message.content or "{}"
         content = content.strip()
         if content.startswith("```"):

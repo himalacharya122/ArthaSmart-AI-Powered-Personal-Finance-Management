@@ -1,6 +1,7 @@
 """Expense and Income models — the core financial records."""
-from django.conf import settings # type: ignore
-from django.db import models # type: ignore
+
+from django.conf import settings  # type: ignore
+from django.db import models  # type: ignore
 
 
 class RecurringTransaction(models.Model):
@@ -35,24 +36,29 @@ class RecurringTransaction(models.Model):
     )
     description = models.TextField(blank=True)
     merchant = models.CharField(
-        max_length=255, blank=True,
+        max_length=255,
+        blank=True,
         help_text="For expense type only",
     )
     source_name = models.CharField(
-        max_length=255, blank=True,
+        max_length=255,
+        blank=True,
         help_text="For income type only (e.g., 'TBC Salary')",
     )
     frequency = models.CharField(max_length=20, choices=Frequency.choices)
     day_of_week = models.SmallIntegerField(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text="0=Monday to 6=Sunday (for weekly/biweekly)",
     )
     day_of_month = models.SmallIntegerField(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text="1-31 (for monthly, wraps to last day if needed)",
     )
     month_of_year = models.SmallIntegerField(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text="1-12 (for yearly)",
     )
     next_occurrence = models.DateField(
@@ -61,7 +67,8 @@ class RecurringTransaction(models.Model):
     last_created_at = models.DateTimeField(null=True, blank=True)
     total_created = models.IntegerField(default=0)
     end_date = models.DateField(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text="NULL = runs forever",
     )
     is_active = models.BooleanField(default=True)
@@ -78,6 +85,7 @@ class RecurringTransaction(models.Model):
 
     def __str__(self):
         return f"{self.type} | {self.amount} {self.currency} | {self.frequency} | Next: {self.next_occurrence}"
+
 
 class Expense(models.Model):
     """A single expense transaction."""
@@ -104,11 +112,17 @@ class Expense(models.Model):
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     currency = models.CharField(max_length=3, default="NPR")
     amount_in_base = models.DecimalField(
-        max_digits=12, decimal_places=2, null=True, blank=True,
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
         help_text="Amount converted to user's preferred currency",
     )
     exchange_rate = models.DecimalField(
-        max_digits=10, decimal_places=6, null=True, blank=True,
+        max_digits=10,
+        decimal_places=6,
+        null=True,
+        blank=True,
     )
     category = models.ForeignKey(
         "categories.Category",
@@ -134,11 +148,14 @@ class Expense(models.Model):
         help_text="The recurring rule that created this expense",
     )
     receipt_image = models.ImageField(
-        upload_to="receipts/", blank=True, null=True,
+        upload_to="receipts/",
+        blank=True,
+        null=True,
     )
     ai_categorized = models.BooleanField(default=False)
     ai_confidence = models.FloatField(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text="AI confidence score between 0 and 1",
     )
     source = models.CharField(

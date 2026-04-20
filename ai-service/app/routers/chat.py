@@ -6,7 +6,7 @@ import logging
 import re
 import time
 
-from fastapi import APIRouter, Depends # type: ignore
+from fastapi import APIRouter, Depends  # type: ignore
 
 from app.core.rate_limiter import rate_limiter
 from app.core.security import verify_service_key
@@ -68,10 +68,7 @@ async def process_chat(request: ChatRequest) -> ChatResponse:
     system_prompt = build_system_prompt(request.user_context, request.user_memory)
 
     # 2. Build messages
-    history = [
-        {"role": m.role, "content": m.content}
-        for m in request.conversation_history
-    ]
+    history = [{"role": m.role, "content": m.content} for m in request.conversation_history]
     messages = build_messages(system_prompt, history, request.message)
 
     # 3. Call LLM with tools

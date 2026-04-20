@@ -3,8 +3,8 @@
 import logging
 import threading
 
-from django.db.models.signals import post_save # type: ignore
-from django.dispatch import receiver # type: ignore
+from django.db.models.signals import post_save  # type: ignore
+from django.dispatch import receiver  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +24,7 @@ def check_expense_anomaly_on_create(sender, instance, created, **kwargs):
     def _run_check():
         try:
             from apps.ai_insights.services import check_expense_anomaly
+
             check_expense_anomaly(instance.user, instance)
         except Exception as exc:
             logger.warning("Anomaly check failed for expense #%d: %s", instance.id, exc)

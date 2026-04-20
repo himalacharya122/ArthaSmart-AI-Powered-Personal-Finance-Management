@@ -1,5 +1,6 @@
 """Filter classes for expenses and incomes."""
-import django_filters # type: ignore
+
+import django_filters  # type: ignore
 
 from .models import Expense, Income, RecurringTransaction
 

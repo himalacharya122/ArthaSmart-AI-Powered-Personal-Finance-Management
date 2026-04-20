@@ -1,6 +1,7 @@
 """Management command to seed system default categories."""
-from django.core.management.base import BaseCommand # type: ignore
-from django.utils.text import slugify # type: ignore
+
+from django.core.management.base import BaseCommand  # type: ignore
+from django.utils.text import slugify  # type: ignore
 
 from apps.categories.models import Category
 

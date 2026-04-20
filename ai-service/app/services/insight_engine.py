@@ -53,37 +53,43 @@ def _statistical_insights(req: InsightRequest) -> list[InsightItem]:
 
     # Savings rate insight
     if req.savings_rate > 50:
-        insights.append(InsightItem(
-            insight_type="spending_pattern",
-            severity="info",
-            title="Excellent Savings Rate!",
-            description=f"Your savings rate of {req.savings_rate:.1f}% is outstanding. "
-                        f"You're saving {currency} {req.total_income_this_month - req.total_expenses_this_month:,.0f} this month.",
-            data={"savings_rate": req.savings_rate},
-        ))
+        insights.append(
+            InsightItem(
+                insight_type="spending_pattern",
+                severity="info",
+                title="Excellent Savings Rate!",
+                description=f"Your savings rate of {req.savings_rate:.1f}% is outstanding. "
+                f"You're saving {currency} {req.total_income_this_month - req.total_expenses_this_month:,.0f} this month.",
+                data={"savings_rate": req.savings_rate},
+            )
+        )
     elif req.savings_rate < 10 and req.total_income_this_month > 0:
-        insights.append(InsightItem(
-            insight_type="suggestion",
-            severity="warning",
-            title="Low Savings Rate",
-            description=f"Your savings rate is only {req.savings_rate:.1f}%. Try to aim for at least 20% "
-                        f"by reviewing your top spending categories.",
-            data={"savings_rate": req.savings_rate},
-        ))
+        insights.append(
+            InsightItem(
+                insight_type="suggestion",
+                severity="warning",
+                title="Low Savings Rate",
+                description=f"Your savings rate is only {req.savings_rate:.1f}%. Try to aim for at least 20% "
+                f"by reviewing your top spending categories.",
+                data={"savings_rate": req.savings_rate},
+            )
+        )
 
     # Top category dominance
     if req.categories and req.total_expenses_this_month > 0:
         top = req.categories[0]
         pct = (top.total / req.total_expenses_this_month) * 100
         if pct > 40:
-            insights.append(InsightItem(
-                insight_type="spending_pattern",
-                severity="info",
-                title=f"{top.name} Dominates Your Spending",
-                description=f"{top.name} accounts for {pct:.0f}% of your total expenses "
-                            f"({currency} {top.total:,.0f} across {top.count} transactions).",
-                data={"category": top.name, "percentage": pct, "total": top.total},
-            ))
+            insights.append(
+                InsightItem(
+                    insight_type="spending_pattern",
+                    severity="info",
+                    title=f"{top.name} Dominates Your Spending",
+                    description=f"{top.name} accounts for {pct:.0f}% of your total expenses "
+                    f"({currency} {top.total:,.0f} across {top.count} transactions).",
+                    data={"category": top.name, "percentage": pct, "total": top.total},
+                )
+            )
 
     # Month-over-month trend
     if len(req.monthly_history) >= 2:
@@ -92,22 +98,26 @@ def _statistical_insights(req: InsightRequest) -> list[InsightItem]:
         if previous.expense > 0:
             change_pct = ((current.expense - previous.expense) / previous.expense) * 100
             if change_pct > 25:
-                insights.append(InsightItem(
-                    insight_type="spending_pattern",
-                    severity="warning",
-                    title="Spending Increase Detected",
-                    description=f"Your expenses increased by {change_pct:.0f}% compared to last month "
-                                f"({currency} {current.expense:,.0f} vs {currency} {previous.expense:,.0f}).",
-                    data={"change_percent": change_pct},
-                ))
+                insights.append(
+                    InsightItem(
+                        insight_type="spending_pattern",
+                        severity="warning",
+                        title="Spending Increase Detected",
+                        description=f"Your expenses increased by {change_pct:.0f}% compared to last month "
+                        f"({currency} {current.expense:,.0f} vs {currency} {previous.expense:,.0f}).",
+                        data={"change_percent": change_pct},
+                    )
+                )
             elif change_pct < -15:
-                insights.append(InsightItem(
-                    insight_type="spending_pattern",
-                    severity="info",
-                    title="Great Spending Reduction!",
-                    description=f"You've reduced spending by {abs(change_pct):.0f}% compared to last month. Keep it up!",
-                    data={"change_percent": change_pct},
-                ))
+                insights.append(
+                    InsightItem(
+                        insight_type="spending_pattern",
+                        severity="info",
+                        title="Great Spending Reduction!",
+                        description=f"You've reduced spending by {abs(change_pct):.0f}% compared to last month. Keep it up!",
+                        data={"change_percent": change_pct},
+                    )
+                )
 
     return insights
 
@@ -118,6 +128,7 @@ def _budget_predictions(req: InsightRequest) -> list[InsightItem]:
     currency = req.preferred_currency
 
     from datetime import date
+
     today = date.today()
     days_in_month = 30
     days_elapsed = today.day
@@ -137,28 +148,36 @@ def _budget_predictions(req: InsightRequest) -> list[InsightItem]:
 
         if predicted_total > amount and pct_used < 100:
             overspend = predicted_total - amount
-            insights.append(InsightItem(
-                insight_type="prediction",
-                severity="warning",
-                title=f"{name}: Overspend Predicted",
-                description=f"At your current rate of {currency} {daily_rate:,.0f}/day, "
-                            f"you'll exceed {name} by {currency} {overspend:,.0f} this month.",
-                data={
-                    "budget": name,
-                    "predicted_total": predicted_total,
-                    "limit": amount,
-                    "overspend": overspend,
-                    "daily_rate": daily_rate,
-                },
-            ))
+            insights.append(
+                InsightItem(
+                    insight_type="prediction",
+                    severity="warning",
+                    title=f"{name}: Overspend Predicted",
+                    description=f"At your current rate of {currency} {daily_rate:,.0f}/day, "
+                    f"you'll exceed {name} by {currency} {overspend:,.0f} this month.",
+                    data={
+                        "budget": name,
+                        "predicted_total": predicted_total,
+                        "limit": amount,
+                        "overspend": overspend,
+                        "daily_rate": daily_rate,
+                    },
+                )
+            )
         elif pct_used >= 80 and pct_used < 100:
-            insights.append(InsightItem(
-                insight_type="prediction",
-                severity="warning",
-                title=f"{name}: Getting Close",
-                description=f"You've used {pct_used:.0f}% of your {name} budget with {days_remaining} days left.",
-                data={"budget": name, "percentage_used": pct_used, "days_remaining": days_remaining},
-            ))
+            insights.append(
+                InsightItem(
+                    insight_type="prediction",
+                    severity="warning",
+                    title=f"{name}: Getting Close",
+                    description=f"You've used {pct_used:.0f}% of your {name} budget with {days_remaining} days left.",
+                    data={
+                        "budget": name,
+                        "percentage_used": pct_used,
+                        "days_remaining": days_remaining,
+                    },
+                )
+            )
 
     return insights
 
@@ -197,7 +216,10 @@ Example format:
         response = client.chat.completions.create(
             model=get_settings().llm_model,
             messages=[
-                {"role": "system", "content": "You are a financial analyst. Return only valid JSON arrays. No markdown, no code blocks."},
+                {
+                    "role": "system",
+                    "content": "You are a financial analyst. Return only valid JSON arrays. No markdown, no code blocks.",
+                },
                 {"role": "user", "content": prompt},
             ],
             max_tokens=600,
@@ -215,13 +237,15 @@ Example format:
         raw_insights = json.loads(content)
         insights = []
         for item in raw_insights[:3]:  # Max 3 LLM insights
-            insights.append(InsightItem(
-                insight_type=item.get("type", "suggestion"),
-                severity=item.get("severity", "info"),
-                title=item.get("title", "Financial Insight"),
-                description=item.get("description", ""),
-                data={},
-            ))
+            insights.append(
+                InsightItem(
+                    insight_type=item.get("type", "suggestion"),
+                    severity=item.get("severity", "info"),
+                    title=item.get("title", "Financial Insight"),
+                    description=item.get("description", ""),
+                    data={},
+                )
+            )
 
         return insights, tokens
 

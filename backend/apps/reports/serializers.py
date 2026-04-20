@@ -1,5 +1,6 @@
 """Serializers for reports, audit logs, and currency rates."""
-from rest_framework import serializers # type: ignore
+
+from rest_framework import serializers  # type: ignore
 
 from .models import AuditLog, CurrencyRate
 
@@ -10,8 +11,14 @@ class AuditLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = AuditLog
         fields = [
-            "id", "action", "resource_type", "resource_id",
-            "ip_address", "user_agent", "changes", "created_at",
+            "id",
+            "action",
+            "resource_type",
+            "resource_id",
+            "ip_address",
+            "user_agent",
+            "changes",
+            "created_at",
         ]
         read_only_fields = fields
 

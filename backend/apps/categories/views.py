@@ -1,10 +1,11 @@
 """Category management views."""
-from django.db.models import Q # type: ignore
-from django_filters.rest_framework import DjangoFilterBackend # type: ignore
-from rest_framework import viewsets # type: ignore
-from rest_framework.exceptions import PermissionDenied # type: ignore
-from rest_framework.filters import OrderingFilter, SearchFilter # type: ignore
-from rest_framework.permissions import IsAuthenticated # type: ignore
+
+from django.db.models import Q  # type: ignore
+from django_filters.rest_framework import DjangoFilterBackend  # type: ignore
+from rest_framework import viewsets  # type: ignore
+from rest_framework.exceptions import PermissionDenied  # type: ignore
+from rest_framework.filters import OrderingFilter, SearchFilter  # type: ignore
+from rest_framework.permissions import IsAuthenticated  # type: ignore
 
 from .models import Category
 from .serializers import CategorySerializer
@@ -26,9 +27,9 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Return system defaults + user's custom categories."""
-        return Category.objects.filter(
-            Q(is_default=True) | Q(user=self.request.user)
-        ).filter(is_active=True)
+        return Category.objects.filter(Q(is_default=True) | Q(user=self.request.user)).filter(
+            is_active=True
+        )
 
     def perform_create(self, serializer):
         """Create a custom (non-default) category for the current user."""

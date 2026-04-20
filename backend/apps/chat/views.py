@@ -1,5 +1,6 @@
 """Chat conversation and message views — with full AI integration."""
 
+import contextlib
 import logging
 
 from django.utils import timezone  # type: ignore
@@ -15,9 +16,9 @@ from .serializers import (
     ChatMessageSerializer,
     SendMessageSerializer,
 )
+from .services.action_executor import execute_actions
 from .services.ai_client import call_ai_chat
 from .services.context_builder import build_user_context, build_user_memory
-from .services.action_executor import execute_actions
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +116,9 @@ class ChatConversationViewSet(viewsets.ModelViewSet):
                             if result_parts:
                                 result_desc = f" Results: {', '.join(result_parts)}"
 
-                    entry["content"] += f"\n[SYSTEM: Actions were {action_status}: {action_desc}{result_desc}]"
+                    entry["content"] += (
+                        f"\n[SYSTEM: Actions were {action_status}: {action_desc}{result_desc}]"
+                    )
             conversation_history.append(entry)
 
         # 4. Call AI service
@@ -182,7 +185,9 @@ class ChatConversationViewSet(viewsets.ModelViewSet):
 
         try:
             msg = ChatMessage.objects.get(
-                id=message_id, conversation=conversation, role="assistant",
+                id=message_id,
+                conversation=conversation,
+                role="assistant",
             )
         except ChatMessage.DoesNotExist:
             return Response(
@@ -213,16 +218,14 @@ class ChatConversationViewSet(viewsets.ModelViewSet):
         for executed in action_results.get("executed", []):
             if executed.get("type") == "create_expense" and executed.get("id"):
                 from apps.expenses.models import Expense  # type: ignore
-                try:
+
+                with contextlib.suppress(Expense.DoesNotExist):
                     linked_expense = Expense.objects.get(id=executed["id"])
-                except Expense.DoesNotExist:
-                    pass
             elif executed.get("type") == "create_income" and executed.get("id"):
                 from apps.expenses.models import Income  # type: ignore
-                try:
+
+                with contextlib.suppress(Income.DoesNotExist):
                     linked_income = Income.objects.get(id=executed["id"])
-                except Income.DoesNotExist:
-                    pass
 
         # Update the message
         msg.entities = {
@@ -252,7 +255,9 @@ class ChatConversationViewSet(viewsets.ModelViewSet):
 
         try:
             msg = ChatMessage.objects.get(
-                id=message_id, conversation=conversation, role="assistant",
+                id=message_id,
+                conversation=conversation,
+                role="assistant",
             )
         except ChatMessage.DoesNotExist:
             return Response(

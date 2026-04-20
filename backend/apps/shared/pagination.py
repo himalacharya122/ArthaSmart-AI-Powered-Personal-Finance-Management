@@ -1,5 +1,6 @@
 """Custom pagination classes for ArthaSmart API."""
-from rest_framework.pagination import PageNumberPagination # type: ignore
+
+from rest_framework.pagination import PageNumberPagination  # type: ignore
 
 
 class StandardPagination(PageNumberPagination):

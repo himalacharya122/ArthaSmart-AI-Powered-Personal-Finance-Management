@@ -42,7 +42,9 @@ class VoiceTranscribeView(APIView):
 
         if audio_file.size > MAX_AUDIO_SIZE:
             return Response(
-                {"detail": f"Audio file too large ({audio_file.size / 1024 / 1024:.1f}MB). Max: 25MB."},
+                {
+                    "detail": f"Audio file too large ({audio_file.size / 1024 / 1024:.1f}MB). Max: 25MB."
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -53,7 +55,13 @@ class VoiceTranscribeView(APIView):
             with httpx.Client(timeout=TIMEOUT) as client:
                 resp = client.post(
                     f"{AI_URL}/api/v1/voice/transcribe",
-                    files={"audio": (audio_file.name or "audio.webm", audio_bytes, audio_file.content_type or "audio/webm")},
+                    files={
+                        "audio": (
+                            audio_file.name or "audio.webm",
+                            audio_bytes,
+                            audio_file.content_type or "audio/webm",
+                        )
+                    },
                     data={"user_id": str(request.user.id)},
                     headers={"X-Service-Key": AI_KEY},
                 )

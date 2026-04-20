@@ -1,20 +1,28 @@
 FROM python:3.12-slim
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 WORKDIR /app
 
-# Install system dependencies
+# System dependencies:
+#  - build-essential, libpq-dev : build psycopg2 / cryptography
+#  - curl                       : healthchecks
+#  - netcat-openbsd             : wait-for-db helper (optional)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    libpq-dev \
+        build-essential \
+        libpq-dev \
+        curl \
+        netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-COPY requirements/base.txt requirements/base.txt
-RUN pip install --no-cache-dir -r requirements/base.txt
+# Install Python dependencies first (better layer caching)
+COPY requirements/ requirements/
+RUN pip install -r requirements/base.txt
 
+# Copy source
 COPY . .
 
 EXPOSE 8000

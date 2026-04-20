@@ -1,6 +1,7 @@
 """Notifications URL configuration."""
-from django.urls import include, path # type: ignore
-from rest_framework.routers import DefaultRouter # type: ignore
+
+from django.urls import include, path  # type: ignore
+from rest_framework.routers import DefaultRouter  # type: ignore
 
 from .views import NotificationPreferenceView, NotificationViewSet
 

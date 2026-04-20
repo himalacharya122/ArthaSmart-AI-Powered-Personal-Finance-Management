@@ -1,6 +1,6 @@
 """Health check endpoint."""
 
-from fastapi import APIRouter # type: ignore
+from fastapi import APIRouter  # type: ignore
 
 from app.config import get_settings
 from app.schemas.common import HealthResponse

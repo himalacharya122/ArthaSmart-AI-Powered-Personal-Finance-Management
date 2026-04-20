@@ -1,6 +1,7 @@
 """User notification system for alerts and updates."""
-from django.conf import settings # type: ignore
-from django.db import models # type: ignore
+
+from django.conf import settings  # type: ignore
+from django.db import models  # type: ignore
 
 
 class Notification(models.Model):
@@ -29,7 +30,8 @@ class Notification(models.Model):
     title = models.CharField(max_length=255)
     message = models.TextField()
     notification_type = models.CharField(
-        max_length=30, choices=NotificationType.choices,
+        max_length=30,
+        choices=NotificationType.choices,
     )
     channel = models.CharField(
         max_length=20,
@@ -40,7 +42,8 @@ class Notification(models.Model):
     is_sent = models.BooleanField(default=False)
     sent_at = models.DateTimeField(null=True, blank=True)
     related_object_type = models.CharField(
-        max_length=50, blank=True,
+        max_length=50,
+        blank=True,
         help_text="e.g., 'budget', 'expense', 'ai_insight'",
     )
     related_object_id = models.BigIntegerField(null=True, blank=True)
@@ -56,8 +59,8 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.title} | {self.user.email} | {self.channel}"
-    
-    
+
+
 class NotificationPreference(models.Model):
     """Per-user notification channel preferences with quiet hours."""
 
@@ -75,11 +78,13 @@ class NotificationPreference(models.Model):
     push_enabled = models.BooleanField(default=True)
     in_app_enabled = models.BooleanField(default=True)
     quiet_hours_start = models.TimeField(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text="No notifications sent after this time",
     )
     quiet_hours_end = models.TimeField(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text="Notifications resume at this time",
     )
 

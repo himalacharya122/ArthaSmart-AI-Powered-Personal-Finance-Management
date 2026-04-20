@@ -1,5 +1,5 @@
-from django.contrib import admin # type: ignore
-from django.contrib.auth.admin import UserAdmin as BaseUserAdmin # type: ignore
+from django.contrib import admin  # type: ignore
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin  # type: ignore
 
 from .models import User
 

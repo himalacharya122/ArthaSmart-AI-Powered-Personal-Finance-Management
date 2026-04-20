@@ -1,12 +1,13 @@
 """Receipt management views."""
-from django.utils import timezone # type: ignore
-from django_filters.rest_framework import DjangoFilterBackend # type: ignore
-from rest_framework import mixins, status, viewsets # type: ignore
-from rest_framework.decorators import action # type: ignore
-from rest_framework.filters import OrderingFilter # type: ignore
-from rest_framework.parsers import FormParser, MultiPartParser # type: ignore
-from rest_framework.permissions import IsAuthenticated # type: ignore
-from rest_framework.response import Response # type: ignore
+
+from django.utils import timezone  # type: ignore
+from django_filters.rest_framework import DjangoFilterBackend  # type: ignore
+from rest_framework import mixins, status, viewsets  # type: ignore
+from rest_framework.decorators import action  # type: ignore
+from rest_framework.filters import OrderingFilter  # type: ignore
+from rest_framework.parsers import FormParser, MultiPartParser  # type: ignore
+from rest_framework.permissions import IsAuthenticated  # type: ignore
+from rest_framework.response import Response  # type: ignore
 
 from apps.categories.models import Category
 from apps.expenses.models import Expense
@@ -96,6 +97,7 @@ class ReceiptViewSet(
         receipt.save(update_fields=["expense"])
 
         from apps.expenses.serializers import ExpenseDetailSerializer
+
         return Response(
             ExpenseDetailSerializer(expense).data,
             status=status.HTTP_201_CREATED,

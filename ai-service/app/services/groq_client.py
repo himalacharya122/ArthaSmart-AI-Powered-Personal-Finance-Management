@@ -6,7 +6,7 @@ import logging
 import time
 from typing import Any
 
-from openai import OpenAI, APIError, APIConnectionError, RateLimitError  # type: ignore
+from openai import APIConnectionError, APIError, OpenAI, RateLimitError  # type: ignore
 
 from app.config import get_settings
 
@@ -39,28 +39,37 @@ def _call_with_retry(client: OpenAI, kwargs: dict[str, Any]) -> Any:
             return client.chat.completions.create(**kwargs)
         except RateLimitError as exc:
             last_exc = exc
-            delay = RETRY_BASE_DELAY * (2 ** attempt)
+            delay = RETRY_BASE_DELAY * (2**attempt)
             logger.warning(
                 "Rate limited (attempt %d/%d). Retrying in %.1fs: %s",
-                attempt + 1, MAX_RETRIES, delay, exc,
+                attempt + 1,
+                MAX_RETRIES,
+                delay,
+                exc,
             )
             time.sleep(delay)
         except APIConnectionError as exc:
             last_exc = exc
-            delay = RETRY_BASE_DELAY * (2 ** attempt)
+            delay = RETRY_BASE_DELAY * (2**attempt)
             logger.warning(
                 "Connection error (attempt %d/%d). Retrying in %.1fs: %s",
-                attempt + 1, MAX_RETRIES, delay, exc,
+                attempt + 1,
+                MAX_RETRIES,
+                delay,
+                exc,
             )
             time.sleep(delay)
         except APIError as exc:
             # Server errors (500, 502, 503) are retryable
             if exc.status_code and exc.status_code >= 500:
                 last_exc = exc
-                delay = RETRY_BASE_DELAY * (2 ** attempt)
+                delay = RETRY_BASE_DELAY * (2**attempt)
                 logger.warning(
                     "Server error %s (attempt %d/%d). Retrying in %.1fs",
-                    exc.status_code, attempt + 1, MAX_RETRIES, delay,
+                    exc.status_code,
+                    attempt + 1,
+                    MAX_RETRIES,
+                    delay,
                 )
                 time.sleep(delay)
             else:

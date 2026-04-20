@@ -46,7 +46,9 @@ def call_ai_chat(payload: dict) -> dict:
 
     except httpx.ConnectError:
         logger.error("AI service unreachable at %s", url)
-        return _fallback_response("I'm having trouble connecting to my AI brain. Please try again in a moment.")
+        return _fallback_response(
+            "I'm having trouble connecting to my AI brain. Please try again in a moment."
+        )
 
     except httpx.TimeoutException:
         logger.error("AI service timeout after 30s")
@@ -61,7 +63,9 @@ def call_ai_chat(payload: dict) -> dict:
                 detail = exc.response.json().get("detail", "")
             except Exception:
                 detail = ""
-            return _fallback_response(detail or "You're sending messages too quickly. Please slow down a bit.")
+            return _fallback_response(
+                detail or "You're sending messages too quickly. Please slow down a bit."
+            )
         return _fallback_response("Something went wrong on my end. Please try again.")
 
 

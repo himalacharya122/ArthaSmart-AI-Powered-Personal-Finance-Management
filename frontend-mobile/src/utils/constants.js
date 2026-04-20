@@ -17,7 +17,7 @@ const DEV_API_URL = Platform.select({
 // home 'http://192.168.1.102:8000'-
 // college ipv4 address = 172.22.18.220
 export const API_BASE_URL = __DEV__
-  ? 'http://192.168.1.67:8000'
+  ? 'http://192.168.1.102:8000'
   : 'https://api.arthasmart.com';
 
 export const API_TIMEOUT = 30000; // 30 seconds

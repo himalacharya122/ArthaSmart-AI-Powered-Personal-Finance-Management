@@ -1,7 +1,8 @@
 """Category model for expense and income classification."""
-from django.conf import settings # type: ignore
-from django.db import models # type: ignore
-from django.utils.text import slugify # type: ignore
+
+from django.conf import settings  # type: ignore
+from django.db import models  # type: ignore
+from django.utils.text import slugify  # type: ignore
 
 
 class Category(models.Model):
@@ -14,7 +15,8 @@ class Category(models.Model):
     name = models.CharField(max_length=100)
     slug = models.SlugField(max_length=100)
     icon = models.CharField(
-        max_length=50, blank=True,
+        max_length=50,
+        blank=True,
         help_text="Lucide icon name (e.g., 'utensils', 'car')",
     )
     color = models.CharField(max_length=7, default="#6366F1")
