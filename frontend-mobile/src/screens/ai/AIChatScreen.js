@@ -12,12 +12,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  ScrollView,
   Modal,
   Pressable,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { colors, typography, spacing, borderRadius, shadow } from '../../theme';
@@ -36,22 +36,112 @@ try {
   Audio = null;
 }
 
-const QUICK_PROMPTS = [
-  { label: 'How am I doing?', icon: 'trending-up' },
-  { label: 'Log an expense', icon: 'add-circle-outline' },
-  { label: 'Any anomalies?', icon: 'warning-amber' },
-  { label: 'Show this month', icon: 'calendar-today' },
-];
+/* Gemini-style 4-pointed sparkle logo for Kash AI */
+function KashAISparkle({ size = 20 }) {
+  const long = size * 0.9;
+  const short = size * 0.22;
+  const br = short / 2;
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <LinearGradient
+        colors={['#34D399', '#0EA5E9']}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={{ position: 'absolute', width: short, height: long, borderRadius: br }}
+      />
+      <LinearGradient
+        colors={['#0EA5E9', '#34D399']}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
+        style={{ position: 'absolute', width: long, height: short, borderRadius: br }}
+      />
+    </View>
+  );
+}
+
+/* Inline bold parser: **text** → bold Text node */
+function parseInlineBold(text, baseStyle) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/);
+  if (parts.length === 1) return <Text style={baseStyle}>{text}</Text>;
+  return (
+    <Text style={baseStyle}>
+      {parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return (
+            <Text key={i} style={[baseStyle, { fontWeight: '700' }]}>
+              {part.slice(2, -2)}
+            </Text>
+          );
+        }
+        return part;
+      })}
+    </Text>
+  );
+}
+
+/* Render AI reply with markdown: **bold**, - bullets, 1. numbered, blank-line spacing */
+function MarkdownBubble({ content, textStyle }) {
+  const lines = (content || '').split('\n');
+  const elements = [];
+
+  lines.forEach((line, i) => {
+    if (line.trim() === '') {
+      elements.push(<View key={`sp-${i}`} style={{ height: 5 }} />);
+      return;
+    }
+    // Bullet: starts with "- " or "• "
+    const bulletMatch = line.match(/^[-•]\s(.+)/);
+    if (bulletMatch) {
+      elements.push(
+        <View key={`b-${i}`} style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 2 }}>
+          <Text style={[textStyle, { marginRight: 6 }]}>•</Text>
+          <View style={{ flex: 1 }}>{parseInlineBold(bulletMatch[1], textStyle)}</View>
+        </View>
+      );
+      return;
+    }
+    // Numbered list: "1. text"
+    const numMatch = line.match(/^(\d+)\.\s(.+)/);
+    if (numMatch) {
+      elements.push(
+        <View key={`n-${i}`} style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 2 }}>
+          <Text style={[textStyle, { marginRight: 6, minWidth: 20 }]}>{numMatch[1]}.</Text>
+          <View style={{ flex: 1 }}>{parseInlineBold(numMatch[2], textStyle)}</View>
+        </View>
+      );
+      return;
+    }
+    // Normal paragraph line
+    elements.push(
+      <View key={`p-${i}`} style={{ marginBottom: 2 }}>
+        {parseInlineBold(line, textStyle)}
+      </View>
+    );
+  });
+
+  return <View>{elements}</View>;
+}
+
+/* Human-readable label for action types */
+const ACTION_LABELS = {
+  create_expense: 'Log Expense',
+  create_income: 'Log Income',
+  update_expense: 'Update Expense',
+  update_income: 'Update Income',
+  delete_expense: 'Delete Expense',
+  delete_income: 'Delete Income',
+};
 
 export function AIChatScreen({ navigation, route }) {
-  const conversationId = route?.params?.conversationId;
+  // convId starts from route params but can be set lazily on first send
+  const [convId, setConvId] = useState(route?.params?.conversationId ?? null);
   const showToast = useAppStore((s) => s.showToast);
 
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [loadingChat, setLoadingChat] = useState(true);
-  const [convTitle, setConvTitle] = useState('Finny — AI Assistant');
+  const [convTitle, setConvTitle] = useState('Kash AI');
   const [menuVisible, setMenuVisible] = useState(false);
   const [recording, setRecording] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -66,17 +156,19 @@ export function AIChatScreen({ navigation, route }) {
       .catch(() => {});
   }, []);
 
-  // Load conversation history
+  // Load conversation history (only runs once on mount; convId may be null for new chats)
   useEffect(() => {
-    if (!conversationId) { setLoadingChat(false); return; }
-    chatService.getConversation(conversationId)
+    const id = route?.params?.conversationId;
+    if (!id) { setLoadingChat(false); return; }
+    chatService.getConversation(id)
       .then((conv) => {
         setMessages(conv.messages || []);
         if (conv.title) setConvTitle(conv.title);
       })
       .catch(() => showToast('Failed to load conversation', 'error'))
       .finally(() => setLoadingChat(false));
-  }, [conversationId, showToast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const scrollToEnd = useCallback(() => {
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
@@ -85,7 +177,20 @@ export function AIChatScreen({ navigation, route }) {
   /* Send Message */
   const handleSend = async (text) => {
     const msg = (text || input).trim();
-    if (!msg || sending || !conversationId) return;
+    if (!msg || sending) return;
+
+    // Lazy-create conversation the first time a message is sent
+    let currentConvId = convId;
+    if (!currentConvId) {
+      try {
+        const conv = await chatService.createConversation();
+        currentConvId = conv.id;
+        setConvId(currentConvId);
+      } catch {
+        showToast('Failed to start conversation', 'error');
+        return;
+      }
+    }
 
     const tempUserMsg = { id: `temp-${Date.now()}`, role: 'user', content: msg, created_at: new Date().toISOString() };
     setMessages((prev) => [...prev, tempUserMsg]);
@@ -94,7 +199,7 @@ export function AIChatScreen({ navigation, route }) {
     scrollToEnd();
 
     try {
-      const res = await chatService.sendMessage(conversationId, msg);
+      const res = await chatService.sendMessage(currentConvId, msg);
       setMessages((prev) => {
         const withoutTemp = prev.filter((m) => m.id !== tempUserMsg.id);
         const newMsgs = [];
@@ -175,7 +280,7 @@ export function AIChatScreen({ navigation, route }) {
   /* Actions */
   const handleConfirm = async (messageId) => {
     try {
-      const res = await chatService.confirmAction(conversationId, messageId);
+      const res = await chatService.confirmAction(convId, messageId);
       setMessages((prev) => prev.map((m) => m.id === messageId ? (res.message || m) : m));
       showToast('Action confirmed!', 'success');
     } catch {
@@ -185,7 +290,7 @@ export function AIChatScreen({ navigation, route }) {
 
   const handleReject = async (messageId) => {
     try {
-      const res = await chatService.rejectAction(conversationId, messageId);
+      const res = await chatService.rejectAction(convId, messageId);
       setMessages((prev) => prev.map((m) => m.id === messageId ? (res.message || m) : m));
       showToast('Action cancelled', 'info');
     } catch {
@@ -194,8 +299,18 @@ export function AIChatScreen({ navigation, route }) {
   };
 
   /* Menu Actions */
+  const handleNewChat = () => {
+    setMenuVisible(false);
+    navigation.push(SCREEN_NAMES.AI_CHAT, {});
+  };
+
   const handleDeleteConversation = () => {
     setMenuVisible(false);
+    // Nothing to delete if conversation was never created
+    if (!convId) {
+      navigation.goBack();
+      return;
+    }
     Alert.alert(
       'Delete Conversation',
       'Are you sure you want to delete this entire conversation? This cannot be undone.',
@@ -206,7 +321,7 @@ export function AIChatScreen({ navigation, route }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              await chatService.deleteConversation(conversationId);
+              await chatService.deleteConversation(convId);
               showToast('Conversation deleted', 'info');
               navigation.goBack();
             } catch {
@@ -248,24 +363,44 @@ export function AIChatScreen({ navigation, route }) {
       <View style={[styles.msgRow, isUser && styles.msgRowUser]}>
         {!isUser && (
           <View style={styles.avatar}>
-            <MaterialIcons name="smart-toy" size={16} color={colors.primary[600]} />
+            <KashAISparkle size={15} />
           </View>
         )}
 
         <View style={styles.msgCol}>
           <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAI]}>
-            <Text style={[styles.bubbleText, isUser && styles.bubbleTextUser]}>{msg.content}</Text>
+            {isUser ? (
+              <Text style={[styles.bubbleText, styles.bubbleTextUser]}>{msg.content}</Text>
+            ) : (
+              <MarkdownBubble content={msg.content} textStyle={styles.bubbleText} />
+            )}
           </View>
 
           {!isUser && actions.length > 0 && (
             <View style={styles.actionCard}>
               {actions.map((action, idx) => {
                 const d = action.data || {};
+                const label = ACTION_LABELS[action.type] || action.type?.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+                const isDelete = action.type?.startsWith('delete_');
+                const isUpdate = action.type?.startsWith('update_');
                 return (
                   <View key={idx} style={styles.actionTable}>
-                    <Text style={styles.actionCardTitle}>
-                      {action.type?.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                    <Text style={[styles.actionCardTitle, isDelete && { color: colors.danger[600] }]}>
+                      {label}
                     </Text>
+                    {/* Show referenced ID for delete/update so user knows which record */}
+                    {(d.expense_id != null) && (
+                      <View style={styles.actionRow}>
+                        <Text style={styles.actionLabel}>Transaction ID</Text>
+                        <Text style={styles.actionValue}>#{d.expense_id}</Text>
+                      </View>
+                    )}
+                    {(d.income_id != null) && (
+                      <View style={styles.actionRow}>
+                        <Text style={styles.actionLabel}>Transaction ID</Text>
+                        <Text style={styles.actionValue}>#{d.income_id}</Text>
+                      </View>
+                    )}
                     {d.category && (
                       <View style={styles.actionRow}>
                         <Text style={styles.actionLabel}>Category</Text>
@@ -294,6 +429,12 @@ export function AIChatScreen({ navigation, route }) {
                       <View style={styles.actionRow}>
                         <Text style={styles.actionLabel}>Source</Text>
                         <Text style={styles.actionValue}>{d.source_name}</Text>
+                      </View>
+                    )}
+                    {/* For delete/update: show a note when only an ID was passed (no other fields) */}
+                    {(isDelete || isUpdate) && !d.amount && !d.category && !d.merchant && !d.source_name && !d.expense_id && !d.income_id && (
+                      <View style={styles.actionRow}>
+                        <Text style={[styles.actionLabel, { fontStyle: 'italic' }]}>See message above for details</Text>
                       </View>
                     )}
                   </View>
@@ -342,7 +483,7 @@ export function AIChatScreen({ navigation, route }) {
   const canSend = input.trim().length > 0 && !sending;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -350,7 +491,7 @@ export function AIChatScreen({ navigation, route }) {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerAvatar}>
-            <MaterialIcons name="smart-toy" size={20} color={colors.primary[600]} />
+            <KashAISparkle size={20} />
           </View>
           <View>
             <Text style={styles.headerTitle} numberOfLines={1}>{convTitle}</Text>
@@ -369,6 +510,11 @@ export function AIChatScreen({ navigation, route }) {
       <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
         <Pressable style={styles.menuOverlay} onPress={() => setMenuVisible(false)}>
           <View style={styles.menuContainer}>
+            <TouchableOpacity style={styles.menuItem} onPress={handleNewChat}>
+              <MaterialIcons name="add-comment" size={20} color={colors.primary[600]} />
+              <Text style={styles.menuItemText}>New chat</Text>
+            </TouchableOpacity>
+            <View style={styles.menuDivider} />
             <TouchableOpacity style={styles.menuItem} onPress={handleClearChat}>
               <MaterialIcons name="clear-all" size={20} color={colors.primary[600]} />
               <Text style={styles.menuItemText}>Clear chat</Text>
@@ -399,7 +545,7 @@ export function AIChatScreen({ navigation, route }) {
           ListEmptyComponent={
             <View style={styles.emptyChat}>
               <View style={styles.emptyChatIcon}>
-                <MaterialIcons name="smart-toy" size={40} color={colors.primary[300]} />
+                <KashAISparkle size={42} />
               </View>
               <Text style={styles.emptyChatTitle}>Start a conversation</Text>
               <Text style={styles.emptyChatDesc}>Ask about your spending, log transactions, or get financial advice.</Text>
@@ -432,35 +578,18 @@ export function AIChatScreen({ navigation, route }) {
         {sending && (
           <View style={styles.typingRow}>
             <View style={styles.avatar}>
-              <MaterialIcons name="smart-toy" size={16} color={colors.primary[600]} />
+              <KashAISparkle size={15} />
             </View>
             <View style={styles.typingBubble}>
               <View style={styles.typingDots}>
                 <ActivityIndicator size="small" color={colors.primary[400]} />
-                <Text style={styles.typingLabel}>Finny is thinking...</Text>
+                <Text style={styles.typingLabel}>Kash AI is thinking...</Text>
               </View>
             </View>
           </View>
         )}
 
-        {/* Quick prompts — compact pills */}
-        {messages.length === 0 && (
-          <View style={styles.promptsContainer}>
-            {QUICK_PROMPTS.map((prompt) => (
-              <TouchableOpacity
-                key={prompt.label}
-                style={styles.promptChip}
-                onPress={() => handleSend(prompt.label)}
-                activeOpacity={0.7}
-              >
-                <MaterialIcons name={prompt.icon} size={14} color={colors.primary[600]} />
-                <Text style={styles.promptText}>{prompt.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
-        {/* Input bar — fixed height to prevent jitter */}
+        {/* Input bar */}
         <View style={styles.inputBar}>
           <View style={styles.inputWrapper}>
             <TextInput
@@ -472,25 +601,30 @@ export function AIChatScreen({ navigation, route }) {
               maxLength={4000}
               editable={!sending && !transcribing}
               returnKeyType="default"
+              multiline
+              scrollEnabled
+              showsVerticalScrollIndicator={false}
             />
           </View>
 
           {/* Mic button */}
-          <TouchableOpacity
-            style={[styles.micBtn, isRecording && styles.micBtnActive]}
-            onPress={handleMicPress}
-            disabled={sending || transcribing}
-          >
-            {transcribing ? (
-              <ActivityIndicator size="small" color={colors.primary[600]} />
-            ) : (
-              <MaterialIcons
-                name={isRecording ? 'stop' : 'mic'}
-                size={20}
-                color={isRecording ? colors.white : colors.primary[600]}
-              />
-            )}
-          </TouchableOpacity>
+          <View style={styles.micContainer}>
+            <TouchableOpacity
+              style={[styles.micBtn, isRecording && styles.micBtnActive]}
+              onPress={handleMicPress}
+              disabled={sending || transcribing}
+            >
+              {transcribing ? (
+                <ActivityIndicator size="small" color={colors.primary[600]} />
+              ) : (
+                <MaterialIcons
+                  name={isRecording ? 'stop' : 'mic'}
+                  size={20}
+                  color={isRecording ? colors.white : colors.primary[600]}
+                />
+              )}
+            </TouchableOpacity>
+          </View>
 
           {/* Send button */}
           <TouchableOpacity
@@ -514,7 +648,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.primary[100], backgroundColor: colors.white },
   backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginLeft: spacing.xs },
-  headerAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.primary[100], alignItems: 'center', justifyContent: 'center' },
+  headerAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.primary[100], alignItems: 'center', justifyContent: 'center' },
   headerTitle: { ...typography.body, fontWeight: '600', color: colors.primary[800], fontSize: 14, maxWidth: 180 },
   onlineRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   onlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent[500] },
@@ -533,7 +667,7 @@ const styles = StyleSheet.create({
   msgRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: spacing.md },
   msgRowUser: { justifyContent: 'flex-end' },
   msgCol: { maxWidth: '78%' },
-  avatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.primary[100], alignItems: 'center', justifyContent: 'center', marginRight: spacing.xs, marginBottom: spacing.xs + 12 },
+  avatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.primary[100], alignItems: 'center', justifyContent: 'center', marginRight: spacing.xs, marginBottom: spacing.xs + 12 },
 
   // Bubbles
   bubble: { borderRadius: borderRadius.lg, padding: spacing.sm + 4, paddingHorizontal: spacing.md },
@@ -567,18 +701,14 @@ const styles = StyleSheet.create({
   typingDots: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   typingLabel: { ...typography.caption, color: colors.primary[400], fontSize: 11 },
 
-  // Quick prompts — compact responsive pills
-  promptsContainer: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing.md, paddingBottom: spacing.sm, gap: spacing.sm },
-  promptChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.primary[50], borderRadius: borderRadius.full, paddingHorizontal: spacing.sm + 4, paddingVertical: spacing.sm, borderWidth: 1, borderColor: colors.primary[200] },
-  promptText: { ...typography.caption, color: colors.primary[700], fontWeight: '500', fontSize: 12 },
-
-  // Input bar — stable height
-  inputBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.sm + 4, paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: colors.primary[100], backgroundColor: colors.white, gap: spacing.xs + 2 },
+  // Input bar — multiline-aware, fixed vertical padding (tab bar already handles bottom safe area)
+  inputBar: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: spacing.sm + 4, paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: colors.primary[100], backgroundColor: colors.white, gap: spacing.xs + 2 },
   inputWrapper: { flex: 1 },
-  textInput: { ...typography.body, fontSize: 14, color: colors.primary[800], backgroundColor: colors.primary[50], borderRadius: borderRadius.full, paddingHorizontal: spacing.md, height: 42, borderWidth: 1, borderColor: colors.primary[200] },
-  micBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary[100], alignItems: 'center', justifyContent: 'center' },
-  micBtnActive: { backgroundColor: colors.danger[500] },
-  sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary[200], alignItems: 'center', justifyContent: 'center' },
+  textInput: { ...typography.body, fontSize: 14, color: colors.primary[800], backgroundColor: colors.primary[50], borderRadius: 22, paddingHorizontal: spacing.md, paddingVertical: Platform.OS === 'ios' ? 10 : 7, minHeight: 42, maxHeight: 120, borderWidth: 1, borderColor: colors.primary[200] },
+  micContainer: { alignItems: 'center', justifyContent: 'center' },
+  micBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.primary[100], alignItems: 'center', justifyContent: 'center' },
+  micBtnActive: { backgroundColor: colors.danger[500], borderWidth: 2, borderColor: colors.danger[200] },
+  sendBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.primary[200], alignItems: 'center', justifyContent: 'center' },
   sendBtnActive: { backgroundColor: colors.primary[800] },
 
   // Empty
@@ -589,7 +719,7 @@ const styles = StyleSheet.create({
 
   // Recent chats in empty state
   recentSection: { width: '100%', marginTop: spacing.xl, paddingHorizontal: spacing.sm },
-  recentLabel: { ...typography.caption, fontWeight: '700', color: colors.primary[400], letterSpacing: 0.5, marginBottom: spacing.sm },
+  recentLabel: { ...typography.caption, fontWeight: '700', color: colors.primary[500], marginBottom: spacing.sm },
   recentItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary[50], borderRadius: borderRadius.md, padding: spacing.sm + 2, marginBottom: spacing.xs, gap: spacing.sm },
   recentInfo: { flex: 1 },
   recentTitle: { ...typography.bodySmall, color: colors.primary[700], fontWeight: '500', fontSize: 13 },
