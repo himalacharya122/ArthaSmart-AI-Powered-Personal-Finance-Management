@@ -177,6 +177,24 @@ def authenticated_client(user):
 
 
 @pytest.fixture(autouse=True)
+def _reset_throttle_cache():
+    """Clear Django's cache before every test.
+
+    DRF's SimpleRateThrottle stores hit counters in the default cache. Without
+    this fixture the counters persist across tests, so after the first few
+    password-reset-confirm tests run, subsequent tests on the same endpoint
+    get a 429 before their view is ever reached. Clearing once per test is
+    cheap and leaves real throttle assertions working (they still hit the
+    limit within a single test).
+    """
+    from django.core.cache import cache  # type: ignore
+
+    cache.clear()
+    yield
+    cache.clear()
+
+
+@pytest.fixture(autouse=True)
 def disable_anomaly_signal():
     """Disconnect the Expense post_save signal that spawns a daemon thread.
 
