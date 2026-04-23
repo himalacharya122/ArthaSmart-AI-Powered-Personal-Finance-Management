@@ -20,6 +20,7 @@ from app.main import app
 
 # Client + auth
 
+
 @pytest.fixture()
 def client() -> TestClient:
     """A TestClient bound to the real FastAPI app."""
@@ -43,6 +44,7 @@ def auth_headers(service_key: str) -> dict[str, str]:
 # The real `rate_limiter` is a module-level singleton. Tests that hit /chat
 # or /voice/transcribe share state otherwise, so we reset it between tests.
 
+
 @pytest.fixture(autouse=True)
 def _reset_rate_limiter() -> Iterator[None]:
     rate_limiter._chat_windows.clear()
@@ -59,6 +61,7 @@ def fresh_rate_limiter() -> RateLimiter:
 
 
 # Groq LLM mocks
+
 
 def _make_llm_result(
     content: str | None = "Hello!",
