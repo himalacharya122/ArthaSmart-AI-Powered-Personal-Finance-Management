@@ -21,6 +21,7 @@ import { ReportsPage } from '@/pages/ReportsPage';
 import { NotificationsPage } from '@/pages/NotificationsPage';
 import { ChatPage } from '@/pages/ChatPage';
 import { InsightsPage } from '@/pages/InsightsPage';
+import { IoTDevicesPage } from '@/pages/IoTDevicesPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { PrivacyPage } from '@/pages/PrivacyPage';
 import { TermsPage } from '@/pages/TermsPage';
@@ -68,6 +69,7 @@ function App() {
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/insights" element={<InsightsPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/iot-devices" element={<IoTDevicesPage />} />
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>

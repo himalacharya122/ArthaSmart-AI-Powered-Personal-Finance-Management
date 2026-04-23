@@ -1,0 +1,34 @@
+// Copy this file to `config.h` and fill in your own values.
+// `config.h` is gitignored so your WiFi password never lands in the repo.
+//
+// After editing, rebuild and reflash:
+//     pio run -t upload
+
+#pragma once
+
+// WiFi
+#define WIFI_SSID       "YOUR_WIFI_SSID"
+#define WIFI_PASSWORD   "YOUR_WIFI_PASSWORD"
+
+// Backend
+// Point this at the machine running Django. Must be reachable from the ESP32
+// on your LAN. Use https:// even for self-signed — the firmware calls
+// setInsecure() so the cert isn't validated in dev.
+//
+// Example:  https://192.168.1.42:8443
+#define BACKEND_BASE_URL "https://192.168.1.100:8443"
+
+// Device identity
+// A stable per-device string the backend uses to key the pairing row.
+// The MAC address is a good default; pick anything unique per board.
+#define HARDWARE_ID      "nfc-logger-01"
+
+// Pins
+// RC522 SPI pinout on ESP32-WROOM-32.
+// Change only if your wiring differs from the README diagram.
+#define PIN_RC522_SS     5    // SDA on the module
+#define PIN_RC522_RST    22
+// SCK=18, MOSI=23, MISO=19 come from the ESP32's default VSPI bus.
+
+#define PIN_BUZZER       25   // passive buzzer (+ leg); GND to GND
+#define PIN_LED_STATUS   2    // onboard LED on most dev boards
