@@ -59,3 +59,41 @@ class NFCTagSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = ["id", "tap_count", "created_at", "updated_at"]
+
+
+# Pairing flow payloads - see pairing.py for the endpoints that use these.
+class PairingRequestSerializer(serializers.Serializer):
+    """Incoming payload when a device POSTs /iot/pair/request/.
+
+    `hardware_id` is whatever the firmware reports (we use the ESP32 MAC).
+    We don't trust it as identity - it's just a display aid in the web UI.
+    """
+
+    hardware_id = serializers.CharField(max_length=100)
+    device_type = serializers.ChoiceField(choices=IoTDevice.DeviceType.choices)
+
+
+class PairingClaimSerializer(serializers.Serializer):
+    """User-supplied payload when claiming a pending pairing code."""
+
+    pairing_code = serializers.RegexField(
+        regex=r"^\d{6}$",
+        help_text="The 6-digit code displayed by the device.",
+    )
+    name = serializers.CharField(
+        max_length=255,
+        help_text="User-friendly name for the device, e.g. 'Kitchen Scanner'.",
+    )
+
+
+# Ingest payloads - what the ESP32 sends once it's authenticated.
+class IngestReceiptSerializer(serializers.Serializer):
+    """Multipart form: a single JPEG from the receipt scanner."""
+
+    image = serializers.ImageField()
+
+
+class IngestNFCTapSerializer(serializers.Serializer):
+    """JSON body: the UID of the tag that was just tapped."""
+
+    tag_uid = serializers.CharField(max_length=100)
