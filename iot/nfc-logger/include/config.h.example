@@ -12,23 +12,34 @@
 
 // Backend
 // Point this at the machine running Django. Must be reachable from the ESP32
-// on your LAN. Use https:// even for self-signed — the firmware calls
-// setInsecure() so the cert isn't validated in dev.
+// on your LAN.
 //
-// Example:  https://192.168.1.42:8443
-#define BACKEND_BASE_URL "https://192.168.1.100:8443"
+// For first-time testing set BACKEND_USE_HTTPS to 0 and run Django as plain
+// HTTP on port 8000 — fastest path to a working tap-to-log. Flip back to 1
+// once you've got runserver_plus with a self-signed cert working.
+//
+// Examples:
+//   http://192.168.1.42:8000      (BACKEND_USE_HTTPS 0)
+//   https://192.168.1.42:8443     (BACKEND_USE_HTTPS 1)
+#define BACKEND_BASE_URL   "http://192.168.1.100:8000"
+#define BACKEND_USE_HTTPS  0
 
 // Device identity
 // A stable per-device string the backend uses to key the pairing row.
 // The MAC address is a good default; pick anything unique per board.
 #define HARDWARE_ID      "nfc-logger-01"
 
-// Pins
-// RC522 SPI pinout on ESP32-WROOM-32.
-// Change only if your wiring differs from the README diagram.
-#define PIN_RC522_SS     5    // SDA on the module
-#define PIN_RC522_RST    22
-// SCK=18, MOSI=23, MISO=19 come from the ESP32's default VSPI bus.
+// I2C pins  (PN532 in I2C mode — the red "elechouse v3" style board)
+// Wire the PN532 like so:
+//   PN532 SDA  ->  ESP32 GPIO 21   (PIN_I2C_SDA below)
+//   PN532 SCL  ->  ESP32 GPIO 22   (PIN_I2C_SCL below)
+//   PN532 VCC  ->  ESP32 3V3       (NEVER 5V)
+//   PN532 GND  ->  ESP32 GND
+// Flip the on-board DIP switches to I2C mode (SEL0=ON, SEL1=OFF on most
+// elechouse clones — double-check the silkscreen on yours).
+#define PIN_I2C_SDA      21
+#define PIN_I2C_SCL      22
 
+// Local feedback peripherals
 #define PIN_BUZZER       25   // passive buzzer (+ leg); GND to GND
-#define PIN_LED_STATUS   2    // onboard LED on most dev boards
+#define PIN_LED_STATUS   2    // onboard LED on most ESP32 dev boards

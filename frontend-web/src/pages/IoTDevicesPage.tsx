@@ -452,14 +452,14 @@ function NfcTagsTab() {
 
   return (
     <>
-      {/* <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex justify-end">
         <Button
           variant="accent"
           onClick={() => { setEditing(null); setFormOpen(true); }}
         >
           <Plus className="h-4 w-4" /> Add tag
         </Button>
-      </div> */}
+      </div>
 
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
