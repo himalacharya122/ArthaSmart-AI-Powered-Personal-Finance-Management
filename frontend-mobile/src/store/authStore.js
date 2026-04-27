@@ -1,12 +1,13 @@
 /**
  * Auth store: Zustand + AsyncStorage persistence.
  *
- * Manages: user, tokens, authentication state, onboarding state.
+ * Manages: user, tokens, authentication state, onboarding state, biometric.
  */
 import { create } from 'zustand';
 import { storage } from '../utils/storage';
 import * as authService from '../services/auth';
 import { authenticateWithGoogle } from '../services/googleAuth';
+import * as biometricService from '../services/biometric';
 
 export const useAuthStore = create((set, get) => ({
   // State
@@ -18,6 +19,7 @@ export const useAuthStore = create((set, get) => ({
   hasSeenOnboarding: false,
   biometricEnabled: false,
   biometricUnlocked: false, // false = needs biometric check on resume
+  showBiometricSetup: false, // true = show biometric setup screen after login
 
   /**
    * Initialize - called once on app launch.
@@ -59,6 +61,23 @@ export const useAuthStore = create((set, get) => ({
   },
 
   /**
+   * Checks if the biometric setup prompt should be shown after login.
+   * Shows once if: biometric hardware available, not yet enabled, setup not seen.
+   */
+  _checkShouldShowBiometricSetup: async () => {
+    try {
+      const [support, setupSeen, biometricOn] = await Promise.all([
+        biometricService.checkBiometricSupport(),
+        storage.isBiometricSetupSeen(),
+        storage.isBiometricEnabled(),
+      ]);
+      if (support.available && support.enrolled && !setupSeen && !biometricOn) {
+        set({ showBiometricSetup: true });
+      }
+    } catch { /* silent */ }
+  },
+
+  /**
    * Login with email and password.
    */
   login: async (email, password) => {
@@ -73,13 +92,16 @@ export const useAuthStore = create((set, get) => ({
       storage.setUser(user),
     ]);
 
-    // If biometric is enabled, store tokens for biometric re-login after logout
+    // If biometric is already enabled, update the user info but keep the biometric token
+    // (the logout pre-refresh flow keeps the biometric token fresh and separate)
     const biometricOn = await storage.isBiometricEnabled();
     if (biometricOn) {
-      await Promise.all([
-        storage.setBiometricRefreshToken(refresh),
-        storage.setBiometricUser(user),
-      ]);
+      await storage.setBiometricUser(user);
+      // Only set biometric refresh token if there isn't one already
+      const existingBioToken = await storage.getBiometricRefreshToken();
+      if (!existingBioToken) {
+        await storage.setBiometricRefreshToken(refresh);
+      }
     }
 
     set({
@@ -89,6 +111,9 @@ export const useAuthStore = create((set, get) => ({
       isAuthenticated: true,
       biometricUnlocked: true,
     });
+
+    // Check if we should show biometric setup prompt
+    await get()._checkShouldShowBiometricSetup();
 
     return data;
   },
@@ -119,10 +144,11 @@ export const useAuthStore = create((set, get) => ({
 
     const biometricOn = await storage.isBiometricEnabled();
     if (biometricOn) {
-      await Promise.all([
-        storage.setBiometricRefreshToken(refresh),
-        storage.setBiometricUser(user),
-      ]);
+      await storage.setBiometricUser(user);
+      const existingBioToken = await storage.getBiometricRefreshToken();
+      if (!existingBioToken) {
+        await storage.setBiometricRefreshToken(refresh);
+      }
     }
 
     set({
@@ -133,24 +159,47 @@ export const useAuthStore = create((set, get) => ({
       biometricUnlocked: true,
     });
 
+    await get()._checkShouldShowBiometricSetup();
+
     return data;
   },
 
   /**
-   * Logout - clear session but preserve biometric credentials for re-login.
+   * Logout - clears session but preserves biometric credentials for re-login.
+   * Pre-refreshes token so biometric token stays valid across logout.
+   * (ROTATE_REFRESH_TOKENS=True: old token blacklisted, fresh token issued → stored for biometric)
    */
   logout: async () => {
-    const { refreshToken } = get();
+    const { refreshToken, biometricEnabled } = get();
 
-    // Blacklist the current session refresh token on the server
-    if (refreshToken) {
+    if (biometricEnabled && refreshToken) {
+      try {
+        const data = await authService.refreshToken(refreshToken);
+        if (data.refresh) {
+          // Store the fresh, non-blacklisted token for biometric re-login
+          await Promise.all([
+            storage.setBiometricRefreshToken(data.refresh),
+            storage.setBiometricUser(get().user),
+          ]);
+          // The old refreshToken was already consumed/blacklisted by rotation above
+          // Attempt to explicitly blacklist it too (may 400 if already rotated — that's OK)
+          authService.logout(refreshToken).catch(() => {});
+        } else {
+          // Token rotation disabled — biometric token and session token are the same;
+          // blacklist session and biometric will also be invalidated (acceptable)
+          await authService.logout(refreshToken);
+        }
+      } catch {
+        // If pre-refresh fails (network issue, token already expired), just logout
+        authService.logout(refreshToken).catch(() => {});
+      }
+    } else if (refreshToken) {
       await authService.logout(refreshToken);
     }
 
     await storage.clearTokens();
     await storage.clearUser();
-    // NOTE: We do NOT clear biometric credentials - they survive logout
-    // so the user can re-login with Face ID / fingerprint on the login screen.
+    // NOTE: biometric credentials survive logout intentionally (for biometric re-login)
 
     set({
       user: null,
@@ -169,12 +218,10 @@ export const useAuthStore = create((set, get) => ({
     const biometricRefresh = await storage.getBiometricRefreshToken();
     if (!biometricRefresh) throw new Error('No biometric credentials stored');
 
-    // Use refresh token to get new access token
     const data = await authService.refreshToken(biometricRefresh);
     const access = data.access;
     const refresh = data.refresh || biometricRefresh;
 
-    // Get stored biometric user
     const user = await storage.getBiometricUser();
     if (!user) throw new Error('No biometric user data');
 
@@ -182,7 +229,7 @@ export const useAuthStore = create((set, get) => ({
       storage.setAccessToken(access),
       storage.setRefreshToken(refresh),
       storage.setUser(user),
-      storage.setBiometricRefreshToken(refresh), // Update stored token
+      storage.setBiometricRefreshToken(refresh), // keep biometric token rotated
     ]);
 
     set({
@@ -192,6 +239,22 @@ export const useAuthStore = create((set, get) => ({
       isAuthenticated: true,
       biometricUnlocked: true,
     });
+  },
+
+  /**
+   * Clear biometric credentials and update store (called when biometric login fails).
+   */
+  resetBiometricCredentials: async () => {
+    await storage.clearBiometricCredentials();
+    set({ biometricEnabled: false, biometricUnlocked: true });
+  },
+
+  /**
+   * Dismiss the biometric setup screen. Marks as seen so it won't show again.
+   */
+  dismissBiometricSetup: async () => {
+    await storage.setBiometricSetupSeen();
+    set({ showBiometricSetup: false });
   },
 
   /**
@@ -216,7 +279,6 @@ export const useAuthStore = create((set, get) => ({
   setBiometricEnabled: async (enabled) => {
     await storage.setBiometricEnabled(enabled);
     if (enabled) {
-      // Store current tokens + user for biometric re-login after logout
       const { refreshToken, user } = get();
       if (refreshToken && user) {
         await Promise.all([
@@ -224,8 +286,9 @@ export const useAuthStore = create((set, get) => ({
           storage.setBiometricUser(user),
         ]);
       }
+      // Mark setup as seen so the prompt doesn't appear again
+      await storage.setBiometricSetupSeen();
     } else {
-      // Clear biometric credentials when disabling
       await storage.clearBiometricCredentials();
       await storage.setBiometricEnabled(false);
     }

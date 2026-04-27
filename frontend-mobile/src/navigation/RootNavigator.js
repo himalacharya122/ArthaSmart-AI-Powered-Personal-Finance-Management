@@ -1,16 +1,15 @@
 /**
- * Root navigator: switches between Auth, Biometric Lock, and Main flows.
- * Also initializes network monitoring for offline support.
+ * Root navigator: switches between Auth, Biometric Lock, Biometric Setup, and Main flows.
  */
 import { useEffect, useRef } from 'react';
-import { AppState } from 'react-native';
+import { AppState, View } from 'react-native';
 import { useAuthStore } from '../store/authStore';
-import { View } from 'react-native';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { OfflineBanner } from '../components/common/OfflineBanner';
 import { AuthStack } from './AuthStack';
 import { MainTabs } from './MainTabs';
 import { BiometricLockScreen } from '../screens/auth/BiometricLockScreen';
+import { BiometricSetupScreen } from '../screens/auth/BiometricSetupScreen';
 import { initNetworkMonitor } from '../services/offline';
 
 // Start network monitoring once on import
@@ -21,6 +20,7 @@ export function RootNavigator() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const biometricEnabled = useAuthStore((s) => s.biometricEnabled);
   const biometricUnlocked = useAuthStore((s) => s.biometricUnlocked);
+  const showBiometricSetup = useAuthStore((s) => s.showBiometricSetup);
   const lockBiometric = useAuthStore((s) => s.lockBiometric);
 
   // Lock when app goes to background
@@ -43,9 +43,14 @@ export function RootNavigator() {
     return <AuthStack />;
   }
 
-  // Show biometric lock if enabled and not yet unlocked
+  // Show biometric lock if enabled and not yet unlocked this session
   if (biometricEnabled && !biometricUnlocked) {
     return <BiometricLockScreen />;
+  }
+
+  // Show biometric setup prompt (once, after first login) if applicable
+  if (showBiometricSetup) {
+    return <BiometricSetupScreen />;
   }
 
   return (

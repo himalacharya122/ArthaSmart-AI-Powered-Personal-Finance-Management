@@ -29,6 +29,7 @@ export const SCREEN_NAMES = {
   FORGOT_PASSWORD: 'ForgotPassword',
   ONBOARDING: 'Onboarding',
   VERIFY_EMAIL: 'VerifyEmail',
+  BIOMETRIC_SETUP: 'BiometricSetup',
 
   // Main tabs
   HOME_TAB: 'HomeTab',
@@ -71,6 +72,8 @@ export const SCREEN_NAMES = {
   ABOUT: 'About',
   PRIVACY_POLICY: 'PrivacyPolicy',
   TERMS_OF_SERVICE: 'TermsOfService',
+  MONTHLY_BUDGET: 'MonthlyBudget',
+  CATEGORY_BUDGETS: 'CategoryBudgets',
 };
 
 export const CATEGORY_ICONS = {

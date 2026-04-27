@@ -27,7 +27,15 @@ class CategorySerializer(serializers.ModelSerializer):
         """Prevent duplicate category names for the same user + type."""
         user = self.context["request"].user
         category_type = self.initial_data.get("type", self.instance.type if self.instance else None)
-        qs = Category.objects.filter(user=user, name__iexact=value, type=category_type)
+
+        # Reject if the name matches an active default/system category for the same type
+        if Category.objects.filter(is_default=True, name__iexact=value, type=category_type, is_active=True).exists():
+            raise serializers.ValidationError(
+                f"'{value}' is already a default category. Choose a different name."
+            )
+
+        # Reject if the user already has an active category with this name + type
+        qs = Category.objects.filter(user=user, name__iexact=value, type=category_type, is_active=True)
         if self.instance:
             qs = qs.exclude(pk=self.instance.pk)
         if qs.exists():

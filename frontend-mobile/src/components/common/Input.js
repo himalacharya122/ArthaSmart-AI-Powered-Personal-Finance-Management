@@ -52,7 +52,7 @@ export function Input({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={colors.primary[400]}
+          placeholderTextColor={colors.primary[500]}
           secureTextEntry={isPassword && !showPassword}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
@@ -67,6 +67,8 @@ export function Input({
             multiline && { minHeight: 80, textAlignVertical: 'top' },
             inputStyle,
           ]}
+          textAlignVertical="center"
+          includeFontPadding={false}
           {...props}
         />
 
@@ -105,7 +107,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     backgroundColor: colors.primary[50],
     paddingHorizontal: spacing.md,
-    minHeight: 48,
+    minHeight: 54,
   },
   inputFocused: {
     borderColor: colors.accent[500],
@@ -124,9 +126,11 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    ...typography.body,
+    fontSize: 15,
+    fontWeight: '400',
     color: colors.primary[800],
-    paddingVertical: spacing.sm + 4,
+    paddingVertical: spacing.sm + 6,
+    lineHeight: 20,
   },
   error: {
     ...typography.caption,

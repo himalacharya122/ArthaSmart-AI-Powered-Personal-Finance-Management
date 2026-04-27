@@ -279,7 +279,7 @@ const mockStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.primary[50] },
   skipButton: { position: 'absolute', top: 60, right: spacing.lg, zIndex: 10 },
-  skipText: { ...typography.body, color: colors.primary[400], fontWeight: '500' },
+  skipText: { ...typography.body, color: colors.primary[500], fontWeight: '500' },
   slide: {
     width, alignItems: 'center', paddingHorizontal: spacing.xl, paddingTop: 80,
   },
@@ -300,6 +300,6 @@ const styles = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary[200] },
   dotActive: { backgroundColor: colors.primary[800], width: 24 },
   signInLink: { marginTop: spacing.md, alignItems: 'center' },
-  signInText: { ...typography.bodySmall, color: colors.primary[400] },
+  signInText: { ...typography.bodySmall, color: colors.primary[500] },
   signInBold: { color: colors.primary[800], fontWeight: '600' },
 });

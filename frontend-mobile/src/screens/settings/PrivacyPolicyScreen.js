@@ -115,12 +115,12 @@ export function PrivacyPolicyScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.primary[50] },
+  container: { flex: 1, backgroundColor: colors.white },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.primary[100] },
   backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { ...typography.h3 },
   scrollContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
-  lastUpdated: { ...typography.caption, color: colors.primary[400], marginBottom: spacing.md },
+  lastUpdated: { ...typography.caption, color: colors.primary[400], marginBottom: spacing.md, fontWeight: '500' },
   intro: { ...typography.body, fontSize: 14, color: colors.primary[600], lineHeight: 22, marginBottom: spacing.lg },
   section: { marginBottom: spacing.lg },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },

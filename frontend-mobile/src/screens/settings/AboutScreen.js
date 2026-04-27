@@ -20,16 +20,13 @@ import { useAppStore } from '../../store/appStore';
 import { useAuthStore } from '../../store/authStore';
 
 const BUILD_INFO = [
-  { label: 'VERSION', value: '1.0.0' },
-  { label: 'BUILD', value: '#2025.001' },
-  { label: 'RELEASED', value: 'Mar 2026' },
+  { label: 'Version', value: '1.0.0' },
+  { label: 'Released', value: 'Mar 2026' },
 ];
 
 const LEGAL_ITEMS = [
   { icon: 'privacy-tip', label: 'Privacy policy', desc: 'How we collect and use your data', screen: 'PRIVACY_POLICY' },
   { icon: 'description', label: 'Terms of service', desc: 'Usage rules and conditions', screen: 'TERMS_OF_SERVICE' },
-  { icon: 'code', label: 'Open source licences', desc: 'Third-party libraries we use', action: 'licenses' },
-  { icon: 'cookie', label: 'Cookie policy', desc: 'What cookies we store and why', action: 'cookies' },
 ];
 
 const SUPPORT_ITEMS = [
@@ -99,7 +96,6 @@ export function AboutScreen({ navigation }) {
           <Text style={styles.appName}>ArthaSmart</Text>
           <Text style={styles.appTagline}>AI-powered personal finance</Text>
           <TouchableOpacity style={styles.versionBadge} activeOpacity={0.7} onPress={handleVersionTap}>
-            <View style={styles.versionDot} />
             <Text style={styles.versionText}>Version 1.0.0 · Up to date</Text>
           </TouchableOpacity>
         </View>
@@ -161,7 +157,7 @@ export function AboutScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.primary[50] },
+  container: { flex: 1, backgroundColor: colors.white },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.primary[100] },
   backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { ...typography.h3 },
@@ -172,16 +168,15 @@ const styles = StyleSheet.create({
   appIcon: { width: 72, height: 72, borderRadius: borderRadius.lg, backgroundColor: colors.primary[800], alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
   appName: { ...typography.h1, fontSize: 26, marginBottom: spacing.xs },
   appTagline: { ...typography.bodySmall, color: colors.primary[400], marginBottom: spacing.md },
-  versionBadge: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.white, borderRadius: borderRadius.full, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderWidth: 1, borderColor: colors.primary[200] },
-  versionDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent[500] },
+  versionBadge: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.white, borderRadius: borderRadius.full, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderWidth: 1, borderColor: colors.primary[100] },
   versionText: { ...typography.bodySmall, color: colors.primary[600], fontWeight: '500' },
 
-  sectionLabel: { ...typography.caption, fontWeight: '700', color: colors.primary[400], letterSpacing: 0.5, marginBottom: spacing.sm, marginTop: spacing.md },
+  sectionLabel: { ...typography.caption, fontWeight: '700', color: colors.primary[500], marginBottom: spacing.sm, marginTop: spacing.md },
 
   // Build info
   buildGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  buildCard: { width: '48%', backgroundColor: colors.white, borderRadius: borderRadius.md, padding: spacing.md, borderWidth: 1, borderColor: colors.primary[200] },
-  buildCardLabel: { ...typography.caption, fontWeight: '600', color: colors.primary[400], letterSpacing: 0.3, marginBottom: spacing.xs },
+  buildCard: { width: '48%', backgroundColor: colors.white, borderRadius: borderRadius.md, padding: spacing.md, borderWidth: 1, borderColor: colors.primary[100] },
+  buildCardLabel: { ...typography.caption, fontWeight: '600', color: colors.primary[500], marginBottom: spacing.xs },
   buildCardValue: { ...typography.h3, fontSize: 18, color: colors.primary[800] },
 
   // List sections
@@ -190,8 +185,8 @@ const styles = StyleSheet.create({
   listIconBg: { width: 36, height: 36, borderRadius: borderRadius.sm, backgroundColor: colors.primary[50], alignItems: 'center', justifyContent: 'center', marginRight: spacing.sm },
   listInfo: { flex: 1 },
   listLabel: { ...typography.body, fontSize: 14, color: colors.primary[700], fontWeight: '500' },
-  listDesc: { ...typography.caption, color: colors.primary[400], marginTop: 1 },
+  listDesc: { ...typography.caption, color: colors.primary[500], marginTop: 1 },
 
   // Footer
-  footer: { ...typography.caption, color: colors.primary[300], textAlign: 'center', marginTop: spacing.xl },
+  footer: { ...typography.caption, color: colors.primary[400], textAlign: 'center', marginTop: spacing.xl },
 });

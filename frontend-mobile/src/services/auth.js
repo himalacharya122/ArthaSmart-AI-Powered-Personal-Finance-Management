@@ -81,6 +81,22 @@ export async function updateProfile(updates) {
 }
 
 /**
+ * Change the current user's password.
+ * @param {{ old_password: string, new_password: string, new_password_confirm: string }} payload
+ */
+export async function changePassword(payload) {
+  const { data } = await api.post('/api/v1/auth/password/change/', payload);
+  return data;
+}
+
+/**
+ * Delete the current user's account (soft delete).
+ */
+export async function deleteAccount() {
+  await api.delete('/api/v1/auth/profile/delete/');
+}
+
+/**
  * Logout — blacklist the refresh token.
  */
 export async function logout(refreshToken) {
