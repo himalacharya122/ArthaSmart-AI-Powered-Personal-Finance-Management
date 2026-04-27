@@ -90,12 +90,12 @@ export function TermsOfServiceScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.primary[50] },
+  container: { flex: 1, backgroundColor: colors.white },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.primary[100] },
   backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { ...typography.h3 },
   scrollContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
-  lastUpdated: { ...typography.caption, color: colors.primary[400], marginBottom: spacing.lg },
+  lastUpdated: { ...typography.caption, color: colors.primary[400], marginBottom: spacing.lg, fontWeight: '500' },
   section: { marginBottom: spacing.lg },
   sectionTitle: { ...typography.body, fontWeight: '700', color: colors.primary[800], fontSize: 15, marginBottom: spacing.sm },
   sectionContent: { ...typography.body, fontSize: 14, color: colors.primary[600], lineHeight: 22 },

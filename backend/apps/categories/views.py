@@ -1,11 +1,13 @@
 """Category management views."""
 
 from django.db.models import Q  # type: ignore
+from django.utils.text import slugify  # type: ignore
 from django_filters.rest_framework import DjangoFilterBackend  # type: ignore
-from rest_framework import viewsets  # type: ignore
+from rest_framework import status, viewsets  # type: ignore
 from rest_framework.exceptions import PermissionDenied  # type: ignore
 from rest_framework.filters import OrderingFilter, SearchFilter  # type: ignore
 from rest_framework.permissions import IsAuthenticated  # type: ignore
+from rest_framework.response import Response  # type: ignore
 
 from .models import Category
 from .serializers import CategorySerializer
@@ -30,6 +32,28 @@ class CategoryViewSet(viewsets.ModelViewSet):
         return Category.objects.filter(Q(is_default=True) | Q(user=self.request.user)).filter(
             is_active=True
         )
+
+    def create(self, request, *args, **kwargs):
+        """Create a custom category, reactivating a soft-deleted one if it exists."""
+        name = request.data.get("name", "")
+        category_type = request.data.get("type", "")
+        slug = slugify(name)
+
+        existing = Category.objects.filter(
+            user=request.user,
+            slug=slug,
+            type=category_type,
+            is_active=False,
+        ).first()
+
+        if existing:
+            existing.name = name
+            existing.is_active = True
+            existing.save(update_fields=["name", "is_active"])
+            serializer = self.get_serializer(existing)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return super().create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         """Create a custom (non-default) category for the current user."""

@@ -104,7 +104,7 @@ export async function deleteCategory(id) {
   await api.delete(`/api/v1/categories/${id}/`);
 }
 
-/** Delete user account. */
+/** @deprecated Use authService.deleteAccount() instead. */
 export async function deleteAccount() {
-  await api.delete('/api/v1/auth/profile/');
+  await api.delete('/api/v1/auth/profile/delete/');
 }

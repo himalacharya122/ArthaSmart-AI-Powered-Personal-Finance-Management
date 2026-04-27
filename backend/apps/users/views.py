@@ -4,7 +4,7 @@ import logging
 
 from django.conf import settings  # type: ignore
 from django.contrib.auth.tokens import default_token_generator  # type: ignore
-from django.core.mail import send_mail  # type: ignore
+from django.core.mail import send_mail, EmailMultiAlternatives  # type: ignore
 from django.utils.encoding import force_bytes, force_str  # type: ignore
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode  # type: ignore
 from rest_framework import generics, status  # type: ignore
@@ -421,27 +421,74 @@ class PasswordResetRequestView(APIView):
         mobile_reset_url = f"arthasmart://reset-password?uid={uid}&token={token}"
 
         # Send email
+        first_name = user.first_name or user.username
         subject = "ArthaSmart — Reset Your Password"
-        message = (
-            f"Hi {user.first_name or user.username},\n\n"
+
+        # Plain-text fallback
+        plain_message = (
+            f"Hi {first_name},\n\n"
             f"We received a request to reset your password.\n\n"
-            f"Click this link to reset your password:\n"
-            f"  {web_reset_url}\n\n"
-            f"Or open this link in the mobile app:\n"
-            f"  {mobile_reset_url}\n\n"
+            f"Reset via web browser:\n  {web_reset_url}\n\n"
+            f"Or tap the link below to open in the ArthaSmart app:\n  {mobile_reset_url}\n\n"
             f"This link expires in 1 hour.\n\n"
             f"If you didn't request this, you can safely ignore this email.\n\n"
             f"— ArthaSmart Team"
         )
 
+        # HTML version with clickable button for mobile deep link
+        html_message = f"""
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f5f5f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f0;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="100%" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e5e0;">
+        <!-- Header -->
+        <tr><td style="background:#1a1a1a;padding:28px 32px;text-align:center;">
+          <span style="font-size:20px;font-weight:700;color:#ffffff;letter-spacing:-0.3px;">ArthaSmart</span>
+        </td></tr>
+        <!-- Body -->
+        <tr><td style="padding:32px;">
+          <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;">Reset your password</p>
+          <p style="margin:0 0 24px;font-size:15px;color:#666;line-height:1.5;">Hi {first_name}, we received a request to reset your ArthaSmart password.</p>
+
+          <!-- Web reset button -->
+          <a href="{web_reset_url}" style="display:block;background:#1a1a1a;color:#ffffff;text-decoration:none;text-align:center;padding:15px 24px;border-radius:10px;font-size:15px;font-weight:600;margin-bottom:16px;">
+            Reset Password
+          </a>
+
+          <!-- Mobile app button -->
+          <a href="{mobile_reset_url}" style="display:block;background:#f5f5f0;color:#1a1a1a;text-decoration:none;text-align:center;padding:15px 24px;border-radius:10px;font-size:15px;font-weight:600;border:1.5px solid #e0e0db;margin-bottom:24px;">
+            Open in ArthaSmart App
+          </a>
+
+          <p style="margin:0 0 8px;font-size:13px;color:#999;line-height:1.5;">This link expires in <strong>1 hour</strong>. If the buttons don't work, copy this link into your browser:</p>
+          <p style="margin:0 0 24px;font-size:12px;color:#aaa;word-break:break-all;">{web_reset_url}</p>
+
+          <hr style="border:none;border-top:1px solid #f0f0eb;margin:0 0 20px;">
+          <p style="margin:0;font-size:13px;color:#aaa;line-height:1.5;">If you didn't request a password reset, you can safely ignore this email. Your account remains secure.</p>
+        </td></tr>
+        <!-- Footer -->
+        <tr><td style="padding:20px 32px;background:#f9f9f7;text-align:center;">
+          <p style="margin:0;font-size:12px;color:#bbb;">— ArthaSmart Team</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+"""
+
         try:
-            send_mail(
-                subject,
-                message,
-                settings.DEFAULT_FROM_EMAIL,
-                [user.email],
-                fail_silently=False,
+            email_msg = EmailMultiAlternatives(
+                subject=subject,
+                body=plain_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[user.email],
             )
+            email_msg.attach_alternative(html_message, "text/html")
+            email_msg.send(fail_silently=False)
             logger.info("Password reset email sent to %s", email)
         except Exception as exc:
             logger.error("Failed to send password reset email: %s", exc)

@@ -1,6 +1,3 @@
-/**
- * AsyncStorage wrapper for type-safe, consistent storage access.
- */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const KEYS = {
@@ -13,6 +10,12 @@ const KEYS = {
   // Biometric re-login: persists across logout so user can re-auth with face/fingerprint
   BIOMETRIC_REFRESH_TOKEN: '@arthasmart/biometric_refresh_token',
   BIOMETRIC_USER: '@arthasmart/biometric_user',
+  // Tracks if user has seen the biometric setup prompt (shown once after first login)
+  BIOMETRIC_SETUP_SEEN: '@arthasmart/biometric_setup_seen',
+  BUDGET_RESET_DAY: '@arthasmart/budget_reset_day',
+  MONTHLY_BUDGET: '@arthasmart/monthly_budget',
+  CATEGORY_ORDER: '@arthasmart/category_order',
+  CATEGORY_BUDGETS: '@arthasmart/category_budgets',
 };
 
 export const storage = {
@@ -85,6 +88,15 @@ export const storage = {
     ]);
   },
 
+  // Biometric setup seen (once shown, don't show again)
+  async isBiometricSetupSeen() {
+    const val = await AsyncStorage.getItem(KEYS.BIOMETRIC_SETUP_SEEN);
+    return val === 'true';
+  },
+  async setBiometricSetupSeen() {
+    return AsyncStorage.setItem(KEYS.BIOMETRIC_SETUP_SEEN, 'true');
+  },
+
   // Preferences
   async getPreferences() {
     const raw = await AsyncStorage.getItem(KEYS.PREFERENCES);
@@ -92,6 +104,45 @@ export const storage = {
   },
   async setPreferences(prefs) {
     return AsyncStorage.setItem(KEYS.PREFERENCES, JSON.stringify(prefs));
+  },
+
+  // Budget reset day (integer 1-28, default 1)
+  async getBudgetResetDay() {
+    const val = await AsyncStorage.getItem(KEYS.BUDGET_RESET_DAY);
+    return val ? parseInt(val, 10) : 1;
+  },
+  async setBudgetResetDay(day) {
+    return AsyncStorage.setItem(KEYS.BUDGET_RESET_DAY, String(day));
+  },
+
+  // Monthly spending budget amount (null = not set)
+  async getMonthlyBudget() {
+    const val = await AsyncStorage.getItem(KEYS.MONTHLY_BUDGET);
+    return val !== null ? parseFloat(val) : null;
+  },
+  async setMonthlyBudget(amount) {
+    if (amount === null || amount === undefined) {
+      return AsyncStorage.removeItem(KEYS.MONTHLY_BUDGET);
+    }
+    return AsyncStorage.setItem(KEYS.MONTHLY_BUDGET, String(amount));
+  },
+
+  // Category display order — stored as JSON object { expense: [id,id,...], income: [id,...] }
+  async getCategoryOrder() {
+    const raw = await AsyncStorage.getItem(KEYS.CATEGORY_ORDER);
+    return raw ? JSON.parse(raw) : {};
+  },
+  async setCategoryOrder(orderMap) {
+    return AsyncStorage.setItem(KEYS.CATEGORY_ORDER, JSON.stringify(orderMap));
+  },
+
+  // Per-category monthly budgets — { [categoryId]: number }
+  async getCategoryBudgets() {
+    const raw = await AsyncStorage.getItem(KEYS.CATEGORY_BUDGETS);
+    return raw ? JSON.parse(raw) : {};
+  },
+  async setCategoryBudgets(map) {
+    return AsyncStorage.setItem(KEYS.CATEGORY_BUDGETS, JSON.stringify(map));
   },
 
   // Clear all

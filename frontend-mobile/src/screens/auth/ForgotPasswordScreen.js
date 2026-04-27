@@ -37,14 +37,17 @@ export function ForgotPasswordScreen({ navigation }) {
     try {
       await authService.forgotPassword(email);
       setSent(true);
-      showToast('Reset link sent! Check your email.', 'success');
     } catch (error) {
-      const message =
-        error?.response?.data?.detail ||
-        error?.response?.data?.email?.[0] ||
-        error?.response?.data?.error ||
-        'Could not send reset link. Please try again.';
-      showToast(message, 'error', 4000);
+      const status = error?.response?.status;
+      if (status === 500) {
+        showToast('Could not send email. Please try again later.', 'error', 4000);
+      } else if (error?.message?.includes('Network Error')) {
+        showToast('Cannot reach server. Check your connection.', 'error', 4000);
+      } else {
+        // For any other response (including email-not-found), show the sent state
+        // Backend already uses ambiguous messaging — mirror that on frontend
+        setSent(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -87,8 +90,9 @@ export function ForgotPasswordScreen({ navigation }) {
             <View style={styles.sentContent}>
               <Text style={styles.title}>Check Your Email</Text>
               <Text style={styles.subtitle}>
-                We've sent a password reset link to{'\n'}
+                If an account exists for{' '}
                 <Text style={styles.emailHighlight}>{getValues('email')}</Text>
+                {'\n'}you'll receive a reset link shortly.
               </Text>
 
               <View style={styles.instructions}>
@@ -147,8 +151,10 @@ export function ForgotPasswordScreen({ navigation }) {
                       error={errors.email?.message}
                       keyboardType="email-address"
                       autoCapitalize="none"
+                      autoCorrect={false}
+                      autoComplete="off"
+                      textContentType="none"
                       leftIcon="email"
-                      autoComplete="email"
                     />
                   )}
                 />
