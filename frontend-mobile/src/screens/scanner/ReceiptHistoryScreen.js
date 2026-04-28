@@ -9,7 +9,7 @@
 import { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, Image,
-  Alert, TextInput, ActivityIndicator,
+  Alert, TextInput, ActivityIndicator, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -172,17 +172,17 @@ export function ReceiptHistoryScreen({ navigation }) {
 
       {/* Search bar */}
       <View style={styles.searchBar}>
-        <MaterialIcons name="search" size={20} color={colors.primary[400]} />
+        <MaterialIcons name="search" size={20} color={colors.primary[500]} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search by merchant or category..."
-          placeholderTextColor={colors.primary[300]}
+          placeholderTextColor={colors.primary[400]}
           value={search}
           onChangeText={setSearch}
         />
         {search.length > 0 && (
           <TouchableOpacity onPress={() => setSearch('')}>
-            <MaterialIcons name="close" size={18} color={colors.primary[400]} />
+            <MaterialIcons name="close" size={18} color={colors.primary[500]} />
           </TouchableOpacity>
         )}
       </View>
@@ -224,7 +224,7 @@ export function ReceiptHistoryScreen({ navigation }) {
           data={filtered}
           keyExtractor={(item) => item.id}
           renderItem={renderReceipt}
-          contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl }}
+          contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl, paddingTop: spacing.sm }}
           showsVerticalScrollIndicator={false}
         />
       )}
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.primary[50] },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg, paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
   },
   backBtn: {
     width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary[100],
@@ -246,12 +246,22 @@ const styles = StyleSheet.create({
   // Search
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    marginHorizontal: spacing.lg, marginBottom: spacing.sm,
+    marginHorizontal: spacing.lg, marginBottom: spacing.md,
     backgroundColor: colors.white, borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md, height: 46,
     borderWidth: 1, borderColor: colors.primary[200],
+    ...shadow.sm,
   },
-  searchInput: { flex: 1, ...typography.body, fontSize: 14, color: colors.primary[800], padding: 0 },
+  searchInput: {
+    flex: 1,
+    fontFamily: typography.body.fontFamily,
+    fontSize: 14,
+    color: colors.primary[800],
+    paddingTop: 0,
+    paddingBottom: Platform.OS === 'ios' ? 2 : 0,
+    textAlignVertical: 'center',
+    height: '100%',
+  },
 
   // Filters
   filterRow: {
@@ -270,9 +280,9 @@ const styles = StyleSheet.create({
   // Receipt card
   receiptCard: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white,
-    borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.sm, ...shadow.sm,
+    borderRadius: borderRadius.md, padding: spacing.sm, marginVertical: spacing.sm, ...shadow.sm,
   },
-  thumb: { width: 50, height: 60, borderRadius: borderRadius.sm, backgroundColor: colors.primary[100] },
+  thumb: { width: 50, height: 52, borderRadius: borderRadius.sm, backgroundColor: colors.primary[100] },
   thumbPlaceholder: { alignItems: 'center', justifyContent: 'center' },
   receiptInfo: { flex: 1, marginLeft: spacing.md },
   receiptMerchant: { ...typography.body, fontWeight: '600', fontSize: 14 },
@@ -293,6 +303,6 @@ const styles = StyleSheet.create({
 
   // Empty
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: spacing.xxl },
-  emptyTitle: { ...typography.body, color: colors.primary[400], marginTop: spacing.md },
+  emptyTitle: { ...typography.body, color: colors.primary[500], marginTop: spacing.md },
   emptyHint: { ...typography.caption, marginTop: spacing.xs },
 });

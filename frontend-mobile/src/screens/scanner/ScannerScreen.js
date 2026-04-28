@@ -8,7 +8,7 @@
  */
 import { useState, useCallback, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Image, FlatList,
+  View, Text, StyleSheet, TouchableOpacity, Image, FlatList, ScrollView,
   ActivityIndicator, Alert, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -153,79 +153,86 @@ export function ScannerScreen({ navigation }) {
             style={styles.historyBtn}
             onPress={() => navigation.navigate(SCREEN_NAMES.RECEIPTS_HISTORY)}
           >
-            <MaterialIcons name="history" size={22} color={colors.primary[600]} />
+            <MaterialIcons name="history" size={22} color={colors.primary[800]} />
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Scan Area */}
-      <View style={styles.scanArea}>
-        <View style={styles.scanIllustration}>
-          <View style={styles.scanIconCircle}>
-            <MaterialIcons name="document-scanner" size={56} color={colors.primary[800]} />
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Scan Area */}
+        <View style={styles.scanArea}>
+          <View style={styles.scanIllustration}>
+            <View style={styles.scanIconCircle}>
+              <MaterialIcons name="document-scanner" size={48} color={colors.primary[800]} />
+            </View>
+            <Text style={styles.scanTitle}>Capture your receipt</Text>
+            <Text style={styles.scanSubtitle}>
+              Take a photo or choose from gallery.{'\n'}We'll extract the details automatically.
+            </Text>
           </View>
-          <Text style={styles.scanTitle}>Capture your receipt</Text>
-          <Text style={styles.scanSubtitle}>
-            Take a photo or choose from gallery.{'\n'}We'll extract the details automatically.
-          </Text>
-        </View>
 
-        {/* Action buttons */}
-        <View style={styles.actionRow}>
-          <TouchableOpacity style={styles.primaryAction} activeOpacity={0.8} onPress={handleCamera}>
-            <View style={styles.primaryActionIcon}>
-              <MaterialIcons name="photo-camera" size={28} color={colors.white} />
-            </View>
-            <Text style={styles.primaryActionLabel}>Camera</Text>
-            <Text style={styles.primaryActionHint}>Take a photo</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.secondaryAction} activeOpacity={0.8} onPress={handleGallery}>
-            <View style={styles.secondaryActionIcon}>
-              <MaterialIcons name="photo-library" size={28} color={colors.primary[800]} />
-            </View>
-            <Text style={styles.secondaryActionLabel}>Gallery</Text>
-            <Text style={styles.secondaryActionHint}>Choose image</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Tips */}
-        <View style={styles.tipsCard}>
-          <MaterialIcons name="lightbulb-outline" size={18} color={colors.warning[500]} />
-          <Text style={styles.tipsText}>
-            For best results: good lighting, flat surface, entire receipt visible
-          </Text>
-        </View>
-      </View>
-
-      {/* Recent Scans */}
-      <View style={styles.recentsSection}>
-        <View style={styles.recentsHeader}>
-          <Text style={styles.recentsTitle}>Recent Scans</Text>
-          {recentScans.length > 3 && (
-            <TouchableOpacity onPress={() => navigation.navigate(SCREEN_NAMES.RECEIPTS_HISTORY)}>
-              <Text style={styles.viewAllText}>View All</Text>
+          {/* Action buttons */}
+          <View style={styles.actionRow}>
+            <TouchableOpacity style={styles.primaryAction} activeOpacity={0.8} onPress={handleCamera}>
+              <View style={styles.primaryActionIcon}>
+                <MaterialIcons name="photo-camera" size={28} color={colors.white} />
+              </View>
+              <Text style={styles.primaryActionLabel}>Camera</Text>
+              <Text style={styles.primaryActionHint}>Take a photo</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity style={styles.secondaryAction} activeOpacity={0.8} onPress={handleGallery}>
+              <View style={styles.secondaryActionIcon}>
+                <MaterialIcons name="photo-library" size={28} color={colors.primary[800]} />
+              </View>
+              <Text style={styles.secondaryActionLabel}>Gallery</Text>
+              <Text style={styles.secondaryActionHint}>Choose image</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Tips */}
+          <View style={styles.tipsCard}>
+            <MaterialIcons name="lightbulb-outline" size={18} color={colors.primary[800]} />
+            <Text style={styles.tipsText}>
+              For best results: good lighting, flat surface, entire receipt visible
+            </Text>
+          </View>
+        </View>
+
+        {/* Recent Scans */}
+        <View style={styles.recentsSection}>
+          <View style={styles.recentsHeader}>
+            <Text style={styles.recentsTitle}>Recent Scans</Text>
+            {recentScans.length > 3 && (
+              <TouchableOpacity onPress={() => navigation.navigate(SCREEN_NAMES.RECEIPTS_HISTORY)}>
+                <Text style={styles.viewAllText}>View All</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {loadingRecents ? (
+            <ActivityIndicator size="small" color={colors.primary[400]} style={{ marginTop: spacing.lg }} />
+          ) : recentScans.length === 0 ? (
+            <View style={styles.emptyRecents}>
+              <MaterialIcons name="receipt-long" size={32} color={colors.primary[300]} />
+              <Text style={styles.emptyRecentsText}>No receipts scanned yet</Text>
+              <Text style={styles.emptyRecentsHint}>Your scanned receipts will appear here</Text>
+            </View>
+          ) : (
+            <View style={styles.recentList}>
+              {recentScans.slice(0, 5).map((item) => (
+                <View key={item.id}>
+                  {renderRecentItem({ item })}
+                </View>
+              ))}
+            </View>
           )}
         </View>
-
-        {loadingRecents ? (
-          <ActivityIndicator size="small" color={colors.primary[400]} style={{ marginTop: spacing.lg }} />
-        ) : recentScans.length === 0 ? (
-          <View style={styles.emptyRecents}>
-            <MaterialIcons name="receipt-long" size={32} color={colors.primary[300]} />
-            <Text style={styles.emptyRecentsText}>No receipts scanned yet</Text>
-            <Text style={styles.emptyRecentsHint}>Your scanned receipts will appear here</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={recentScans.slice(0, 3)}
-            keyExtractor={(item) => item.id}
-            renderItem={renderRecentItem}
-            scrollEnabled={false}
-          />
-        )}
-      </View>
+        <View style={{ height: spacing.xl }} />
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -245,7 +252,7 @@ const styles = StyleSheet.create({
   scanArea: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
   scanIllustration: { alignItems: 'center', marginBottom: spacing.lg },
   scanIconCircle: {
-    width: 100, height: 100, borderRadius: 50, backgroundColor: colors.primary[100],
+    width: 96, height: 96, borderRadius: 50, backgroundColor: colors.primary[100],
     alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
   },
   scanTitle: { ...typography.h3, marginBottom: spacing.xs },
@@ -255,22 +262,22 @@ const styles = StyleSheet.create({
   actionRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.md },
   primaryAction: {
     flex: 1, backgroundColor: colors.primary[800], borderRadius: borderRadius.lg,
-    padding: spacing.md, alignItems: 'center', ...shadow.md,
+    paddingVertical: spacing.md, paddingHorizontal: spacing.sm, alignItems: 'center', ...shadow.md,
   },
   primaryActionIcon: {
-    width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm,
+    width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xs,
   },
   primaryActionLabel: { ...typography.button, color: colors.white, marginBottom: 2 },
   primaryActionHint: { fontSize: 11, color: 'rgba(255,255,255,0.7)' },
 
   secondaryAction: {
     flex: 1, backgroundColor: colors.white, borderRadius: borderRadius.lg,
-    padding: spacing.md, alignItems: 'center', borderWidth: 1.5, borderColor: colors.primary[200],
+    paddingVertical: spacing.md, paddingHorizontal: spacing.sm, alignItems: 'center', borderWidth: 1.5, borderColor: colors.primary[200],
   },
   secondaryActionIcon: {
-    width: 52, height: 52, borderRadius: 26, backgroundColor: colors.primary[50],
-    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm,
+    width: 44, height: 44, borderRadius: 22, backgroundColor: colors.primary[50],
+    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xs,
   },
   secondaryActionLabel: { ...typography.button, color: colors.primary[800], marginBottom: 2 },
   secondaryActionHint: { fontSize: 11, color: colors.primary[500] },
@@ -278,10 +285,10 @@ const styles = StyleSheet.create({
   // Tips
   tipsCard: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    backgroundColor: colors.warning[50], borderRadius: borderRadius.md,
+    backgroundColor: colors.warning[400], borderRadius: borderRadius.md,
     padding: spacing.sm + 2, paddingHorizontal: spacing.md,
   },
-  tipsText: { ...typography.caption, color: colors.warning[600], flex: 1, lineHeight: 16 },
+  tipsText: { ...typography.caption, color: colors.primary[800], flex: 1, lineHeight: 16 },
 
   // Recents
   recentsSection: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
@@ -289,8 +296,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginBottom: spacing.sm,
   },
-  recentsTitle: { ...typography.label, fontSize: 14, color: colors.primary[500], textTransform: 'uppercase', letterSpacing: 0.5 },
-  viewAllText: { ...typography.buttonSmall, color: colors.accent[600] },
+  recentsTitle: { ...typography.label, fontSize: 16, color: colors.primary[900] },
+  viewAllText: { ...typography.bodySmall, color: colors.primary[800], textDecorationLine: 'underline' },
 
   recentItem: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white,

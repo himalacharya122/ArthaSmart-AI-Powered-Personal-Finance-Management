@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,11 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+  KeyboardAvoidingView,
 } from 'react-native';
-import { BottomSheet } from '../../components/common/BottomSheet';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -20,6 +23,11 @@ import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { CATEGORY_ICONS } from '../../utils/constants';
 import { storage } from '../../utils/storage';
 
+// Enable LayoutAnimation for Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 const TABS = ['Expense', 'Income'];
 
 export function CategoriesScreen({ navigation }) {
@@ -28,13 +36,15 @@ export function CategoriesScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState([]);
 
-  // Modal state — single modal handles both Add and Rename
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [editorMode, setEditorMode] = useState(null); // 'add' | 'rename'
-  const [editorTarget, setEditorTarget] = useState(null); // category being renamed
-  const [editorValue, setEditorValue] = useState('');
-  const [editorSaving, setEditorSaving] = useState(false);
+  // Inline Editing State
+  const [editingId, setEditingId] = useState(null);
+  const [isAdding, setIsAdding] = useState(false);
+  const [draftName, setDraftName] = useState('');
+  const [saving, setSaving] = useState(false);
 
+  const inputRef = useRef(null);
+  const scrollRef = useRef(null);
+  const itemPositions = useRef({});
   const type = activeTab.toLowerCase();
 
   const fetchCategories = useCallback(async () => {
@@ -73,89 +83,92 @@ export function CategoriesScreen({ navigation }) {
   const defaultCats = categories.filter((c) => c.is_default || c.is_system);
   const customCats = categories.filter((c) => !c.is_default && !c.is_system);
 
-  const openRename = (cat) => {
-    setEditorMode('rename');
-    setEditorTarget(cat);
-    setEditorValue(cat.name);
-    setEditorOpen(true);
+  const scrollTo = (y) => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({ y: Math.max(0, y - 60), animated: true });
+    }
   };
 
-  const openAdd = () => {
-    setEditorMode('add');
-    setEditorTarget(null);
-    setEditorValue('');
-    setEditorOpen(true);
+  const toggleAdd = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    if (isAdding) {
+      setIsAdding(false);
+      setDraftName('');
+    } else {
+      setIsAdding(true);
+      setEditingId(null);
+      setDraftName('');
+      setTimeout(() => {
+        inputRef.current?.focus();
+        if (itemPositions.current['add-row'] != null) {
+          scrollTo(itemPositions.current['add-row']);
+        }
+      }, 250);
+    }
   };
 
-  const closeEditor = () => {
-    setEditorOpen(false);
-    setEditorMode(null);
-    setEditorTarget(null);
-    setEditorValue('');
+  const startEdit = (cat) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setEditingId(cat.id);
+    setIsAdding(false);
+    setDraftName(cat.name);
+    setTimeout(() => {
+      inputRef.current?.focus();
+      if (itemPositions.current[cat.id] != null) {
+        scrollTo(itemPositions.current[cat.id]);
+      }
+    }, 250);
   };
 
-  const handleEditorSave = async () => {
-    const name = editorValue.trim();
+  const cancelEdit = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setEditingId(null);
+    setIsAdding(false);
+    setDraftName('');
+  };
+
+  const handleSave = async () => {
+    const name = draftName.trim();
     if (!name) {
       showToast('Name cannot be empty', 'error');
       return;
     }
 
-    if (editorMode === 'add') {
-      const duplicate = categories.some(
-        (c) => c.name.toLowerCase() === name.toLowerCase()
-      );
-      if (duplicate) {
-        showToast(`A category named '${name}' already exists.`, 'error');
-        return;
-      }
-      setEditorSaving(true);
-      try {
+    setSaving(true);
+    try {
+      if (isAdding) {
+        const duplicate = categories.some(c => c.name.toLowerCase() === name.toLowerCase());
+        if (duplicate) {
+          showToast(`'${name}' already exists.`, 'error');
+          setSaving(false);
+          return;
+        }
         const newCat = await txnService.createCategory({ name, type });
-        setCategories((prev) => [...prev, newCat]);
+        setCategories(prev => [...prev, newCat]);
         showToast('Category added!', 'success');
-        closeEditor();
-      } catch (err) {
-        const msg =
-          err?.response?.data?.name?.[0] ||
-          err?.response?.data?.detail ||
-          'Failed to add category';
-        showToast(msg, 'error');
-      } finally {
-        setEditorSaving(false);
+      } else {
+        const duplicate = categories.some(c => c.id !== editingId && c.name.toLowerCase() === name.toLowerCase());
+        if (duplicate) {
+          showToast(`'${name}' already exists.`, 'error');
+          setSaving(false);
+          return;
+        }
+        await txnService.updateCategory(editingId, { name });
+        setCategories(prev => prev.map(c => c.id === editingId ? { ...c, name } : c));
+        showToast('Category updated', 'success');
       }
-      return;
-    }
-
-    if (editorMode === 'rename' && editorTarget) {
-      // Block renaming to a name another category already has
-      const duplicate = categories.some(
-        (c) => c.id !== editorTarget.id && c.name.toLowerCase() === name.toLowerCase()
-      );
-      if (duplicate) {
-        showToast(`A category named '${name}' already exists.`, 'error');
-        return;
-      }
-      setEditorSaving(true);
-      try {
-        await txnService.updateCategory(editorTarget.id, { name });
-        setCategories((prev) =>
-          prev.map((c) => (c.id === editorTarget.id ? { ...c, name } : c))
-        );
-        showToast('Category renamed', 'success');
-        closeEditor();
-      } catch {
-        showToast('Failed to rename', 'error');
-      } finally {
-        setEditorSaving(false);
-      }
+      cancelEdit();
+    } catch (err) {
+      showToast('Failed to save', 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleDelete = (cat) => {
     Alert.alert(
       'Delete Category',
-      `Are you sure you want to delete "${cat.name}"? Transactions using this category will be set to "Other".`,
+      `Delete "${cat.name}"? Transactions will be moved to "Other".`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -165,7 +178,7 @@ export function CategoriesScreen({ navigation }) {
             try {
               await txnService.deleteCategory(cat.id);
               setCategories((prev) => prev.filter((c) => c.id !== cat.id));
-              showToast('Category deleted', 'info');
+              showToast('Deleted', 'info');
             } catch {
               showToast('Failed to delete', 'error');
             }
@@ -175,46 +188,46 @@ export function CategoriesScreen({ navigation }) {
     );
   };
 
+  const autoSaveOrder = async (newCats) => {
+    const customs = newCats.filter((c) => !c.is_default && !c.is_system);
+    try {
+      const savedOrder = await storage.getCategoryOrder();
+      await storage.setCategoryOrder({ ...savedOrder, [type]: customs.map((c) => c.id) });
+    } catch {
+      showToast('Failed to save order', 'error');
+    }
+  };
+
   const handleMoveUp = (index) => {
     if (index <= 0) return;
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setCategories((prev) => {
       const customs = prev.filter((c) => !c.is_default && !c.is_system);
       const defaults = prev.filter((c) => c.is_default || c.is_system);
       const swapped = [...customs];
       [swapped[index - 1], swapped[index]] = [swapped[index], swapped[index - 1]];
-      return [...defaults, ...swapped];
+      const final = [...defaults, ...swapped];
+      autoSaveOrder(final);
+      return final;
     });
   };
 
   const handleMoveDown = (index) => {
     const customs = categories.filter((c) => !c.is_default && !c.is_system);
     if (index >= customs.length - 1) return;
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setCategories((prev) => {
       const cs = prev.filter((c) => !c.is_default && !c.is_system);
       const ds = prev.filter((c) => c.is_default || c.is_system);
       const swapped = [...cs];
       [swapped[index], swapped[index + 1]] = [swapped[index + 1], swapped[index]];
-      return [...ds, ...swapped];
+      const final = [...ds, ...swapped];
+      autoSaveOrder(final);
+      return final;
     });
   };
 
-  const handleSaveOrder = async () => {
-    const customs = categories.filter((c) => !c.is_default && !c.is_system);
-    try {
-      const savedOrder = await storage.getCategoryOrder();
-      await storage.setCategoryOrder({ ...savedOrder, [type]: customs.map((c) => c.id) });
-      showToast('Category order saved!', 'success');
-    } catch {
-      showToast('Failed to save order', 'error');
-    }
-  };
-
   const getCatIcon = (name) => CATEGORY_ICONS[name] || 'label';
-
-  const editorTitle = editorMode === 'add' ? 'Add custom category' : 'Rename category';
-  const editorSubtitle = editorMode === 'add'
-    ? `New ${type} category name`
-    : `Rename "${editorTarget?.name || ''}"`;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -231,7 +244,11 @@ export function CategoriesScreen({ navigation }) {
           <TouchableOpacity
             key={tab}
             style={[styles.tab, activeTab === tab && styles.tabActive]}
-            onPress={() => setActiveTab(tab)}
+            onPress={() => {
+              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              setActiveTab(tab);
+              cancelEdit();
+            }}
           >
             <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
           </TouchableOpacity>
@@ -241,317 +258,288 @@ export function CategoriesScreen({ navigation }) {
       {loading ? (
         <LoadingSpinner message="Loading categories..." />
       ) : (
-        <>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ flex: 1 }}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        >
           <ScrollView
+            ref={scrollRef}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
+            {/* Custom Categories Section */}
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionLabel}>CUSTOM</Text>
+              <Text style={styles.sectionNote}>Tap category to rename</Text>
+            </View>
+
+            {/* Add Category Row (Always at the top of Custom) */}
+            <View onLayout={(e) => { itemPositions.current['add-row'] = e.nativeEvent.layout.y; }}>
+              <InlineAddRow
+                isExpanded={isAdding}
+                onToggle={toggleAdd}
+                draft={draftName}
+                setDraft={setDraftName}
+                onSave={handleSave}
+                onCancel={toggleAdd}
+                saving={saving}
+                inputRef={inputRef}
+              />
+            </View>
+
+            {customCats.length === 0 && !isAdding ? (
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyText}>No custom categories yet.</Text>
+              </View>
+            ) : (
+              customCats.map((cat, index) => (
+                <View
+                  key={cat.id}
+                  onLayout={(e) => { itemPositions.current[cat.id] = e.nativeEvent.layout.y; }}
+                >
+                  <CategoryItem
+                    cat={cat}
+                    icon={getCatIcon(cat.name)}
+                    isEditing={editingId === cat.id}
+                    draft={draftName}
+                    setDraft={setDraftName}
+                    onEdit={() => startEdit(cat)}
+                    onSave={handleSave}
+                    onCancel={cancelEdit}
+                    onDelete={() => handleDelete(cat)}
+                    onMoveUp={() => handleMoveUp(index)}
+                    onMoveDown={() => handleMoveDown(index)}
+                    isFirst={index === 0}
+                    isLast={index === customCats.length - 1}
+                    saving={saving}
+                    inputRef={inputRef}
+                    isCustom
+                  />
+                </View>
+              ))
+            )}
+
+            {/* Default Categories */}
             {defaultCats.length > 0 && (
               <>
-                <View style={styles.sectionHeaderRow}>
+                <View style={[styles.sectionHeaderRow, { marginTop: spacing.lg }]}>
                   <Text style={styles.sectionLabel}>DEFAULT</Text>
-                  <Text style={styles.sectionNote}>Cannot be deleted</Text>
                 </View>
                 {defaultCats.map((cat) => (
-                  <View key={cat.id} style={styles.catRow}>
-                    <View style={styles.catIconBg}>
-                      <MaterialIcons name={getCatIcon(cat.name)} size={18} color={colors.primary[600]} />
-                    </View>
-                    <Text style={styles.catName}>{cat.name}</Text>
-                    <View style={styles.defaultBadge}>
-                      <Text style={styles.defaultBadgeText}>Default</Text>
-                    </View>
-                    <TouchableOpacity style={styles.editBtn} onPress={() => openRename(cat)}>
-                      <MaterialIcons name="edit" size={16} color={colors.primary[500]} />
-                    </TouchableOpacity>
+                  <View
+                    key={cat.id}
+                    onLayout={(e) => { itemPositions.current[cat.id] = e.nativeEvent.layout.y; }}
+                  >
+                    <CategoryItem
+                      cat={cat}
+                      icon={getCatIcon(cat.name)}
+                      isEditing={editingId === cat.id}
+                      draft={draftName}
+                      setDraft={setDraftName}
+                      onEdit={() => startEdit(cat)}
+                      onSave={handleSave}
+                      onCancel={cancelEdit}
+                      saving={saving}
+                      inputRef={inputRef}
+                    />
                   </View>
                 ))}
               </>
             )}
 
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionLabel}>CUSTOM</Text>
-              <Text style={styles.sectionNote}>Use arrows to reorder</Text>
-            </View>
-            {customCats.length === 0 && (
-              <Text style={styles.emptyText}>No custom categories yet.</Text>
-            )}
-            {customCats.map((cat, index) => (
-              <View key={cat.id} style={styles.catRow}>
-                <View style={styles.reorderBtns}>
-                  <TouchableOpacity
-                    onPress={() => handleMoveUp(index)}
-                    disabled={index === 0}
-                    style={[styles.arrowBtn, index === 0 && styles.arrowBtnDisabled]}
-                  >
-                    <MaterialIcons
-                      name="keyboard-arrow-up"
-                      size={18}
-                      color={index === 0 ? colors.primary[300] : colors.primary[500]}
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => handleMoveDown(index)}
-                    disabled={index === customCats.length - 1}
-                    style={[styles.arrowBtn, index === customCats.length - 1 && styles.arrowBtnDisabled]}
-                  >
-                    <MaterialIcons
-                      name="keyboard-arrow-down"
-                      size={18}
-                      color={index === customCats.length - 1 ? colors.primary[300] : colors.primary[500]}
-                    />
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.catIconBg}>
-                  <MaterialIcons name={getCatIcon(cat.name)} size={18} color={colors.primary[600]} />
-                </View>
-                <Text style={styles.catName}>{cat.name}</Text>
-                <TouchableOpacity style={styles.editBtn} onPress={() => openRename(cat)}>
-                  <MaterialIcons name="edit" size={16} color={colors.primary[500]} />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.deleteIconBtn} onPress={() => handleDelete(cat)}>
-                  <MaterialIcons name="delete-outline" size={16} color={colors.danger[500]} />
-                </TouchableOpacity>
-              </View>
-            ))}
-
-            <View style={{ height: spacing.sm }} />
+            <View style={{ height: (isAdding || editingId) ? 250 : spacing.md }} />
           </ScrollView>
-
-          {/* Sticky footer — no inputs, so no keyboard interference */}
-          <View style={styles.footer}>
-            <TouchableOpacity style={styles.addCatBtn} onPress={openAdd} activeOpacity={0.7}>
-              <MaterialIcons name="add-circle-outline" size={20} color={colors.primary[800]} />
-              <Text style={styles.addCatBtnText}>Add custom category</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.saveChangesBtn} onPress={handleSaveOrder} activeOpacity={0.85}>
-              <Text style={styles.saveChangesBtnText}>Save order</Text>
-            </TouchableOpacity>
-          </View>
-        </>
+        </KeyboardAvoidingView>
       )}
-
-      {/* Add / Rename sheet */}
-      <BottomSheet visible={editorOpen} onClose={closeEditor}>
-        <View style={ms.sheet}>
-          <View style={ms.handle} />
-
-              <View style={ms.header}>
-                <View style={ms.headerIcon}>
-                  <MaterialIcons
-                    name={editorMode === 'add' ? 'add-circle-outline' : 'edit'}
-                    size={22}
-                    color={colors.primary[700]}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={ms.title}>{editorTitle}</Text>
-                  <Text style={ms.subtitle}>{editorSubtitle}</Text>
-                </View>
-                <TouchableOpacity onPress={closeEditor}>
-                  <MaterialIcons name="close" size={22} color={colors.primary[400]} />
-                </TouchableOpacity>
-              </View>
-
-              <View style={ms.field}>
-                <Text style={ms.fieldLabel}>Name</Text>
-                <TextInput
-                  style={ms.input}
-                  value={editorValue}
-                  onChangeText={setEditorValue}
-                  placeholder="Category name"
-                  placeholderTextColor={colors.primary[400]}
-                  autoFocus
-                  autoCapitalize="words"
-                  returnKeyType="done"
-                  onSubmitEditing={handleEditorSave}
-                  maxLength={40}
-                  includeFontPadding={false}
-                />
-              </View>
-
-              <TouchableOpacity
-                style={[ms.saveBtn, editorSaving && { opacity: 0.7 }]}
-                onPress={handleEditorSave}
-                disabled={editorSaving}
-                activeOpacity={0.85}
-              >
-                {editorSaving ? (
-                  <ActivityIndicator size="small" color={colors.white} />
-                ) : (
-                  <Text style={ms.saveBtnText}>
-                    {editorMode === 'add' ? 'Add category' : 'Save'}
-                  </Text>
-                )}
-              </TouchableOpacity>
-        </View>
-      </BottomSheet>
     </SafeAreaView>
   );
 }
 
+function CategoryItem({
+  cat, icon, isEditing, draft, setDraft, onEdit, onSave, onCancel,
+  onDelete, onMoveUp, onMoveDown, isFirst, isLast, saving, inputRef, isCustom
+}) {
+  return (
+    <View style={[styles.catCard, isEditing && styles.catCardEditing]}>
+      <TouchableOpacity
+        style={styles.catRow}
+        onPress={onEdit}
+        disabled={saving || isEditing}
+        activeOpacity={0.7}
+      >
+        <View style={styles.catIconBg}>
+          <MaterialIcons name={icon} size={18} color={colors.primary[600]} />
+        </View>
+
+        <View style={styles.catNameWrap}>
+          <Text style={[styles.catName, isEditing && styles.catNameEditing]}>{cat.name}</Text>
+          {cat.is_default && !isEditing && <Text style={styles.defaultBadge}>Default</Text>}
+        </View>
+
+        {!isEditing && isCustom && (
+          <View style={styles.customActions}>
+            <View style={styles.reorderGroup}>
+              <TouchableOpacity onPress={onMoveUp} disabled={isFirst} style={styles.arrowBtn}>
+                <MaterialIcons name="keyboard-arrow-up" size={20} color={isFirst ? colors.primary[300] : colors.primary[600]} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={onMoveDown} disabled={isLast} style={styles.arrowBtn}>
+                <MaterialIcons name="keyboard-arrow-down" size={20} color={isLast ? colors.primary[300] : colors.primary[600]} />
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity onPress={onDelete} style={styles.deleteBtn}>
+              <MaterialIcons name="delete-outline" size={18} color={colors.danger[400]} />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {!isEditing && !isCustom && (
+          <MaterialIcons name="edit" size={16} color={colors.primary[500]} />
+        )}
+      </TouchableOpacity>
+
+      {isEditing && (
+        <View style={styles.editSection}>
+          <TextInput
+            ref={inputRef}
+            style={styles.inlineInput}
+            value={draft}
+            onChangeText={setDraft}
+            placeholder="Category name"
+            placeholderTextColor={colors.primary[400]}
+            autoCapitalize="words"
+            returnKeyType="done"
+            onSubmitEditing={onSave}
+            editable={!saving}
+          />
+          <View style={styles.editActions}>
+            <TouchableOpacity style={[styles.actionBtn, styles.cancelBtn]} onPress={onCancel} disabled={saving}>
+              <Text style={styles.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.actionBtn, styles.saveBtn]} onPress={onSave} disabled={saving}>
+              {saving ? <ActivityIndicator size="small" color={colors.white} /> : <Text style={styles.saveText}>Save</Text>}
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function InlineAddRow({ isExpanded, onToggle, draft, setDraft, onSave, onCancel, saving, inputRef }) {
+  if (!isExpanded) {
+    return (
+      <TouchableOpacity style={styles.addPlaceholder} onPress={onToggle} activeOpacity={0.7}>
+        <MaterialIcons name="add-circle-outline" size={20} color={colors.accent[600]} />
+        <Text style={styles.addPlaceholderText}>Add custom category</Text>
+      </TouchableOpacity>
+    );
+  }
+
+  return (
+    <View style={[styles.catCard, { backgroundColor: colors.primary[50], borderColor: colors.primary[200] }]}>
+      <View style={styles.editSection}>
+        <Text style={styles.addTitle}>NEW CATEGORY</Text>
+        <TextInput
+          ref={inputRef}
+          style={styles.inlineInput}
+          value={draft}
+          onChangeText={setDraft}
+          placeholder="Enter name..."
+          placeholderTextColor={colors.primary[400]}
+          autoCapitalize="words"
+          returnKeyType="done"
+          onSubmitEditing={onSave}
+          editable={!saving}
+        />
+        <View style={styles.editActions}>
+          <TouchableOpacity style={[styles.actionBtn, styles.cancelBtn]} onPress={onCancel} disabled={saving}>
+            <Text style={styles.cancelText}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionBtn, styles.saveBtn]} onPress={onSave} disabled={saving}>
+            {saving ? <ActivityIndicator size="small" color={colors.white} /> : <Text style={styles.saveText}>Add</Text>}
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.white },
+  container: { flex: 1, backgroundColor: colors.primary[50] },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.primary[100],
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: colors.white,
+    borderBottomWidth: 1, borderBottomColor: colors.primary[100],
   },
   backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { ...typography.h3 },
 
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: colors.primary[50],
     marginHorizontal: spacing.lg,
     marginTop: spacing.md,
-    marginBottom: spacing.md,
-    borderRadius: borderRadius.md,
-    padding: 3,
+    marginBottom: spacing.sm,
+    gap: spacing.sm,
   },
-  tab: { flex: 1, alignItems: 'center', paddingVertical: spacing.sm, borderRadius: borderRadius.sm },
+  tab: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: spacing.sm + 2,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.primary[100],
+  },
   tabActive: { backgroundColor: colors.accent[600] },
   tabText: { ...typography.body, fontSize: 14, fontWeight: '500', color: colors.primary[800] },
   tabTextActive: { color: colors.white, fontWeight: '600' },
 
-  scrollContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.lg },
+  scrollContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
+  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm, marginTop: spacing.sm },
+  sectionLabel: { ...typography.caption, fontWeight: '700', color: colors.primary[500], letterSpacing: 0.5 },
+  sectionNote: { ...typography.caption, color: colors.primary[500], fontWeight: '500' },
 
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-    marginTop: spacing.sm,
+  catCard: {
+    backgroundColor: colors.white, borderRadius: borderRadius.md,
+    borderWidth: 1, borderColor: colors.primary[100], marginBottom: spacing.sm,
+    overflow: 'hidden',
   },
-  sectionLabel: { ...typography.caption, fontWeight: '700', color: colors.primary[500] },
-  sectionNote: { ...typography.caption, color: colors.primary[400], fontSize: 11, fontWeight: '500' },
-
-  catRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.white,
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing.sm + 2,
-    paddingHorizontal: spacing.sm,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.primary[100],
-    gap: spacing.sm,
-  },
+  catCardEditing: { backgroundColor: colors.primary[50], borderColor: colors.primary[200] },
+  catRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm + 2, paddingHorizontal: spacing.md },
   catIconBg: {
-    width: 36,
-    height: 36,
-    borderRadius: borderRadius.sm,
-    backgroundColor: colors.primary[50],
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 32, height: 32, borderRadius: borderRadius.sm,
+    backgroundColor: colors.primary[50], alignItems: 'center', justifyContent: 'center', marginRight: spacing.sm,
   },
-  catName: { ...typography.body, fontSize: 14, color: colors.primary[700], flex: 1, fontWeight: '500' },
-  defaultBadge: {
-    backgroundColor: colors.primary[100],
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-  },
-  defaultBadgeText: { fontSize: 10, fontWeight: '600', color: colors.primary[500] },
-  editBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.sm,
-    backgroundColor: colors.primary[50],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deleteIconBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.sm,
-    backgroundColor: colors.danger[50],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  catNameWrap: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  catName: { ...typography.body, color: colors.primary[800], fontWeight: '500' },
+  catNameEditing: { fontWeight: '700', color: colors.primary[700] },
+  defaultBadge: { ...typography.caption, fontSize: 10, fontWeight: '500', color: colors.primary[500], backgroundColor: colors.primary[100], paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginLeft: spacing.sm },
 
-  reorderBtns: { flexDirection: 'column', alignItems: 'center', gap: 2 },
-  arrowBtn: { padding: 2 },
-  arrowBtnDisabled: { opacity: 0.4 },
+  customActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  reorderGroup: { flexDirection: 'row', alignItems: 'center' },
+  arrowBtn: { padding: 4 },
+  deleteBtn: { padding: 4 },
 
-  footer: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.primary[100],
-    backgroundColor: colors.white,
-    gap: spacing.sm,
+  addPlaceholder: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
+    paddingVertical: spacing.md, backgroundColor: colors.white, borderRadius: borderRadius.md,
+    borderWidth: 1.5, borderColor: colors.primary[200], borderStyle: 'dashed', marginBottom: spacing.sm,
   },
-  addCatBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.sm + 4,
-    borderRadius: borderRadius.md,
-    borderWidth: 1.5,
-    borderColor: colors.primary[200],
-    borderStyle: 'dashed',
-  },
-  addCatBtnText: { ...typography.body, fontSize: 14, color: colors.primary[800], fontWeight: '600' },
+  addPlaceholderText: { ...typography.body, fontSize: 14, color: colors.primary[800], fontWeight: '600' },
 
-  saveChangesBtn: {
-    backgroundColor: colors.primary[800],
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing.sm + 4,
-    alignItems: 'center',
+  editSection: { padding: spacing.md, paddingTop: spacing.md },
+  addTitle: { ...typography.caption, fontWeight: '700', color: colors.primary[500], marginBottom: spacing.sm },
+  inlineInput: {
+    backgroundColor: colors.white, borderRadius: borderRadius.sm, borderWidth: 1, borderColor: colors.primary[200],
+    height: 40, paddingHorizontal: spacing.sm, fontSize: 15, color: colors.primary[800], fontWeight: '600', marginBottom: spacing.sm,
   },
-  saveChangesBtnText: { color: colors.white, fontWeight: '600', fontSize: 15 },
+  editActions: { flexDirection: 'row', gap: spacing.sm },
+  actionBtn: { flex: 1, height: 34, borderRadius: borderRadius.sm, alignItems: 'center', justifyContent: 'center' },
+  cancelBtn: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.primary[200] },
+  saveBtn: { backgroundColor: colors.primary[800] },
+  cancelText: { color: colors.primary[600], fontWeight: '600', fontSize: 13 },
+  saveText: { color: colors.white, fontWeight: '600', fontSize: 13 },
 
-  emptyText: { ...typography.bodySmall, color: colors.primary[400], paddingVertical: spacing.md, textAlign: 'center' },
-});
-
-const ms = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  sheet: {
-    backgroundColor: colors.white,
-    borderTopLeftRadius: borderRadius.xl,
-    borderTopRightRadius: borderRadius.xl,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    padding: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.lg,
-  },
-  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: colors.primary[200], alignSelf: 'center', marginBottom: spacing.lg },
-  header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg },
-  headerIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary[50], alignItems: 'center', justifyContent: 'center' },
-  title: { ...typography.h3, color: colors.primary[800] },
-  subtitle: { ...typography.caption, color: colors.primary[400], marginTop: 2 },
-
-  field: { marginBottom: spacing.md },
-  fieldLabel: { ...typography.label, color: colors.primary[600], marginBottom: spacing.xs + 2 },
-  input: {
-    borderWidth: 1.5,
-    borderColor: colors.primary[200],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.primary[50],
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 4,
-    fontSize: 15,
-    color: colors.primary[800],
-    minHeight: 50,
-  },
-
-  saveBtn: {
-    backgroundColor: colors.primary[800],
-    borderRadius: borderRadius.md,
-    paddingVertical: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: spacing.sm,
-  },
-  saveBtnText: { ...typography.button, color: colors.white, fontSize: 16 },
+  emptyCard: { padding: spacing.xl, alignItems: 'center', backgroundColor: colors.white, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.primary[100] },
+  emptyText: { ...typography.bodySmall, color: colors.primary[400] },
 });

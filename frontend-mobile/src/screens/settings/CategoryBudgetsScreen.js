@@ -71,7 +71,9 @@ export function CategoryBudgetsScreen({ navigation }) {
       const expenses = expRes.results || expRes || [];
       const sums = {};
       expenses.forEach((e) => {
-        const cid = e.category || e.category_id;
+        const cid = (e.category && typeof e.category === 'object')
+          ? e.category.id
+          : (e.category_id ?? e.category);
         if (cid == null) return;
         sums[cid] = (sums[cid] || 0) + Number(e.amount || 0);
       });
@@ -125,7 +127,17 @@ export function CategoryBudgetsScreen({ navigation }) {
           <MaterialIcons name="arrow-back" size={24} color={colors.primary[700]} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Category budgets</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity
+          style={[styles.headerSaveBtn, saving && { opacity: 0.7 }]}
+          onPress={handleSave}
+          disabled={saving}
+        >
+          {saving ? (
+            <ActivityIndicator size="small" color={colors.white} />
+          ) : (
+            <Text style={styles.headerSaveText}>Save</Text>
+          )}
+        </TouchableOpacity>
       </View>
 
       {loading ? (
@@ -204,7 +216,7 @@ export function CategoryBudgetsScreen({ navigation }) {
                         value={budgets[id] || ''}
                         onChangeText={(v) => handleChange(id, v)}
                         placeholder="0"
-                        placeholderTextColor={colors.primary[300]}
+                        placeholderTextColor={colors.primary[400]}
                         keyboardType="decimal-pad"
                         returnKeyType="done"
                         includeFontPadding={false}
@@ -232,22 +244,6 @@ export function CategoryBudgetsScreen({ navigation }) {
               );
             })}
 
-            <View style={{ height: spacing.md }} />
-
-            <TouchableOpacity
-              style={[styles.saveBtn, saving && { opacity: 0.7 }]}
-              onPress={handleSave}
-              disabled={saving}
-              activeOpacity={0.85}
-            >
-              {saving ? (
-                <ActivityIndicator size="small" color={colors.white} />
-              ) : (
-                <Text style={styles.saveBtnText}>Save category budgets</Text>
-              )}
-            </TouchableOpacity>
-
-            <View style={{ height: spacing.xl }} />
           </ScrollView>
         </KeyboardAvoidingView>
       )}
@@ -269,14 +265,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    backgroundColor: colors.white,
+    backgroundColor: colors.primary[50],
     borderBottomWidth: 1,
     borderBottomColor: colors.primary[100],
   },
   backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { ...typography.h3 },
   loaderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  scrollContent: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  scrollContent: { padding: spacing.lg },
 
   heroCard: {
     backgroundColor: colors.white,
@@ -286,11 +282,11 @@ const styles = StyleSheet.create({
     borderColor: colors.primary[200],
     marginBottom: spacing.lg,
   },
-  heroLabel: { ...typography.caption, fontWeight: '700', color: colors.primary[500], letterSpacing: 0.5 },
+  heroLabel: { ...typography.caption, fontWeight: '700', color: colors.primary[500] },
   heroPeriod: { ...typography.body, fontSize: 16, fontWeight: '600', color: colors.primary[800], marginTop: 2 },
   heroDivider: { height: 1, backgroundColor: colors.primary[100], marginVertical: spacing.sm + 2 },
   heroRow: { flexDirection: 'row', alignItems: 'center' },
-  heroSmall: { ...typography.caption, color: colors.primary[400] },
+  heroSmall: { ...typography.caption, color: colors.primary[500] },
   heroAmount: { ...typography.h3, fontSize: 18, color: colors.primary[800], marginTop: 2 },
   heroHint: { ...typography.caption, color: colors.primary[500], marginTop: spacing.sm + 2, lineHeight: 17 },
   warnRow: {
@@ -342,7 +338,7 @@ const styles = StyleSheet.create({
     minWidth: 110,
     height: 38,
   },
-  inputSymbol: { ...typography.caption, color: colors.primary[500], marginRight: 4, fontWeight: '600' },
+  inputSymbol: { ...typography.caption, color: colors.primary[600], marginRight: 4, fontWeight: '600', fontSize: 14 },
   input: {
     flex: 1,
     fontSize: 15,
@@ -368,13 +364,18 @@ const styles = StyleSheet.create({
   barFill: { height: 6, borderRadius: 3 },
   spentText: { ...typography.caption, color: colors.primary[500], fontWeight: '500', minWidth: 90, textAlign: 'right' },
 
-  saveBtn: {
-    backgroundColor: colors.primary[800],
-    borderRadius: borderRadius.md,
-    paddingVertical: 15,
+  headerSaveBtn: {
+    backgroundColor: colors.accent[600],
+    paddingHorizontal: spacing.md,
+    height: 32,
+    borderRadius: borderRadius.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: spacing.md,
   },
-  saveBtnText: { ...typography.button, color: colors.white, fontSize: 16 },
+  headerSaveText: {
+    ...typography.body,
+    color: colors.white,
+    fontWeight: '700',
+    fontSize: 14,
+  },
 });

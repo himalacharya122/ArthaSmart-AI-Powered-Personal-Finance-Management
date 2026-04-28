@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   markAllText: { ...typography.buttonSmall, color: colors.accent[600] },
 
   // Filters
-  filterRow: { marginBottom: spacing.sm },
+  filterRow: { marginBottom: spacing.sm, marginTop: spacing.sm },
   filterChip: {
     paddingHorizontal: spacing.md, paddingVertical: spacing.xs + 2,
     borderRadius: borderRadius.full, backgroundColor: colors.white,

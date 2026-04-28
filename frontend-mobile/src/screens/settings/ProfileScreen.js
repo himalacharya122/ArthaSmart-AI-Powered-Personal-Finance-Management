@@ -9,8 +9,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Modal,
-  Pressable,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
@@ -25,6 +23,7 @@ import * as authService from '../../services/auth';
 import * as txnService from '../../services/transactions';
 import { formatCurrencyCompact, formatPercent } from '../../utils/format';
 import { storage } from '../../utils/storage';
+import { BottomSheet } from '../../components/common/BottomSheet';
 
 // Config
 
@@ -103,6 +102,9 @@ export function ProfileScreen({ navigation, route }) {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
+
+  // Buffered key to keep modal content visible during slide-down animation
+  const [activePrefKey, setActivePrefKey] = useState(null);
 
   const scrollRef = useRef(null);
 
@@ -197,6 +199,7 @@ export function ProfileScreen({ navigation, route }) {
 
   const openPrefModal = (key) => {
     setTempPrefValue(prefs[key]);
+    setActivePrefKey(key);
     setActivePrefModal(key);
   };
 
@@ -249,275 +252,264 @@ export function ProfileScreen({ navigation, route }) {
   const initials =
     `${(form.first_name || '')[0] || ''}${(form.last_name || '')[0] || ''}`.toUpperCase() || 'U';
 
-  const activePrefConfig = activePrefModal ? PREF_OPTIONS[activePrefModal] : null;
+  const activePrefConfig = activePrefKey ? PREF_OPTIONS[activePrefKey] : null;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <MaterialIcons name="arrow-back" size={24} color={colors.primary[700]} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Profile</Text>
-        <TouchableOpacity
-          onPress={handleSave}
-          disabled={!hasChanges || saving}
-          style={[styles.saveBtn, (!hasChanges || saving) && styles.saveBtnDisabled]}
-        >
-          {saving ? (
-            <ActivityIndicator size="small" color={colors.white} />
-          ) : (
-            <Text style={styles.saveBtnText}>Save changes</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView
-          ref={scrollRef}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Avatar */}
-          <View style={styles.avatarSection}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{initials}</Text>
-            </View>
-            <Text style={styles.avatarName}>{form.first_name} {form.last_name}</Text>
-            <Text style={styles.avatarEmail}>{form.email}</Text>
-          </View>
-
-          {/* Personal Info */}
-          <Text style={styles.sectionLabel}>PERSONAL INFO</Text>
-          <View style={styles.section}>
-            {FIELD_CONFIG.map((field, idx) => (
-              <View
-                key={field.key}
-                style={[styles.fieldRow, idx === FIELD_CONFIG.length - 1 && { borderBottomWidth: 0 }]}
-              >
-                <Text style={styles.fieldLabel}>{field.label}</Text>
-                <View style={styles.fieldInputRow}>
-                  <MaterialIcons
-                    name={field.icon}
-                    size={18}
-                    color={field.editable === false ? colors.primary[300] : colors.primary[400]}
-                    style={styles.fieldIcon}
-                  />
-                  <TextInput
-                    style={[
-                      styles.fieldInput,
-                      field.editable === false && styles.fieldInputDisabled,
-                    ]}
-                    value={form[field.key]}
-                    onChangeText={(text) => setForm((prev) => ({ ...prev, [field.key]: text }))}
-                    placeholder={field.placeholder}
-                    placeholderTextColor={colors.primary[300]}
-                    editable={field.editable !== false}
-                    keyboardType={field.keyboardType || 'default'}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    autoComplete="off"
-                    textContentType="none"
-                    importantForAutofill="no"
-                    includeFontPadding={false}
-                    textAlignVertical="center"
-                  />
-                </View>
-              </View>
-            ))}
-          </View>
-
-          {/* Preferences */}
-          <Text style={styles.sectionLabel}>PREFERENCES</Text>
-          <View style={styles.section}>
-            {PREFERENCE_CONFIG.map((pref, idx) => (
-              <TouchableOpacity
-                key={pref.key}
-                style={[styles.prefRow, idx === PREFERENCE_CONFIG.length - 1 && { borderBottomWidth: 0 }]}
-                onPress={() => openPrefModal(pref.key)}
-                activeOpacity={0.6}
-              >
-                <View style={styles.prefLeft}>
-                  <View style={styles.prefIconBg}>
-                    <MaterialIcons name={pref.icon} size={16} color={colors.primary[600]} />
-                  </View>
-                  <Text style={styles.prefLabel}>{pref.label}</Text>
-                </View>
-                <View style={styles.prefRight}>
-                  <Text style={styles.prefValue}>{prefs[pref.key]}</Text>
-                  <MaterialIcons name="chevron-right" size={18} color={colors.primary[400]} />
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Your Stats */}
-          <Text style={styles.sectionLabel}>YOUR STATS</Text>
-          <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{stats.txnCount}</Text>
-              <Text style={styles.statLabel}>Transactions</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={[styles.statValue, { color: colors.accent[600] }]}>
-                {formatCurrencyCompact(stats.totalIncome, prefs.currency)}
-              </Text>
-              <Text style={styles.statLabel}>Total Income</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={[styles.statValue, { color: colors.danger[500] }]}>
-                {formatCurrencyCompact(stats.totalExpense, prefs.currency)}
-              </Text>
-              <Text style={styles.statLabel}>Total Expenses</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text
-                style={[
-                  styles.statValue,
-                  { color: stats.savingsRate >= 0 ? colors.accent[600] : colors.danger[500] },
-                ]}
-              >
-                {formatPercent(stats.savingsRate)}
-              </Text>
-              <Text style={styles.statLabel}>Savings Rate</Text>
-            </View>
-          </View>
-
-          {/* Delete Account */}
-          <TouchableOpacity style={styles.deleteBtn} onPress={() => setDeleteModalVisible(true)}>
-            <MaterialIcons name="delete-forever" size={18} color={colors.danger[500]} />
-            <Text style={styles.deleteBtnText}>Delete account</Text>
+    <View style={{ flex: 1, backgroundColor: colors.white }}>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <MaterialIcons name="arrow-back" size={24} color={colors.primary[700]} />
           </TouchableOpacity>
+          <Text style={styles.headerTitle}>My Profile</Text>
+          <TouchableOpacity
+            onPress={handleSave}
+            disabled={!hasChanges || saving}
+            style={[styles.saveBtn, (!hasChanges || saving) && styles.saveBtnDisabled]}
+          >
+            {saving ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <Text style={styles.saveBtnText}>Save changes</Text>
+            )}
+          </TouchableOpacity>
+        </View>
 
-          <View style={{ height: spacing.xxl }} />
-        </ScrollView>
-      </KeyboardAvoidingView>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+          <ScrollView
+            ref={scrollRef}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Avatar */}
+            <View style={styles.avatarSection}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{initials}</Text>
+              </View>
+              <Text style={styles.avatarName}>{form.first_name} {form.last_name}</Text>
+              <Text style={styles.avatarEmail}>{form.email}</Text>
+            </View>
+
+            {/* Personal Info */}
+            <Text style={styles.sectionLabel}>PERSONAL INFO</Text>
+            <View style={styles.section}>
+              {FIELD_CONFIG.map((field, idx) => (
+                <View
+                  key={field.key}
+                  style={[styles.fieldRow, idx === FIELD_CONFIG.length - 1 && { borderBottomWidth: 0 }]}
+                >
+                  <Text style={styles.fieldLabel}>{field.label}</Text>
+                  <View style={styles.fieldInputRow}>
+                    <MaterialIcons
+                      name={field.icon}
+                      size={18}
+                      color={field.editable === false ? colors.primary[300] : colors.primary[400]}
+                      style={styles.fieldIcon}
+                    />
+                    <TextInput
+                      style={[
+                        styles.fieldInput,
+                        field.editable === false && styles.fieldInputDisabled,
+                      ]}
+                      value={form[field.key]}
+                      onChangeText={(text) => setForm((prev) => ({ ...prev, [field.key]: text }))}
+                      placeholder={field.placeholder}
+                      placeholderTextColor={colors.primary[300]}
+                      editable={field.editable !== false}
+                      keyboardType={field.keyboardType || 'default'}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      autoComplete="off"
+                      textContentType="none"
+                      importantForAutofill="no"
+                      includeFontPadding={false}
+                      textAlignVertical="center"
+                    />
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            {/* Preferences */}
+            <Text style={styles.sectionLabel}>PREFERENCES</Text>
+            <View style={styles.section}>
+              {PREFERENCE_CONFIG.map((pref, idx) => (
+                <TouchableOpacity
+                  key={pref.key}
+                  style={[styles.prefRow, idx === PREFERENCE_CONFIG.length - 1 && { borderBottomWidth: 0 }]}
+                  onPress={() => openPrefModal(pref.key)}
+                  activeOpacity={0.6}
+                >
+                  <View style={styles.prefLeft}>
+                    <View style={styles.prefIconBg}>
+                      <MaterialIcons name={pref.icon} size={16} color={colors.primary[600]} />
+                    </View>
+                    <Text style={styles.prefLabel}>{pref.label}</Text>
+                  </View>
+                  <View style={styles.prefRight}>
+                    <Text style={styles.prefValue}>{prefs[pref.key]}</Text>
+                    <MaterialIcons name="chevron-right" size={18} color={colors.primary[400]} />
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Your Stats */}
+            <Text style={styles.sectionLabel}>YOUR STATS</Text>
+            <View style={styles.statsGrid}>
+              <View style={styles.statCard}>
+                <Text style={styles.statValue}>{stats.txnCount}</Text>
+                <Text style={styles.statLabel}>Transactions</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={[styles.statValue, { color: colors.accent[600] }]}>
+                  {formatCurrencyCompact(stats.totalIncome, prefs.currency)}
+                </Text>
+                <Text style={styles.statLabel}>Total Income</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={[styles.statValue, { color: colors.danger[500] }]}>
+                  {formatCurrencyCompact(stats.totalExpense, prefs.currency)}
+                </Text>
+                <Text style={styles.statLabel}>Total Expenses</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text
+                  style={[
+                    styles.statValue,
+                    { color: stats.savingsRate >= 0 ? colors.accent[600] : colors.danger[500] },
+                  ]}
+                >
+                  {formatPercent(stats.savingsRate)}
+                </Text>
+                <Text style={styles.statLabel}>Savings Rate</Text>
+              </View>
+            </View>
+
+            {/* Delete Account */}
+            <TouchableOpacity 
+              style={styles.deleteBtn} 
+              onPress={() => {
+                setDeleteConfirmText('');
+                setDeleteModalVisible(true);
+              }}
+            >
+              <MaterialIcons name="delete-forever" size={18} color={colors.danger[500]} />
+              <Text style={styles.deleteBtnText}>Delete account</Text>
+            </TouchableOpacity>
+
+            <View style={{ height: spacing.xxl }} />
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
 
       {/* Preference Picker Modal */}
-      <Modal
+      <BottomSheet
         visible={activePrefModal !== null}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setActivePrefModal(null)}
+        onClose={() => setActivePrefModal(null)}
       >
-        <Pressable style={prefStyles.overlay} onPress={() => setActivePrefModal(null)}>
-          <Pressable style={prefStyles.sheet} onPress={(e) => e.stopPropagation()}>
-            <View style={prefStyles.handle} />
+        <View style={prefStyles.sheet}>
+          <View style={prefStyles.handle} />
 
-            {/* Header */}
-            <View style={prefStyles.header}>
-              <Text style={prefStyles.title}>{activePrefConfig?.label}</Text>
-              <TouchableOpacity onPress={() => setActivePrefModal(null)}>
-                <MaterialIcons name="close" size={22} color={colors.primary[400]} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Options list */}
-            <ScrollView
-              style={prefStyles.optionsList}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-            >
-              {activePrefConfig?.options.map((opt) => {
-                const selected = tempPrefValue === opt.value;
-                return (
-                  <TouchableOpacity
-                    key={opt.value}
-                    style={[prefStyles.optionRow, selected && prefStyles.optionRowSelected]}
-                    onPress={() => setTempPrefValue(opt.value)}
-                    activeOpacity={0.6}
-                  >
-                    <Text style={[prefStyles.optionLabel, selected && prefStyles.optionLabelSelected]}>
-                      {opt.label}
-                    </Text>
-                    {selected && (
-                      <MaterialIcons name="check" size={18} color={colors.accent[600]} />
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-
-            {/* Save button */}
-            <TouchableOpacity
-              style={[prefStyles.saveBtn, prefSaving && { opacity: 0.7 }]}
-              onPress={handlePrefSave}
-              disabled={prefSaving}
-              activeOpacity={0.85}
-            >
-              {prefSaving ? (
-                <ActivityIndicator size="small" color={colors.white} />
-              ) : (
-                <Text style={prefStyles.saveBtnText}>Save</Text>
-              )}
+          {/* Header */}
+          <View style={prefStyles.header}>
+            <Text style={prefStyles.title}>{activePrefConfig?.label}</Text>
+            <TouchableOpacity onPress={() => setActivePrefModal(null)}>
+              <MaterialIcons name="close" size={22} color={colors.primary[400]} />
             </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
+          </View>
+
+          {/* Options list */}
+          <ScrollView
+            style={prefStyles.optionsList}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {activePrefConfig?.options.map((opt) => {
+              const selected = tempPrefValue === opt.value;
+              return (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[prefStyles.optionRow, selected && prefStyles.optionRowSelected]}
+                  onPress={() => setTempPrefValue(opt.value)}
+                  activeOpacity={0.6}
+                >
+                  <Text style={[prefStyles.optionLabel, selected && prefStyles.optionLabelSelected]}>
+                    {opt.label}
+                  </Text>
+                  {selected && (
+                    <MaterialIcons name="check" size={18} color={colors.accent[600]} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          {/* Save button */}
+          <TouchableOpacity
+            style={[prefStyles.saveBtn, prefSaving && { opacity: 0.7 }]}
+            onPress={handlePrefSave}
+            disabled={prefSaving}
+            activeOpacity={0.85}
+          >
+            {prefSaving ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <Text style={prefStyles.saveBtnText}>Save</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </BottomSheet>
 
       {/* Delete Account Modal */}
-      <Modal
+      <BottomSheet
         visible={deleteModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => {
-          setDeleteModalVisible(false);
-          setDeleteConfirmText('');
-        }}
+        onClose={() => setDeleteModalVisible(false)}
       >
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-          <Pressable
-            style={styles.modalOverlay}
+        <View style={styles.modalSheet}>
+          <View style={styles.modalHandle} />
+          <View style={styles.deleteIconBg}>
+            <MaterialIcons name="delete-outline" size={28} color={colors.danger[600]} />
+          </View>
+          <Text style={styles.modalTitle}>Delete your account?</Text>
+          <Text style={styles.modalDesc}>
+            This permanently removes your profile, all transactions, receipts and AI history.
+            This cannot be undone. Your data will be erased within 30 days.
+          </Text>
+          <Text style={styles.modalFieldLabel}>TYPE DELETE TO CONFIRM</Text>
+          <TextInput
+            style={styles.modalInput}
+            value={deleteConfirmText}
+            onChangeText={setDeleteConfirmText}
+            placeholder="DELETE"
+            placeholderTextColor={colors.primary[300]}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            returnKeyType="done"
+          />
+          <TouchableOpacity
+            style={[styles.deleteConfirmBtn, deleteConfirmText !== 'DELETE' && { opacity: 0.5 }]}
+            onPress={handleDeleteAccount}
+            disabled={deleteConfirmText !== 'DELETE' || deleting}
+          >
+            <Text style={styles.deleteConfirmText}>
+              {deleting ? 'Deleting...' : 'Yes, delete my account'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.cancelDeleteBtn}
             onPress={() => {
               setDeleteModalVisible(false);
               setDeleteConfirmText('');
             }}
           >
-            <Pressable style={styles.modalSheet} onPress={(e) => e.stopPropagation()}>
-              <View style={styles.modalHandle} />
-              <View style={styles.deleteIconBg}>
-                <MaterialIcons name="delete-outline" size={28} color={colors.danger[600]} />
-              </View>
-              <Text style={styles.modalTitle}>Delete your account?</Text>
-              <Text style={styles.modalDesc}>
-                This permanently removes your profile, all transactions, receipts and AI history.
-                This cannot be undone. Your data will be erased within 30 days.
-              </Text>
-              <Text style={styles.modalFieldLabel}>TYPE DELETE TO CONFIRM</Text>
-              <TextInput
-                style={styles.modalInput}
-                value={deleteConfirmText}
-                onChangeText={setDeleteConfirmText}
-                placeholder="DELETE"
-                placeholderTextColor={colors.primary[300]}
-                autoCapitalize="characters"
-                autoCorrect={false}
-                returnKeyType="done"
-              />
-              <TouchableOpacity
-                style={[styles.deleteConfirmBtn, deleteConfirmText !== 'DELETE' && { opacity: 0.5 }]}
-                onPress={handleDeleteAccount}
-                disabled={deleteConfirmText !== 'DELETE' || deleting}
-              >
-                <Text style={styles.deleteConfirmText}>
-                  {deleting ? 'Deleting...' : 'Yes, delete my account'}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.cancelDeleteBtn}
-                onPress={() => {
-                  setDeleteModalVisible(false);
-                  setDeleteConfirmText('');
-                }}
-              >
-                <Text style={styles.cancelDeleteText}>Cancel — keep my account</Text>
-              </TouchableOpacity>
-            </Pressable>
-          </Pressable>
-        </KeyboardAvoidingView>
-      </Modal>
-    </SafeAreaView>
+            <Text style={styles.cancelDeleteText}>Cancel, keep my account</Text>
+          </TouchableOpacity>
+        </View>
+      </BottomSheet>
+    </View>
   );
 }
 
@@ -553,7 +545,7 @@ const styles = StyleSheet.create({
     minWidth: 100,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 36,
+    height: 34, // Slightly more compact fixed height
   },
   saveBtnDisabled: {
     backgroundColor: colors.primary[400],
@@ -673,17 +665,13 @@ const styles = StyleSheet.create({
   deleteBtnText: { color: colors.danger[500], fontWeight: '600', fontSize: 14 },
 
   // Delete Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
-  },
   modalSheet: {
     backgroundColor: colors.white,
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
     padding: spacing.lg,
     paddingTop: spacing.md,
+    paddingBottom: spacing.xl, // Ensure space at the bottom for safe area
   },
   modalHandle: {
     width: 36,
@@ -712,8 +700,7 @@ const styles = StyleSheet.create({
   modalFieldLabel: {
     ...typography.caption,
     fontWeight: '700',
-    color: colors.primary[400],
-    letterSpacing: 0.5,
+    color: colors.primary[500],
     marginBottom: spacing.sm,
   },
   modalInput: {
@@ -731,8 +718,9 @@ const styles = StyleSheet.create({
   deleteConfirmBtn: {
     backgroundColor: colors.danger[500],
     borderRadius: borderRadius.md,
-    paddingVertical: spacing.sm + 4,
+    height: 42, // Slightly more compact fixed height
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: spacing.sm,
   },
   deleteConfirmText: { color: colors.white, fontWeight: '600', fontSize: 15 },
@@ -747,11 +735,6 @@ const styles = StyleSheet.create({
 });
 
 const prefStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
-  },
   sheet: {
     backgroundColor: colors.white,
     borderTopLeftRadius: borderRadius.xl,
@@ -759,7 +742,6 @@ const prefStyles = StyleSheet.create({
     padding: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.xl,
-    maxHeight: '70%',
   },
   handle: {
     width: 36,
@@ -805,7 +787,7 @@ const prefStyles = StyleSheet.create({
   saveBtn: {
     backgroundColor: colors.primary[800],
     borderRadius: borderRadius.md,
-    paddingVertical: 15,
+    height: 44, // Slightly more compact fixed height
     alignItems: 'center',
     justifyContent: 'center',
   },
