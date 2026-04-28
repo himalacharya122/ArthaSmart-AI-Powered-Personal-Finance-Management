@@ -31,7 +31,7 @@ export function MainTabs() {
         tabBarInactiveTintColor: colors.primary[500],
         tabBarLabelStyle: styles.tabLabel,
         tabBarStyle: styles.tabBar,
-        tabBarHideOnKeyboard: true,
+        // tabBarHideOnKeyboard: true,
       }}
     >
       <Tab.Screen

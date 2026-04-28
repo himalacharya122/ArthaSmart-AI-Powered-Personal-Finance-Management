@@ -383,6 +383,7 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.accent[600],
     fontWeight: '500',
+    textDecorationLine: 'underline',
   },
   biometricLoginBtn: {
     flexDirection: 'row',

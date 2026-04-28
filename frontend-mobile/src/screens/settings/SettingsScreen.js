@@ -498,7 +498,7 @@ export function SettingsScreen({ navigation }) {
           <SettingsRow icon="delete-forever" label="Delete account" onPress={() => navigation.navigate(SCREEN_NAMES.PROFILE, { scrollToDelete: true })} danger />
         </View>
 
-        <View style={{ height: spacing.xxl }} />
+        <View style={{ height: spacing.md }} />
       </Animated.ScrollView>
 
       {/* Change Password sheet */}
@@ -643,7 +643,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   navTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '600',
     color: colors.primary[900],
     letterSpacing: -0.3,

@@ -63,12 +63,17 @@ export function SuccessScreen({ navigation, route }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.sequence([
+    Animated.parallel([
       Animated.spring(scaleAnim, {
-        toValue: 1, friction: 5, tension: 80, useNativeDriver: true,
+        toValue: 1,
+        friction: 5,
+        tension: 80,
+        useNativeDriver: true,
       }),
       Animated.timing(fadeAnim, {
-        toValue: 1, duration: 300, useNativeDriver: true,
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
       }),
     ]).start();
   }, [scaleAnim, fadeAnim]);
@@ -216,8 +221,8 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: { ...typography.button, color: colors.white, fontSize: 16 },
   secondaryBtn: {
-    backgroundColor: colors.primary[100], borderRadius: borderRadius.md,
+    backgroundColor: colors.accent[700], borderRadius: borderRadius.md,
     paddingVertical: spacing.md, alignItems: 'center',
   },
-  secondaryBtnText: { ...typography.button, color: colors.primary[600], fontSize: 15 },
+  secondaryBtnText: { ...typography.button, color: colors.white, fontSize: 15 },
 });

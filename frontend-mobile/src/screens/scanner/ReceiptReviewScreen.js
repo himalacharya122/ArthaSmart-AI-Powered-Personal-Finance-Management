@@ -10,7 +10,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
-  Image, Modal, Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
+  Image, Modal, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -22,6 +22,11 @@ import { formatCurrency } from '../../utils/format';
 import { createExpense, getCategories } from '../../services/transactions';
 import { useAppStore } from '../../store/appStore';
 import { useAuthStore } from '../../store/authStore';
+import {
+  format, subMonths, addMonths, startOfMonth, endOfMonth,
+  startOfWeek, isSameMonth, isSameDay, isBefore, isAfter,
+  startOfDay, endOfDay,
+} from 'date-fns';
 
 const DEFAULT_CATEGORIES = [
   'Food & Dining', 'Groceries', 'Transport', 'Shopping',
@@ -31,22 +36,51 @@ const DEFAULT_CATEGORIES = [
 let AsyncStorage;
 try { AsyncStorage = require('@react-native-async-storage/async-storage').default; } catch { AsyncStorage = null; }
 
+// Normalize OCR date to YYYY-MM-DD
+const normalizeDate = (raw) => {
+  if (!raw) return new Date().toISOString().split('T')[0];
+  // Already YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  // MM/DD/YYYY or DD/MM/YYYY — try to parse
+  const parts = raw.replace(/[.\-]/g, '/').split('/');
+  if (parts.length === 3) {
+    const [a, b, c] = parts.map(Number);
+    // YYYY/MM/DD
+    if (a > 1000) return `${a}-${String(b).padStart(2, '0')}-${String(c).padStart(2, '0')}`;
+    // DD/MM/YYYY or MM/DD/YYYY - assume MM/DD/YYYY
+    if (c > 1000) {
+      const month = a <= 12 ? a : b;
+      const day = a <= 12 ? b : a;
+      return `${c}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+  }
+  return new Date().toISOString().split('T')[0];
+};
+
 export function ReceiptReviewScreen({ navigation, route }) {
   const { receiptData, imageUri, source, isFromHistory } = route.params;
   const showToast = useAppStore((s) => s.showToast);
   const user = useAuthStore((s) => s.user);
   const RECEIPTS_STORAGE_KEY = `arthasmart_receipts_${user?.id || 'guest'}`;
 
+  // Safe date parser helper
+  const getSafeDate = (raw) => {
+    if (!raw) return new Date();
+    const d = new Date(raw);
+    return isNaN(d.getTime()) ? new Date() : d;
+  };
+
   // Editable fields
   const [merchant, setMerchant] = useState(receiptData?.merchant || '');
   const [amount, setAmount] = useState(receiptData?.amount ? String(receiptData.amount) : '');
-  const [date, setDate] = useState(receiptData?.date || new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(receiptData?.date ? normalizeDate(receiptData.date) : new Date().toISOString().split('T')[0]);
   const [category, setCategory] = useState(receiptData?.category || 'Other');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showRawText, setShowRawText] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [categoriesMap, setCategoriesMap] = useState({}); // { name -> id }
 
@@ -65,51 +99,40 @@ export function ReceiptReviewScreen({ navigation, route }) {
         results.forEach((c) => { map[c.name] = c.id; });
         setCategoriesMap(map);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
-
-  // Normalize OCR date to YYYY-MM-DD
-  const normalizeDate = (raw) => {
-    if (!raw) return new Date().toISOString().split('T')[0];
-    // Already YYYY-MM-DD
-    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
-    // MM/DD/YYYY or DD/MM/YYYY — try to parse
-    const parts = raw.replace(/[.\-]/g, '/').split('/');
-    if (parts.length === 3) {
-      const [a, b, c] = parts.map(Number);
-      // YYYY/MM/DD
-      if (a > 1000) return `${a}-${String(b).padStart(2, '0')}-${String(c).padStart(2, '0')}`;
-      // DD/MM/YYYY or MM/DD/YYYY - assume MM/DD/YYYY
-      if (c > 1000) {
-        const month = a <= 12 ? a : b;
-        const day = a <= 12 ? b : a;
-        return `${c}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      }
-    }
-    return new Date().toISOString().split('T')[0];
-  };
 
   // Save receipt to local storage
   const saveReceiptLocally = async (savedAsExpense = false) => {
     try {
       if (!AsyncStorage) return;
       const stored = await AsyncStorage.getItem(RECEIPTS_STORAGE_KEY);
-      const all = stored ? JSON.parse(stored) : [];
+      let all = stored ? JSON.parse(stored) : [];
+
       const receipt = {
-        id: `receipt_${Date.now()}`,
+        id: isFromHistory ? receiptData.id : `receipt_${Date.now()}`,
         merchant,
         amount: parsedAmount,
         date,
         category,
         notes,
         rawText: receiptData?.rawText || '',
+        items: receiptData?.items || [],
         imageUri,
         source,
         savedAsExpense,
         savedAt: new Date().toISOString(),
         ocrConfidence: receiptData?.ocrConfidence,
       };
-      all.unshift(receipt);
+
+      if (isFromHistory) {
+        // Update existing
+        all = all.map((r) => (r.id === receiptData.id ? receipt : r));
+      } else {
+        // Add new
+        all.unshift(receipt);
+      }
+
       // Keep max 100 receipts
       if (all.length > 100) all.length = 100;
       await AsyncStorage.setItem(RECEIPTS_STORAGE_KEY, JSON.stringify(all));
@@ -254,13 +277,13 @@ export function ReceiptReviewScreen({ navigation, route }) {
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>Merchant / Store</Text>
               <View style={styles.inputRow}>
-                <MaterialIcons name="store" size={20} color={colors.primary[400]} />
+                <MaterialIcons name="store" size={20} color={colors.primary[500]} />
                 <TextInput
                   style={styles.fieldInput}
                   value={merchant}
                   onChangeText={setMerchant}
                   placeholder="e.g. Bhatbhateni"
-                  placeholderTextColor={colors.primary[300]}
+                  placeholderTextColor={colors.primary[400]}
                 />
               </View>
             </View>
@@ -275,7 +298,7 @@ export function ReceiptReviewScreen({ navigation, route }) {
                   value={amount}
                   onChangeText={setAmount}
                   placeholder="0.00"
-                  placeholderTextColor={colors.primary[300]}
+                  placeholderTextColor={colors.primary[400]}
                   keyboardType="decimal-pad"
                 />
               </View>
@@ -284,16 +307,15 @@ export function ReceiptReviewScreen({ navigation, route }) {
             {/* Date */}
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>Date</Text>
-              <View style={styles.inputRow}>
-                <MaterialIcons name="calendar-today" size={20} color={colors.primary[400]} />
-                <TextInput
-                  style={styles.fieldInput}
-                  value={date}
-                  onChangeText={setDate}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor={colors.primary[300]}
-                />
-              </View>
+              <TouchableOpacity
+                style={styles.inputRow}
+                activeOpacity={0.7}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <MaterialIcons name="calendar-today" size={20} color={colors.primary[500]} />
+                <Text style={[styles.fieldInput, { paddingVertical: 2 }]}>{date}</Text>
+                <MaterialIcons name="chevron-right" size={20} color={colors.primary[400]} />
+              </TouchableOpacity>
             </View>
 
             {/* Category */}
@@ -307,10 +329,10 @@ export function ReceiptReviewScreen({ navigation, route }) {
                 <MaterialIcons
                   name={CATEGORY_ICONS[category] || 'label'}
                   size={20}
-                  color={colors.primary[400]}
+                  color={colors.primary[500]}
                 />
                 <Text style={[styles.fieldInput, { paddingVertical: 2 }]}>{category}</Text>
-                <MaterialIcons name="chevron-right" size={20} color={colors.primary[300]} />
+                <MaterialIcons name="chevron-right" size={20} color={colors.primary[400]} />
               </TouchableOpacity>
             </View>
 
@@ -318,13 +340,13 @@ export function ReceiptReviewScreen({ navigation, route }) {
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>Notes (optional)</Text>
               <View style={[styles.inputRow, { alignItems: 'flex-start' }]}>
-                <MaterialIcons name="notes" size={20} color={colors.primary[400]} style={{ marginTop: 2 }} />
+                <MaterialIcons name="notes" size={20} color={colors.primary[500]} style={{ marginTop: 2 }} />
                 <TextInput
                   style={[styles.fieldInput, { minHeight: 48, textAlignVertical: 'top' }]}
                   value={notes}
                   onChangeText={setNotes}
                   placeholder="Add a note about this receipt"
-                  placeholderTextColor={colors.primary[300]}
+                  placeholderTextColor={colors.primary[400]}
                   multiline
                   numberOfLines={2}
                 />
@@ -337,7 +359,13 @@ export function ReceiptReviewScreen({ navigation, route }) {
             <View style={styles.itemsCard}>
               <Text style={styles.itemsTitle}>Extracted Items ({items.length})</Text>
               {items.map((item, i) => (
-                <View key={`item-${i}`} style={styles.lineItem}>
+                <View 
+                  key={`item-${i}`} 
+                  style={[
+                    styles.lineItem, 
+                    i === items.length - 1 && { borderBottomWidth: 0 }
+                  ]}
+                >
                   <Text style={styles.lineItemName} numberOfLines={1}>{item.name}</Text>
                   <Text style={styles.lineItemPrice}>{formatCurrency(item.price)}</Text>
                 </View>
@@ -346,7 +374,7 @@ export function ReceiptReviewScreen({ navigation, route }) {
           )}
 
           {/* Spacer for buttons */}
-          <View style={{ height: 120 }} />
+          <View style={{ height: 60 }} />
         </ScrollView>
 
         {/* Bottom action bar */}
@@ -373,16 +401,15 @@ export function ReceiptReviewScreen({ navigation, route }) {
         </View>
 
         {/* Category Picker Modal */}
-        <Modal visible={showCategoryPicker} transparent animationType="slide">
-          <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setShowCategoryPicker(false)}
-          >
-            <View style={styles.pickerSheet}>
-              <View style={styles.sheetHandle} />
-              <Text style={styles.sheetTitle}>Select Category</Text>
-              <ScrollView style={{ maxHeight: 400 }}>
+        <Modal visible={showCategoryPicker} transparent animationType="fade">
+          <View style={styles.confirmOverlay}>
+            <Pressable 
+              style={StyleSheet.absoluteFill} 
+              onPress={() => setShowCategoryPicker(false)} 
+            />
+            <View style={styles.confirmCard}>
+              <Text style={styles.confirmTitle}>Select Category</Text>
+              <ScrollView style={{ maxHeight: 300, width: '100%' }} showsVerticalScrollIndicator={false}>
                 {DEFAULT_CATEGORIES.map((cat) => (
                   <TouchableOpacity
                     key={cat}
@@ -404,21 +431,38 @@ export function ReceiptReviewScreen({ navigation, route }) {
                   </TouchableOpacity>
                 ))}
               </ScrollView>
+              <TouchableOpacity
+                style={styles.closeSheetBtn}
+                onPress={() => setShowCategoryPicker(false)}
+              >
+                <Text style={styles.closeSheetBtnText}>Cancel</Text>
+              </TouchableOpacity>
             </View>
-          </TouchableOpacity>
+          </View>
         </Modal>
 
+        {/* Date Picker Modal */}
+        <CalendarPickerModal
+          visible={showDatePicker}
+          initialDate={getSafeDate(date)}
+          onClose={() => setShowDatePicker(false)}
+          onPick={(d) => {
+            setDate(format(d, 'yyyy-MM-dd'));
+            setShowDatePicker(false);
+          }}
+          title="Select Receipt Date"
+        />
+
         {/* Raw Text Modal */}
-        <Modal visible={showRawText} transparent animationType="slide">
-          <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setShowRawText(false)}
-          >
-            <View style={styles.pickerSheet}>
-              <View style={styles.sheetHandle} />
-              <Text style={styles.sheetTitle}>Raw OCR Text</Text>
-              <ScrollView style={{ maxHeight: 400 }}>
+        <Modal visible={showRawText} transparent animationType="fade">
+          <View style={styles.confirmOverlay}>
+            <Pressable 
+              style={StyleSheet.absoluteFill} 
+              onPress={() => setShowRawText(false)} 
+            />
+            <View style={styles.confirmCard}>
+              <Text style={styles.confirmTitle}>Raw OCR Text</Text>
+              <ScrollView style={{ maxHeight: 400, width: '100%' }} showsVerticalScrollIndicator={false}>
                 <Text style={styles.rawText}>{receiptData?.rawText || 'No text extracted'}</Text>
               </ScrollView>
               <TouchableOpacity
@@ -428,17 +472,22 @@ export function ReceiptReviewScreen({ navigation, route }) {
                 <Text style={styles.closeSheetBtnText}>Close</Text>
               </TouchableOpacity>
             </View>
-          </TouchableOpacity>
+          </View>
         </Modal>
 
         {/* Confirm Save Modal */}
         <Modal visible={showConfirmModal} transparent animationType="fade">
           <View style={styles.confirmOverlay}>
+            <Pressable 
+              style={StyleSheet.absoluteFill} 
+              onPress={() => setShowConfirmModal(false)} 
+            />
             <View style={styles.confirmCard}>
               <View style={styles.confirmIcon}>
                 <MaterialIcons name="receipt-long" size={32} color={colors.accent[600]} />
               </View>
               <Text style={styles.confirmTitle}>Save as Expense?</Text>
+              
               <View style={styles.confirmSummary}>
                 <View style={styles.confirmRow}>
                   <Text style={styles.confirmLabel}>Merchant</Text>
@@ -446,7 +495,7 @@ export function ReceiptReviewScreen({ navigation, route }) {
                 </View>
                 <View style={styles.confirmRow}>
                   <Text style={styles.confirmLabel}>Amount</Text>
-                  <Text style={[styles.confirmValue, { fontWeight: '700', color: colors.danger[500] }]}>
+                  <Text style={[styles.confirmValue, { fontWeight: '700', color: colors.accent[600] }]}>
                     {formatCurrency(parsedAmount)}
                   </Text>
                 </View>
@@ -454,11 +503,8 @@ export function ReceiptReviewScreen({ navigation, route }) {
                   <Text style={styles.confirmLabel}>Category</Text>
                   <Text style={styles.confirmValue}>{category}</Text>
                 </View>
-                <View style={styles.confirmRow}>
-                  <Text style={styles.confirmLabel}>Date</Text>
-                  <Text style={styles.confirmValue}>{date}</Text>
-                </View>
               </View>
+
               <View style={styles.confirmActions}>
                 <TouchableOpacity
                   style={styles.confirmCancelBtn}
@@ -466,8 +512,10 @@ export function ReceiptReviewScreen({ navigation, route }) {
                 >
                   <Text style={styles.confirmCancelText}>Cancel</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.confirmSaveBtn} onPress={handleSaveAsExpense}>
-                  <MaterialIcons name="check" size={18} color={colors.white} />
+                <TouchableOpacity
+                  style={styles.confirmSaveBtn}
+                  onPress={handleSaveAsExpense}
+                >
                   <Text style={styles.confirmSaveText}>Confirm</Text>
                 </TouchableOpacity>
               </View>
@@ -483,7 +531,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.primary[50] },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg, paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
   },
   backBtn: {
     width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary[100],
@@ -494,7 +542,7 @@ const styles = StyleSheet.create({
   // Image row
   imageRow: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white,
-    borderRadius: borderRadius.md, padding: spacing.sm + 2, marginBottom: spacing.md, ...shadow.sm,
+    borderRadius: borderRadius.md, padding: spacing.sm + 2, marginTop: spacing.sm, marginBottom: spacing.md, ...shadow.sm,
   },
   thumbImage: { width: 60, height: 72, borderRadius: borderRadius.sm },
   imageInfo: { flex: 1, marginLeft: spacing.md },
@@ -510,14 +558,14 @@ const styles = StyleSheet.create({
   // AI Suggestion
   aiSuggestion: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    backgroundColor: colors.accent[50], borderRadius: borderRadius.md,
+    backgroundColor: colors.accent[200], borderRadius: borderRadius.md,
     padding: spacing.md, marginBottom: spacing.md,
-    borderWidth: 1, borderColor: colors.accent[200],
+    borderWidth: 1, borderColor: colors.accent[100],
   },
-  aiSuggestionLabel: { fontSize: 10, fontWeight: '700', color: colors.accent[600], textTransform: 'uppercase', letterSpacing: 0.5 },
-  aiSuggestionText: { ...typography.bodySmall, color: colors.accent[800] },
+  aiSuggestionLabel: { fontSize: 11, fontWeight: '700', color: colors.accent[700], textTransform: 'uppercase' },
+  aiSuggestionText: { ...typography.body, color: colors.accent[800] },
   acceptBtn: {
-    backgroundColor: colors.accent[600], paddingHorizontal: spacing.sm + 2,
+    backgroundColor: colors.accent[800], paddingHorizontal: spacing.sm + 4,
     paddingVertical: spacing.xs, borderRadius: borderRadius.sm,
   },
   acceptBtnText: { ...typography.buttonSmall, color: colors.white },
@@ -532,11 +580,18 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
     backgroundColor: colors.primary[50], borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm, paddingVertical: spacing.sm,
     borderWidth: 1, borderColor: colors.primary[200],
   },
-  fieldInput: { flex: 1, ...typography.body, fontSize: 15, color: colors.primary[800], padding: 0 },
-  currencyPrefix: { ...typography.body, fontWeight: '700', color: colors.primary[500] },
+  fieldInput: {
+    flex: 1,
+    fontFamily: typography.body.fontFamily,
+    fontSize: 15,
+    color: colors.primary[800],
+    paddingVertical: 0,
+    textAlignVertical: 'center',
+  },
+  currencyPrefix: { ...typography.body, fontWeight: '700', color: colors.primary[600] },
   amountInput: { fontSize: 18, fontWeight: '600' },
 
   // Line items
@@ -596,7 +651,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   closeSheetBtn: {
-    alignItems: 'center', paddingVertical: spacing.sm + 2, marginTop: spacing.md,
+    alignItems: 'center', paddingVertical: spacing.sm + 2, paddingHorizontal: spacing.lg, marginTop: spacing.md,
     backgroundColor: colors.primary[100], borderRadius: borderRadius.md,
   },
   closeSheetBtnText: { ...typography.button, color: colors.primary[600] },
@@ -604,7 +659,7 @@ const styles = StyleSheet.create({
   // Confirm modal
   confirmOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   confirmCard: {
-    width: '85%', backgroundColor: colors.white, borderRadius: borderRadius.xl,
+    width: '90%', backgroundColor: colors.white, borderRadius: borderRadius.md,
     padding: spacing.lg, alignItems: 'center', ...shadow.lg,
   },
   confirmIcon: {
@@ -631,4 +686,109 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
   },
   confirmSaveText: { ...typography.button, color: colors.white },
+});
+
+/**
+ * Calendar Picker Component
+ */
+function CalendarPickerModal({ visible, initialDate, onClose, onPick, title }) {
+  const safeInitDate = useMemo(() => {
+    if (!initialDate || isNaN(new Date(initialDate).getTime())) return new Date();
+    return new Date(initialDate);
+  }, [initialDate]);
+
+  const [viewMonth, setViewMonth] = useState(safeInitDate);
+
+  useEffect(() => {
+    if (visible) setViewMonth(safeInitDate);
+  }, [visible, safeInitDate]);
+
+  const days = useMemo(() => {
+    const monthStart = startOfMonth(viewMonth);
+    const monthEnd = endOfMonth(viewMonth);
+    const gridStart = startOfWeek(monthStart, { weekStartsOn: 0 });
+    const cells = [];
+    let cursor = gridStart;
+    for (let i = 0; i < 42; i++) {
+      cells.push(cursor);
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1);
+    }
+    return { cells, monthStart, monthEnd };
+  }, [viewMonth]);
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={cal.overlay}>
+        <View style={cal.sheet}>
+          <Text style={cal.title}>{title}</Text>
+
+          <View style={cal.monthNav}>
+            <TouchableOpacity onPress={() => setViewMonth(subMonths(viewMonth, 1))} style={cal.navBtn}>
+              <MaterialIcons name="chevron-left" size={24} color={colors.primary[700]} />
+            </TouchableOpacity>
+            <Text style={cal.monthLabel}>{format(viewMonth, 'MMMM yyyy')}</Text>
+            <TouchableOpacity onPress={() => setViewMonth(addMonths(viewMonth, 1))} style={cal.navBtn}>
+              <MaterialIcons name="chevron-right" size={24} color={colors.primary[700]} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={cal.weekRow}>
+            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+              <Text key={i} style={cal.weekDay}>{d}</Text>
+            ))}
+          </View>
+
+          <View style={cal.grid}>
+            {days.cells.map((d, idx) => {
+              const inMonth = isSameMonth(d, viewMonth);
+              const today = isSameDay(d, new Date());
+              const selected = isSameDay(d, initialDate);
+              return (
+                <TouchableOpacity
+                  key={idx}
+                  style={[cal.dayCell, selected && cal.dayCellSelected]}
+                  onPress={() => onPick(d)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    cal.dayText,
+                    !inMonth && cal.dayTextOutMonth,
+                    today && !selected && cal.dayTextToday,
+                    selected && cal.dayTextSelected,
+                  ]}>
+                    {d.getDate()}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <TouchableOpacity style={cal.cancelBtn} onPress={onClose} activeOpacity={0.7}>
+            <Text style={cal.cancelText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const cal = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
+  sheet: { width: '100%', maxWidth: 360, backgroundColor: colors.white, borderRadius: borderRadius.md, padding: spacing.lg },
+  title: { ...typography.h3, fontSize: 16, color: colors.primary[800], marginBottom: spacing.md, textAlign: 'center' },
+  monthNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
+  navBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary[50] },
+  monthLabel: { ...typography.body, fontSize: 15, fontWeight: '600', color: colors.primary[800] },
+  weekRow: { flexDirection: 'row', marginBottom: spacing.xs },
+  weekDay: { flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '700', color: colors.primary[400] },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', alignContent: 'flex-center', justifyContent: 'center', },
+  dayCell: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderRadius: borderRadius.sm },
+  dayCellSelected: { backgroundColor: colors.primary[800] },
+  dayText: { fontSize: 14, fontWeight: '500', color: colors.primary[700] },
+  dayTextOutMonth: { color: colors.primary[300] },
+  dayTextDisabled: { color: colors.primary[200] },
+  dayTextToday: { color: colors.accent[600], fontWeight: '700' },
+  dayTextSelected: { color: colors.white, fontWeight: '700' },
+  cancelBtn: { marginTop: spacing.md, alignItems: 'center', paddingVertical: spacing.sm },
+  cancelText: { ...typography.body, color: colors.primary[500], fontSize: 15 },
 });

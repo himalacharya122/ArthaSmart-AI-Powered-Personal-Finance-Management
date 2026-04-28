@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.primary[50] },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg, paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
   },
   backBtn: {
     width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary[100],

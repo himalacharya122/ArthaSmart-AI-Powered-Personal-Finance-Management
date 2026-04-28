@@ -20,7 +20,13 @@ const OVERLAY_OUT = 140;
 const SHEET_IN = 260;
 const SHEET_OUT = 200;
 
-export function BottomSheet({ visible, onClose, children }) {
+export function BottomSheet({ 
+  visible, 
+  onClose, 
+  children, 
+  sheetBackgroundColor = '#fff',
+  topRadius = 24 
+}) {
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(SCREEN_H)).current;
   const [mounted, setMounted] = useState(visible);
@@ -86,17 +92,43 @@ export function BottomSheet({ visible, onClose, children }) {
 
         {/* Sheet container — KAV handles keyboard sync, Animated handles slide-in */}
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.kavWrap}
           pointerEvents="box-none"
+          keyboardVerticalOffset={0}
+          enabled={true}
         >
           <Animated.View
-            style={[styles.sheetWrap, { transform: [{ translateY }] }]}
+            style={[
+              styles.sheetWrap, 
+              { 
+                backgroundColor: sheetBackgroundColor,
+                borderTopLeftRadius: topRadius,
+                borderTopRightRadius: topRadius,
+              },
+              { transform: [{ translateY }] }
+            ]}
             pointerEvents="box-none"
           >
             <Pressable onPress={(e) => e.stopPropagation()}>
               {children}
             </Pressable>
+            
+            {/* 
+                Bottom filler: This fills the gap below the sheet (e.g. keyboard corners or safe area)
+                using the same background color as the sheet. 
+            */}
+            <View 
+              style={{ 
+                position: 'absolute', 
+                bottom: -1000, 
+                left: 0, 
+                right: 0, 
+                height: 1000, 
+                backgroundColor: sheetBackgroundColor,
+                zIndex: -1 
+              }} 
+            />
           </Animated.View>
         </KeyboardAvoidingView>
       </View>

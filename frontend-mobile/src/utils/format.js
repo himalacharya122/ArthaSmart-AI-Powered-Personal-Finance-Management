@@ -42,6 +42,21 @@ export function formatCurrencyCompact(amount, currency = 'NPR') {
 }
 
 /**
+ * Compact short currency: 4900 -> "Rs 4.9k", 1200000 -> "Rs 1.2m", 850 -> "Rs 850".
+ */
+export function formatCurrencyShort(amount, currency = 'NPR') {
+  const num = Number(amount) || 0;
+  const symbols = { NPR: 'Rs', USD: '$', EUR: '€', GBP: '£', INR: '₹' };
+  const symbol = symbols[currency] || currency;
+  const abs = Math.abs(num);
+  let body;
+  if (abs >= 1_000_000) body = `${(num / 1_000_000).toFixed(1).replace(/\.0$/, '')}m`;
+  else if (abs >= 1_000) body = `${(num / 1_000).toFixed(1).replace(/\.0$/, '')}k`;
+  else body = String(Math.round(num));
+  return `${symbol} ${body}`;
+}
+
+/**
  * Format date for display.
  * @param {string} dateStr - ISO date string
  * @returns {string} e.g., "Today", "Yesterday", "Mar 20, 2026"

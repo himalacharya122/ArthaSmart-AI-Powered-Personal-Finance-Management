@@ -154,14 +154,17 @@ export function parseReceiptText(rawText) {
     if (date) break;
   }
 
-  // Line items (lines ending with a price)
+  // Line items (lines ending with a price or containing a price-like number)
   const items = [];
   for (const line of lines) {
-    const priceMatch = line.match(/^(.+?)\s+([\d,]+\.\d{2})\s*$/);
+    // Matches "Item Name 123.45" or "Item Name 123"
+    const priceMatch = line.match(/^(.+?)\s+([\d,]+\.?\d*)\s*$/);
     if (priceMatch && priceMatch[1].length > 1) {
       const name = priceMatch[1].replace(/[\.\-]+$/, '').trim();
-      const price = parseFloat(priceMatch[2].replace(/,/g, ''));
-      if (name && price > 0 && price < 100000) {
+      const priceVal = priceMatch[2].replace(/,/g, '');
+      const price = parseFloat(priceVal);
+      // Basic sanity check: avoid matching dates or years as prices
+      if (name && price > 0 && price < 100000 && !/^\d{4}$/.test(priceVal)) {
         items.push({ name, price });
       }
     }

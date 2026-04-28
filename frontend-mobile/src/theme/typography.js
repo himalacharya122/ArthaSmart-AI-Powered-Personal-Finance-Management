@@ -2,51 +2,52 @@ import { colors } from './colors';
 
 export const typography = {
   h1: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontFamily: 'Manrope-ExtraBold',
+    fontSize: 30, // Increased from 28
     color: colors.primary[800],
-    letterSpacing: -0.5,
+    letterSpacing: -1.0, // Even tighter for larger sizes
   },
   h2: {
-    fontSize: 22,
-    fontWeight: '600',
+    fontFamily: 'Manrope-ExtraBold',
+    fontSize: 24, // Increased from 22
     color: colors.primary[800],
-    letterSpacing: -0.3,
+    letterSpacing: -0.6,
   },
   h3: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontFamily: 'Manrope-ExtraBold', // Shifted from Bold to ExtraBold
+    fontSize: 20, // Increased from 18
     color: colors.primary[800],
+    letterSpacing: -0.4,
   },
   body: {
-    fontSize: 15,
-    fontWeight: '400',
-    color: colors.primary[700],
-    lineHeight: 22,
+    fontFamily: 'Manrope-SemiBold', // Shifted from Medium to SemiBold for a "chunky" feel
+    fontSize: 16, // Increased from 15
+    color: colors.primary[800], // Slightly darker for more "ink" weight
+    lineHeight: 24,
   },
   bodySmall: {
-    fontSize: 13,
-    fontWeight: '400',
-    color: colors.primary[600],
-    lineHeight: 18,
+    fontFamily: 'Manrope-SemiBold', // SemiBold for small body
+    fontSize: 14, // Increased from 13
+    color: colors.primary[700],
+    lineHeight: 20,
   },
   caption: {
+    fontFamily: 'Manrope-Bold', // Shifted from SemiBold to Bold
     fontSize: 12,
-    fontWeight: '400',
-    color: colors.primary[400],
+    color: colors.primary[500],
     lineHeight: 16,
   },
   label: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: colors.primary[600],
+    fontFamily: 'Manrope-ExtraBold', // ExtraBold labels
+    fontSize: 14,
+    color: colors.primary[800],
   },
   button: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Manrope-ExtraBold',
+    fontSize: 16,
   },
   buttonSmall: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontFamily: 'Manrope-ExtraBold',
+    fontSize: 14,
   },
 };
