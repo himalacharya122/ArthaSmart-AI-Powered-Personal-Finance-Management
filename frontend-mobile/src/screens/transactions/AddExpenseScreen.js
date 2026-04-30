@@ -60,8 +60,9 @@ export function AddExpenseScreen({ navigation, route }) {
     defaultValues: {
       amount: editData?.amount || '',
       description: editData?.description || '',
+      // notes seeded below to keep field order stable
       merchant: editData?.merchant || '',
-      notes: '',
+      notes: editData?.notes || '',
       date: editData?.date || format(new Date(), 'yyyy-MM-dd'),
     },
   });
@@ -125,6 +126,7 @@ export function AddExpenseScreen({ navigation, route }) {
       const payload = {
         amount: formData.amount,
         description: formData.description,
+        notes: formData.notes || '',
         merchant: formData.merchant,
         date: formData.date,
         category_id: selectedCategory,

@@ -23,13 +23,37 @@ export function RootNavigator() {
   const showBiometricSetup = useAuthStore((s) => s.showBiometricSetup);
   const lockBiometric = useAuthStore((s) => s.lockBiometric);
 
-  // Lock when app goes to background
+  // Re-lock biometric only after a meaningful idle period in the background.
+  // Behaviour matches industry standard (Revolut, Monzo, banking apps):
+  //   - "inactive" (notification pull, app switcher peek) is ignored
+  //   - "background" starts a timer; if user returns within RELOCK_AFTER_MS we don't
+  //     re-lock, so brief context switches don't blow away the screen they were on
+  //     (which would unmount in-flight edits like a half-completed receipt review).
+  //   - If user stays away longer than threshold, we re-lock on next foreground.
+  const RELOCK_AFTER_MS = 5 * 60 * 1000; // 5 minutes
   const appState = useRef(AppState.currentState);
+  const backgroundedAt = useRef(null);
+
   useEffect(() => {
     const sub = AppState.addEventListener('change', (nextState) => {
-      if (appState.current === 'active' && nextState.match(/inactive|background/)) {
-        lockBiometric();
+      const prev = appState.current;
+
+      // Going to background -> start the idle timer
+      if (prev === 'active' && nextState === 'background') {
+        backgroundedAt.current = Date.now();
       }
+
+      // Coming back to foreground -> re-lock only if idle long enough
+      if (nextState === 'active' && prev !== 'active') {
+        const since = backgroundedAt.current
+          ? Date.now() - backgroundedAt.current
+          : 0;
+        if (since >= RELOCK_AFTER_MS) {
+          lockBiometric();
+        }
+        backgroundedAt.current = null;
+      }
+
       appState.current = nextState;
     });
     return () => sub.remove();

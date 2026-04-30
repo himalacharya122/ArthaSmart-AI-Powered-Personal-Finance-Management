@@ -328,9 +328,9 @@ export function HomeScreen({ navigation }) {
       const [incomesRes, catRes, budgets, period, mb] = await Promise.all([
         dashboardService.getRecentIncomes(5).catch(() => ({ results: [] })),
         txnService.getCategories('expense').catch(() => ({ results: [] })),
-        storage.getCategoryBudgets().catch(() => ({})),
+        storage.getCategoryBudgets(user?.id).catch(() => ({})),
         getCurrentBudgetPeriod().catch(() => null),
-        storage.getMonthlyBudget().catch(() => null),
+        storage.getMonthlyBudget(user?.id).catch(() => null),
       ]);
       setRecentIncomes(incomesRes.results || incomesRes || []);
       setMonthlyBudget(mb);
@@ -492,7 +492,7 @@ export function HomeScreen({ navigation }) {
         <View style={styles.carouselSection}>
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Budgets</Text>
-            <TouchableOpacity onPress={() => navigation.navigate(SCREEN_NAMES.SETTINGS_TAB, { screen: SCREEN_NAMES.CATEGORY_BUDGETS })}>
+            <TouchableOpacity onPress={() => navigation.navigate(SCREEN_NAMES.CATEGORY_BUDGETS)}>
               <Text style={styles.manageLink}>Manage</Text>
             </TouchableOpacity>
           </View>
@@ -510,7 +510,7 @@ export function HomeScreen({ navigation }) {
           ) : (
             <TouchableOpacity
               style={styles.budgetEmpty}
-              onPress={() => navigation.navigate(SCREEN_NAMES.SETTINGS_TAB, { screen: SCREEN_NAMES.CATEGORY_BUDGETS })}
+              onPress={() => navigation.navigate(SCREEN_NAMES.CATEGORY_BUDGETS)}
               activeOpacity={0.7}
             >
               <MaterialIcons name="pie-chart-outline" size={20} color={colors.primary[400]} />

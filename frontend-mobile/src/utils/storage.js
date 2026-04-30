@@ -1,153 +1,230 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const KEYS = {
+// ─────────────────────────────────────────────────────────────────────────────
+// Storage layout
+// ─────────────────────────────────────────────────────────────────────────────
+// Device-level keys (one per install — shared across users on this device):
+//   @arthasmart/access_token, refresh_token, user (current session)
+//   @arthasmart/onboarding_done
+//   @arthasmart/biometric_enabled, biometric_refresh_token, biometric_user,
+//   @arthasmart/biometric_setup_seen
+//
+// User-scoped keys (one per user-id — survive logout, isolated per account):
+//   @arthasmart/u:<userId>/preferences
+//   @arthasmart/u:<userId>/budget_reset_day
+//   @arthasmart/u:<userId>/monthly_budget
+//   @arthasmart/u:<userId>/category_order
+//   @arthasmart/u:<userId>/category_budgets
+//
+// `setCurrentUserId(id)` MUST be called on app init and after login so the
+// user-scoped getters/setters resolve to the correct namespace. On logout it
+// should be called with null so anonymous reads land in a "guest" namespace
+// rather than leaking into the previous user's data.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const DEVICE_KEYS = {
   ACCESS_TOKEN: '@arthasmart/access_token',
   REFRESH_TOKEN: '@arthasmart/refresh_token',
   USER: '@arthasmart/user',
   ONBOARDING_DONE: '@arthasmart/onboarding_done',
-  PREFERENCES: '@arthasmart/preferences',
   BIOMETRIC_ENABLED: '@arthasmart/biometric_enabled',
-  // Biometric re-login: persists across logout so user can re-auth with face/fingerprint
   BIOMETRIC_REFRESH_TOKEN: '@arthasmart/biometric_refresh_token',
   BIOMETRIC_USER: '@arthasmart/biometric_user',
-  // Tracks if user has seen the biometric setup prompt (shown once after first login)
   BIOMETRIC_SETUP_SEEN: '@arthasmart/biometric_setup_seen',
-  BUDGET_RESET_DAY: '@arthasmart/budget_reset_day',
-  MONTHLY_BUDGET: '@arthasmart/monthly_budget',
-  CATEGORY_ORDER: '@arthasmart/category_order',
-  CATEGORY_BUDGETS: '@arthasmart/category_budgets',
 };
 
+const USER_SUBKEYS = {
+  PREFERENCES: 'preferences',
+  BUDGET_RESET_DAY: 'budget_reset_day',
+  MONTHLY_BUDGET: 'monthly_budget',
+  CATEGORY_ORDER: 'category_order',
+  CATEGORY_BUDGETS: 'category_budgets',
+};
+
+// Old (pre-multi-user) global keys for these settings. We migrate from here.
+const LEGACY_GLOBAL = {
+  [USER_SUBKEYS.PREFERENCES]: '@arthasmart/preferences',
+  [USER_SUBKEYS.BUDGET_RESET_DAY]: '@arthasmart/budget_reset_day',
+  [USER_SUBKEYS.MONTHLY_BUDGET]: '@arthasmart/monthly_budget',
+  [USER_SUBKEYS.CATEGORY_ORDER]: '@arthasmart/category_order',
+  [USER_SUBKEYS.CATEGORY_BUDGETS]: '@arthasmart/category_budgets',
+};
+
+let _currentUserId = null;
+
+const _userKey = (sub) => `@arthasmart/u:${_currentUserId || 'guest'}/${sub}`;
+
+/**
+ * One-time migration: if any of the legacy global keys still hold data, move
+ * it into the now-known user's namespace (only if that user doesn't already
+ * have a value), then remove the legacy key so subsequent users start clean.
+ *
+ * Idempotent — safe to run on every login.
+ */
+async function _migrateLegacyToUser(userId) {
+  if (!userId) return;
+  await Promise.all(
+    Object.entries(LEGACY_GLOBAL).map(async ([sub, legacyKey]) => {
+      const legacyVal = await AsyncStorage.getItem(legacyKey);
+      if (legacyVal == null) return;
+      const userKey = `@arthasmart/u:${userId}/${sub}`;
+      const existing = await AsyncStorage.getItem(userKey);
+      if (existing == null) {
+        await AsyncStorage.setItem(userKey, legacyVal);
+      }
+      // Always remove the legacy key — its job is done. Otherwise the next
+      // logged-in user would inherit this same data.
+      await AsyncStorage.removeItem(legacyKey);
+    })
+  );
+}
+
 export const storage = {
-  // Tokens
-  async getAccessToken() {
-    return AsyncStorage.getItem(KEYS.ACCESS_TOKEN);
-  },
-  async setAccessToken(token) {
-    return AsyncStorage.setItem(KEYS.ACCESS_TOKEN, token);
-  },
-  async getRefreshToken() {
-    return AsyncStorage.getItem(KEYS.REFRESH_TOKEN);
-  },
-  async setRefreshToken(token) {
-    return AsyncStorage.setItem(KEYS.REFRESH_TOKEN, token);
-  },
-  async clearTokens() {
-    await AsyncStorage.multiRemove([KEYS.ACCESS_TOKEN, KEYS.REFRESH_TOKEN]);
+  // Multi-account scoping
+  /**
+   * Sets the active user namespace for user-scoped getters/setters.
+   * Call on app init (with cached user.id), after login, and after logout
+   * (with null). Runs the legacy-global migration the first time a user id
+   * is set.
+   */
+  async setCurrentUserId(id) {
+    const next = id != null ? String(id) : null;
+    if (_currentUserId === next) return;
+    if (next) await _migrateLegacyToUser(next);
+    _currentUserId = next;
   },
 
-  // User
+  getCurrentUserId() {
+    return _currentUserId;
+  },
+
+  // Tokens
+  async getAccessToken() {
+    return AsyncStorage.getItem(DEVICE_KEYS.ACCESS_TOKEN);
+  },
+  async setAccessToken(token) {
+    return AsyncStorage.setItem(DEVICE_KEYS.ACCESS_TOKEN, token);
+  },
+  async getRefreshToken() {
+    return AsyncStorage.getItem(DEVICE_KEYS.REFRESH_TOKEN);
+  },
+  async setRefreshToken(token) {
+    return AsyncStorage.setItem(DEVICE_KEYS.REFRESH_TOKEN, token);
+  },
+  async clearTokens() {
+    await AsyncStorage.multiRemove([DEVICE_KEYS.ACCESS_TOKEN, DEVICE_KEYS.REFRESH_TOKEN]);
+  },
+
+  // User (current session)
   async getUser() {
-    const raw = await AsyncStorage.getItem(KEYS.USER);
+    const raw = await AsyncStorage.getItem(DEVICE_KEYS.USER);
     return raw ? JSON.parse(raw) : null;
   },
   async setUser(user) {
-    return AsyncStorage.setItem(KEYS.USER, JSON.stringify(user));
+    return AsyncStorage.setItem(DEVICE_KEYS.USER, JSON.stringify(user));
   },
   async clearUser() {
-    return AsyncStorage.removeItem(KEYS.USER);
+    return AsyncStorage.removeItem(DEVICE_KEYS.USER);
   },
 
-  // Onboarding
+  // Onboarding (device-level)
   async isOnboardingDone() {
-    const val = await AsyncStorage.getItem(KEYS.ONBOARDING_DONE);
+    const val = await AsyncStorage.getItem(DEVICE_KEYS.ONBOARDING_DONE);
     return val === 'true';
   },
   async setOnboardingDone() {
-    return AsyncStorage.setItem(KEYS.ONBOARDING_DONE, 'true');
+    return AsyncStorage.setItem(DEVICE_KEYS.ONBOARDING_DONE, 'true');
   },
 
-  // Biometric
+  // Biometric (device-level)
   async isBiometricEnabled() {
-    const val = await AsyncStorage.getItem(KEYS.BIOMETRIC_ENABLED);
+    const val = await AsyncStorage.getItem(DEVICE_KEYS.BIOMETRIC_ENABLED);
     return val === 'true';
   },
   async setBiometricEnabled(enabled) {
-    return AsyncStorage.setItem(KEYS.BIOMETRIC_ENABLED, enabled ? 'true' : 'false');
+    return AsyncStorage.setItem(DEVICE_KEYS.BIOMETRIC_ENABLED, enabled ? 'true' : 'false');
   },
-
-  // Biometric re-login tokens (survive logout for Face ID / fingerprint login)
   async getBiometricRefreshToken() {
-    return AsyncStorage.getItem(KEYS.BIOMETRIC_REFRESH_TOKEN);
+    return AsyncStorage.getItem(DEVICE_KEYS.BIOMETRIC_REFRESH_TOKEN);
   },
   async setBiometricRefreshToken(token) {
-    return AsyncStorage.setItem(KEYS.BIOMETRIC_REFRESH_TOKEN, token);
+    return AsyncStorage.setItem(DEVICE_KEYS.BIOMETRIC_REFRESH_TOKEN, token);
   },
   async getBiometricUser() {
-    const raw = await AsyncStorage.getItem(KEYS.BIOMETRIC_USER);
+    const raw = await AsyncStorage.getItem(DEVICE_KEYS.BIOMETRIC_USER);
     return raw ? JSON.parse(raw) : null;
   },
   async setBiometricUser(user) {
-    return AsyncStorage.setItem(KEYS.BIOMETRIC_USER, JSON.stringify(user));
+    return AsyncStorage.setItem(DEVICE_KEYS.BIOMETRIC_USER, JSON.stringify(user));
   },
   async clearBiometricCredentials() {
     await AsyncStorage.multiRemove([
-      KEYS.BIOMETRIC_REFRESH_TOKEN,
-      KEYS.BIOMETRIC_USER,
-      KEYS.BIOMETRIC_ENABLED,
+      DEVICE_KEYS.BIOMETRIC_REFRESH_TOKEN,
+      DEVICE_KEYS.BIOMETRIC_USER,
+      DEVICE_KEYS.BIOMETRIC_ENABLED,
     ]);
   },
-
-  // Biometric setup seen (once shown, don't show again)
   async isBiometricSetupSeen() {
-    const val = await AsyncStorage.getItem(KEYS.BIOMETRIC_SETUP_SEEN);
+    const val = await AsyncStorage.getItem(DEVICE_KEYS.BIOMETRIC_SETUP_SEEN);
     return val === 'true';
   },
   async setBiometricSetupSeen() {
-    return AsyncStorage.setItem(KEYS.BIOMETRIC_SETUP_SEEN, 'true');
+    return AsyncStorage.setItem(DEVICE_KEYS.BIOMETRIC_SETUP_SEEN, 'true');
   },
 
-  // Preferences
+  // User-scoped: Preferences
   async getPreferences() {
-    const raw = await AsyncStorage.getItem(KEYS.PREFERENCES);
+    const raw = await AsyncStorage.getItem(_userKey(USER_SUBKEYS.PREFERENCES));
     return raw ? JSON.parse(raw) : {};
   },
   async setPreferences(prefs) {
-    return AsyncStorage.setItem(KEYS.PREFERENCES, JSON.stringify(prefs));
+    return AsyncStorage.setItem(_userKey(USER_SUBKEYS.PREFERENCES), JSON.stringify(prefs));
   },
 
-  // Budget reset day (integer 1-28, default 1)
+  // User-scoped: Budget reset day (1-28, default 1)
   async getBudgetResetDay() {
-    const val = await AsyncStorage.getItem(KEYS.BUDGET_RESET_DAY);
+    const val = await AsyncStorage.getItem(_userKey(USER_SUBKEYS.BUDGET_RESET_DAY));
     return val ? parseInt(val, 10) : 1;
   },
   async setBudgetResetDay(day) {
-    return AsyncStorage.setItem(KEYS.BUDGET_RESET_DAY, String(day));
+    return AsyncStorage.setItem(_userKey(USER_SUBKEYS.BUDGET_RESET_DAY), String(day));
   },
 
-  // Monthly spending budget amount (null = not set)
+  // User-scoped: Monthly spending budget (null = not set)
   async getMonthlyBudget() {
-    const val = await AsyncStorage.getItem(KEYS.MONTHLY_BUDGET);
+    const val = await AsyncStorage.getItem(_userKey(USER_SUBKEYS.MONTHLY_BUDGET));
     return val !== null ? parseFloat(val) : null;
   },
   async setMonthlyBudget(amount) {
-    if (amount === null || amount === undefined) {
-      return AsyncStorage.removeItem(KEYS.MONTHLY_BUDGET);
+    if (amount == null) {
+      return AsyncStorage.removeItem(_userKey(USER_SUBKEYS.MONTHLY_BUDGET));
     }
-    return AsyncStorage.setItem(KEYS.MONTHLY_BUDGET, String(amount));
+    return AsyncStorage.setItem(_userKey(USER_SUBKEYS.MONTHLY_BUDGET), String(amount));
   },
 
-  // Category display order — stored as JSON object { expense: [id,id,...], income: [id,...] }
+  // User-scoped: Category display order
   async getCategoryOrder() {
-    const raw = await AsyncStorage.getItem(KEYS.CATEGORY_ORDER);
+    const raw = await AsyncStorage.getItem(_userKey(USER_SUBKEYS.CATEGORY_ORDER));
     return raw ? JSON.parse(raw) : {};
   },
   async setCategoryOrder(orderMap) {
-    return AsyncStorage.setItem(KEYS.CATEGORY_ORDER, JSON.stringify(orderMap));
+    return AsyncStorage.setItem(_userKey(USER_SUBKEYS.CATEGORY_ORDER), JSON.stringify(orderMap));
   },
 
-  // Per-category monthly budgets — { [categoryId]: number }
+  // User-scoped: Per-category budgets
   async getCategoryBudgets() {
-    const raw = await AsyncStorage.getItem(KEYS.CATEGORY_BUDGETS);
+    const raw = await AsyncStorage.getItem(_userKey(USER_SUBKEYS.CATEGORY_BUDGETS));
     return raw ? JSON.parse(raw) : {};
   },
   async setCategoryBudgets(map) {
-    return AsyncStorage.setItem(KEYS.CATEGORY_BUDGETS, JSON.stringify(map));
+    return AsyncStorage.setItem(_userKey(USER_SUBKEYS.CATEGORY_BUDGETS), JSON.stringify(map));
   },
 
-  // Clear all
+  // Clear-all (used on app reset / debug)
   async clearAll() {
-    const keys = Object.values(KEYS);
-    await AsyncStorage.multiRemove(keys);
+    const all = await AsyncStorage.getAllKeys();
+    const ours = all.filter((k) => k.startsWith('@arthasmart/'));
+    if (ours.length) await AsyncStorage.multiRemove(ours);
+    _currentUserId = null;
   },
 };

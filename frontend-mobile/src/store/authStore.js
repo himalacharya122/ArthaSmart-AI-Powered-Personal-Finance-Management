@@ -36,6 +36,10 @@ export const useAuthStore = create((set, get) => ({
       ]);
 
       if (accessToken && user) {
+        // Scope storage to this user BEFORE the rest of the app starts reading
+        // user-specific keys (budgets, prefs). Also runs the legacy migration
+        // once on the first init after the multi-user storage rollout.
+        await storage.setCurrentUserId(user.id);
         set({
           accessToken,
           refreshToken,
@@ -47,6 +51,7 @@ export const useAuthStore = create((set, get) => ({
           biometricUnlocked: !biometricEnabled, // if biometric off, skip lock
         });
       } else {
+        await storage.setCurrentUserId(null);
         set({
           isLoading: false,
           hasSeenOnboarding: onboardingDone,
@@ -91,6 +96,8 @@ export const useAuthStore = create((set, get) => ({
       storage.setRefreshToken(refresh),
       storage.setUser(user),
     ]);
+    // Scope subsequent storage reads/writes to this user (multi-account safety)
+    await storage.setCurrentUserId(user.id);
 
     // If biometric is already enabled, update the user info but keep the biometric token
     // (the logout pre-refresh flow keeps the biometric token fresh and separate)
@@ -200,6 +207,9 @@ export const useAuthStore = create((set, get) => ({
     await storage.clearTokens();
     await storage.clearUser();
     // NOTE: biometric credentials survive logout intentionally (for biometric re-login)
+    // Reset storage scope so any reads while logged-out resolve to a 'guest'
+    // namespace and never leak into the previous user's data.
+    await storage.setCurrentUserId(null);
 
     set({
       user: null,
@@ -231,6 +241,8 @@ export const useAuthStore = create((set, get) => ({
       storage.setUser(user),
       storage.setBiometricRefreshToken(refresh), // keep biometric token rotated
     ]);
+    // Scope storage to this user (biometric login is still a fresh session)
+    await storage.setCurrentUserId(user.id);
 
     set({
       accessToken: access,
