@@ -46,7 +46,10 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         return ExpenseDetailSerializer
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user, source="manual")
+        # Honour an explicit `source` from the client (e.g. "ocr" from the
+        # receipt scan flow). Fall back to the model default (Source.MANUAL)
+        # when the client didn't supply one — manual entries stay manual.
+        serializer.save(user=self.request.user)
 
     def perform_destroy(self, instance):
         instance.is_deleted = True

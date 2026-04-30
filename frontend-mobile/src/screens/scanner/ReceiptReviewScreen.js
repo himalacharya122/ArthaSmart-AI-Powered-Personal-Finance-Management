@@ -17,9 +17,10 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { spacing, borderRadius, shadow } from '../../theme/spacing';
+import * as Clipboard from 'expo-clipboard';
 import { SCREEN_NAMES, CATEGORY_ICONS } from '../../utils/constants';
 import { formatCurrency } from '../../utils/format';
-import { createExpense, getCategories } from '../../services/transactions';
+import { createExpense, updateExpense, getCategories } from '../../services/transactions';
 import { useAppStore } from '../../store/appStore';
 import { useAuthStore } from '../../store/authStore';
 import {
@@ -70,12 +71,13 @@ export function ReceiptReviewScreen({ navigation, route }) {
     return isNaN(d.getTime()) ? new Date() : d;
   };
 
-  // Editable fields
+  // Editable fields — seed from previously-saved receipt so edits round-trip
   const [merchant, setMerchant] = useState(receiptData?.merchant || '');
+  const [description, setDescription] = useState(receiptData?.description || '');
   const [amount, setAmount] = useState(receiptData?.amount ? String(receiptData.amount) : '');
   const [date, setDate] = useState(receiptData?.date ? normalizeDate(receiptData.date) : new Date().toISOString().split('T')[0]);
   const [category, setCategory] = useState(receiptData?.category || 'Other');
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState(receiptData?.notes || '');
   const [saving, setSaving] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showRawText, setShowRawText] = useState(false);
@@ -83,12 +85,62 @@ export function ReceiptReviewScreen({ navigation, route }) {
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [categoriesMap, setCategoriesMap] = useState({}); // { name -> id }
+  const [rawTextCopied, setRawTextCopied] = useState(false);
 
-  const items = receiptData?.items || [];
+  // Editable items list — seeded from OCR but user can add/edit/delete.
+  // Always shown (even when empty) so users can manually add items.
+  const [editableItems, setEditableItems] = useState(() =>
+    (receiptData?.items || []).map((it, i) => ({
+      _key: `seed-${i}-${Date.now()}`,
+      name: String(it.name || ''),
+      qty: it.qty != null ? String(it.qty) : '1',
+      price: it.price != null ? String(it.price) : '',
+    }))
+  );
+
+  // Persisted link from receipt → expense, so editing+resaving updates the
+  // existing transaction rather than creating a duplicate.
+  const linkedExpenseId = receiptData?.linkedExpenseId || null;
+
   const aiCategory = receiptData?.category;
   const hasAiSuggestion = aiCategory && aiCategory !== 'Other' && aiCategory !== category;
 
   const parsedAmount = parseFloat(amount) || 0;
+
+  const updateItem = (key, field, val) => {
+    setEditableItems((prev) =>
+      prev.map((it) => (it._key === key ? { ...it, [field]: val } : it))
+    );
+  };
+  const addItem = () => {
+    setEditableItems((prev) => [
+      ...prev,
+      { _key: `new-${Date.now()}-${Math.random()}`, name: '', qty: '1', price: '' },
+    ]);
+  };
+  const removeItem = (key) => {
+    setEditableItems((prev) => prev.filter((it) => it._key !== key));
+  };
+
+  const handleCopyRawText = async () => {
+    try {
+      await Clipboard.setStringAsync(receiptData?.rawText || '');
+      setRawTextCopied(true);
+      setTimeout(() => setRawTextCopied(false), 1800);
+    } catch {
+      showToast('Failed to copy', 'error');
+    }
+  };
+
+  // Items list that gets persisted with the receipt (cleaned + numeric)
+  const sanitizedItems = () =>
+    editableItems
+      .filter((it) => it.name.trim() || parseFloat(it.price) > 0)
+      .map((it) => ({
+        name: it.name.trim(),
+        qty: parseInt(it.qty, 10) || 1,
+        price: parseFloat(it.price) || 0,
+      }));
 
   // Fetch backend categories to get name→id mapping
   useEffect(() => {
@@ -102,8 +154,9 @@ export function ReceiptReviewScreen({ navigation, route }) {
       .catch(() => { });
   }, []);
 
-  // Save receipt to local storage
-  const saveReceiptLocally = async (savedAsExpense = false) => {
+  // Save receipt to local storage. Optionally records the linked expense id
+  // so that subsequent edits update the same transaction (no duplicates).
+  const saveReceiptLocally = async ({ savedAsExpense = false, expenseId = null } = {}) => {
     try {
       if (!AsyncStorage) return;
       const stored = await AsyncStorage.getItem(RECEIPTS_STORAGE_KEY);
@@ -112,17 +165,21 @@ export function ReceiptReviewScreen({ navigation, route }) {
       const receipt = {
         id: isFromHistory ? receiptData.id : `receipt_${Date.now()}`,
         merchant,
+        description,
         amount: parsedAmount,
         date,
         category,
         notes,
         rawText: receiptData?.rawText || '',
-        items: receiptData?.items || [],
+        items: sanitizedItems(),
         imageUri,
         source,
         savedAsExpense,
         savedAt: new Date().toISOString(),
         ocrConfidence: receiptData?.ocrConfidence,
+        // Persist the link to the backend expense so we update on re-save
+        linkedExpenseId:
+          expenseId ?? receiptData?.linkedExpenseId ?? null,
       };
 
       if (isFromHistory) {
@@ -151,30 +208,60 @@ export function ReceiptReviewScreen({ navigation, route }) {
     setSaving(true);
     try {
       const normalizedDate = normalizeDate(date);
+      const itemsPayload = sanitizedItems();
       const payload = {
         amount: parsedAmount.toFixed(2),
-        description: merchant || 'Scanned Receipt',
+        // description, merchant and notes are real backend fields now.
+        // Items live in metadata since there's no first-class items column.
+        description: description || merchant || 'Scanned Receipt',
+        merchant: merchant || undefined,
+        notes: notes || '',
         date: normalizedDate,
         currency: 'NPR',
-        merchant: merchant || undefined,
+        // Mark as OCR-sourced so the detail screen's "Logged via" reads correctly
+        source: 'ocr',
       };
       // Map category name → backend ID
       const catId = categoriesMap[category];
       if (catId) payload.category_id = catId;
-      // Add notes as metadata since backend has no notes field
-      if (notes) payload.metadata = { notes, source: source || 'ocr' };
+      // Persist OCR provenance + items in metadata so the detail screen can
+      // render the same line-item table users captured during review.
+      payload.metadata = {
+        source: source || 'ocr',
+        items: itemsPayload,
+      };
 
-      await createExpense(payload);
-      await saveReceiptLocally(true);
-      navigation.replace(SCREEN_NAMES.SUCCESS, {
-        type: 'receipt_saved',
-        data: {
-          merchant: merchant || 'Scanned Receipt',
-          amount: parsedAmount,
-          itemCount: items.length,
-          confidence: receiptData?.ocrConfidence,
-        },
-      });
+      // If this receipt has already been saved as an expense, UPDATE that
+      // transaction instead of creating a new one (prevents duplicates).
+      const isUpdate = !!linkedExpenseId;
+      let resultId;
+      if (isUpdate) {
+        const updated = await updateExpense(linkedExpenseId, payload);
+        resultId = updated?.id || linkedExpenseId;
+      } else {
+        const created = await createExpense(payload);
+        resultId = created?.id || null;
+      }
+
+      await saveReceiptLocally({ savedAsExpense: true, expenseId: resultId });
+
+      if (isUpdate) {
+        // Quiet update — just confirm with a toast and return
+        showToast('Receipt updated', 'success');
+        navigation.popToTop();
+      } else {
+        // First-time save — celebratory success screen
+        navigation.replace(SCREEN_NAMES.SUCCESS, {
+          type: 'receipt_saved',
+          data: {
+            merchant: merchant || 'Scanned Receipt',
+            amount: parsedAmount,
+            itemCount: itemsPayload.length,
+            confidence: receiptData?.ocrConfidence,
+          },
+        });
+      }
+      return;
     } catch (err) {
       // Show detailed backend validation errors
       const data = err?.response?.data;
@@ -197,9 +284,9 @@ export function ReceiptReviewScreen({ navigation, route }) {
     }
   };
 
-  // Save as draft (local only)
+  // Save as draft (local only) — preserves linkedExpenseId if there is one
   const handleSaveDraft = async () => {
-    await saveReceiptLocally(false);
+    await saveReceiptLocally({ savedAsExpense: !!linkedExpenseId });
     showToast('Receipt saved as draft', 'success');
     navigation.popToTop();
   };
@@ -271,8 +358,83 @@ export function ReceiptReviewScreen({ navigation, route }) {
             </TouchableOpacity>
           )}
 
+          {/* Extracted Items — always visible, fully editable */}
+          <View style={styles.itemsCard}>
+            <View style={styles.itemsHeader}>
+              <Text style={styles.itemsTitle}>
+                Extracted Items ({editableItems.length})
+              </Text>
+              <TouchableOpacity onPress={addItem} style={styles.itemsAddBtn} activeOpacity={0.7}>
+                <MaterialIcons name="add" size={16} color={colors.accent[700]} />
+                <Text style={styles.itemsAddText}>Add</Text>
+              </TouchableOpacity>
+            </View>
+
+            {editableItems.length === 0 ? (
+              <Text style={styles.itemsEmptyText}>
+                No items detected. Tap "Add" to enter items manually.
+              </Text>
+            ) : (
+              editableItems.map((item, i) => (
+                <View
+                  key={item._key}
+                  style={[
+                    styles.editLineItem,
+                    i === editableItems.length - 1 && { borderBottomWidth: 0 },
+                  ]}
+                >
+                  <View style={styles.editItemTopRow}>
+                    <TextInput
+                      style={styles.editItemName}
+                      value={item.name}
+                      onChangeText={(v) => updateItem(item._key, 'name', v)}
+                      placeholder="Item name"
+                      placeholderTextColor={colors.primary[400]}
+                    />
+                    <TouchableOpacity
+                      onPress={() => removeItem(item._key)}
+                      style={styles.editItemRemove}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <MaterialIcons name="close" size={18} color={colors.danger[500]} />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.editItemBottomRow}>
+                    <View style={styles.editItemQtyWrap}>
+                      <Text style={styles.editItemSmallLabel}>Qty</Text>
+                      <TextInput
+                        style={styles.editItemNumInput}
+                        value={item.qty}
+                        onChangeText={(v) =>
+                          updateItem(item._key, 'qty', v.replace(/[^0-9]/g, ''))
+                        }
+                        placeholder="1"
+                        placeholderTextColor={colors.primary[400]}
+                        keyboardType="number-pad"
+                      />
+                    </View>
+                    <View style={styles.editItemPriceWrap}>
+                      <Text style={styles.editItemSmallLabel}>Price</Text>
+                      <Text style={styles.editItemPriceSymbol}>Rs</Text>
+                      <TextInput
+                        style={styles.editItemNumInput}
+                        value={item.price}
+                        onChangeText={(v) =>
+                          updateItem(item._key, 'price', v.replace(/[^0-9.]/g, ''))
+                        }
+                        placeholder="0.00"
+                        placeholderTextColor={colors.primary[400]}
+                        keyboardType="decimal-pad"
+                      />
+                    </View>
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+
           {/* Editable fields */}
-          <View style={styles.fieldsCard}>
+          <View style={[styles.fieldsCard, { marginTop: spacing.md }]}>
             {/* Merchant */}
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>Merchant / Store</Text>
@@ -283,6 +445,21 @@ export function ReceiptReviewScreen({ navigation, route }) {
                   value={merchant}
                   onChangeText={setMerchant}
                   placeholder="e.g. Bhatbhateni"
+                  placeholderTextColor={colors.primary[400]}
+                />
+              </View>
+            </View>
+
+            {/* Description */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>Description</Text>
+              <View style={styles.inputRow}>
+                <MaterialIcons name="short-text" size={20} color={colors.primary[500]} />
+                <TextInput
+                  style={styles.fieldInput}
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="What was this expense for?"
                   placeholderTextColor={colors.primary[400]}
                 />
               </View>
@@ -353,25 +530,6 @@ export function ReceiptReviewScreen({ navigation, route }) {
               </View>
             </View>
           </View>
-
-          {/* Line items */}
-          {items.length > 0 && (
-            <View style={styles.itemsCard}>
-              <Text style={styles.itemsTitle}>Extracted Items ({items.length})</Text>
-              {items.map((item, i) => (
-                <View 
-                  key={`item-${i}`} 
-                  style={[
-                    styles.lineItem, 
-                    i === items.length - 1 && { borderBottomWidth: 0 }
-                  ]}
-                >
-                  <Text style={styles.lineItemName} numberOfLines={1}>{item.name}</Text>
-                  <Text style={styles.lineItemPrice}>{formatCurrency(item.price)}</Text>
-                </View>
-              ))}
-            </View>
-          )}
 
           {/* Spacer for buttons */}
           <View style={{ height: 60 }} />
@@ -456,12 +614,34 @@ export function ReceiptReviewScreen({ navigation, route }) {
         {/* Raw Text Modal */}
         <Modal visible={showRawText} transparent animationType="fade">
           <View style={styles.confirmOverlay}>
-            <Pressable 
-              style={StyleSheet.absoluteFill} 
-              onPress={() => setShowRawText(false)} 
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              onPress={() => setShowRawText(false)}
             />
             <View style={styles.confirmCard}>
-              <Text style={styles.confirmTitle}>Raw OCR Text</Text>
+              <View style={styles.rawTextHeader}>
+                <Text style={styles.confirmTitle}>Raw OCR Text</Text>
+                <TouchableOpacity
+                  style={[styles.copyBtn, rawTextCopied && styles.copyBtnDone]}
+                  onPress={handleCopyRawText}
+                  activeOpacity={0.7}
+                  disabled={!receiptData?.rawText}
+                >
+                  <MaterialIcons
+                    name={rawTextCopied ? 'check' : 'content-copy'}
+                    size={16}
+                    color={rawTextCopied ? colors.accent[700] : colors.primary[700]}
+                  />
+                  <Text
+                    style={[
+                      styles.copyBtnText,
+                      rawTextCopied && { color: colors.accent[700] },
+                    ]}
+                  >
+                    {rawTextCopied ? 'Copied' : 'Copy'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
               <ScrollView style={{ maxHeight: 400, width: '100%' }} showsVerticalScrollIndicator={false}>
                 <Text style={styles.rawText}>{receiptData?.rawText || 'No text extracted'}</Text>
               </ScrollView>
@@ -594,18 +774,86 @@ const styles = StyleSheet.create({
   currencyPrefix: { ...typography.body, fontWeight: '700', color: colors.primary[600] },
   amountInput: { fontSize: 18, fontWeight: '600' },
 
-  // Line items
+  // Line items — editable
   itemsCard: {
     backgroundColor: colors.white, borderRadius: borderRadius.lg,
-    padding: spacing.md, marginTop: spacing.md, ...shadow.sm,
+    padding: spacing.md, marginBottom: spacing.md, ...shadow.sm,
   },
-  itemsTitle: { ...typography.label, fontSize: 14, marginBottom: spacing.sm },
-  lineItem: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: spacing.sm, borderBottomWidth: 0.5, borderBottomColor: colors.primary[100],
+  itemsHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginBottom: spacing.sm,
   },
-  lineItemName: { ...typography.bodySmall, flex: 1, marginRight: spacing.sm },
-  lineItemPrice: { ...typography.bodySmall, fontWeight: '600', color: colors.primary[800] },
+  itemsTitle: { ...typography.label, fontSize: 14 },
+  itemsAddBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: colors.accent[50], paddingHorizontal: spacing.sm + 2, paddingVertical: 6,
+    borderRadius: borderRadius.full,
+  },
+  itemsAddText: { fontSize: 12, fontWeight: '700', color: colors.accent[700] },
+  itemsEmptyText: {
+    ...typography.caption, color: colors.primary[500],
+    paddingVertical: spacing.md, textAlign: 'center',
+  },
+  editLineItem: {
+    paddingVertical: spacing.sm + 2,
+    borderBottomWidth: 0.5, borderBottomColor: colors.primary[100],
+    gap: spacing.sm,
+  },
+  editItemTopRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  editItemName: {
+    flex: 1,
+    fontSize: 14, color: colors.primary[800],
+    backgroundColor: colors.primary[50],
+    borderWidth: 1, borderColor: colors.primary[200],
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.sm, paddingVertical: 11,
+    minHeight: 44,
+  },
+  editItemRemove: {
+    width: 36, height: 36, borderRadius: borderRadius.sm,
+    backgroundColor: colors.danger[50],
+    alignItems: 'center', justifyContent: 'center',
+  },
+  editItemBottomRow: { flexDirection: 'row', gap: spacing.sm },
+  editItemQtyWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: colors.primary[50],
+    borderWidth: 1, borderColor: colors.primary[200],
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.sm, paddingVertical: 6,
+    minHeight: 44, width: 110,
+  },
+  editItemPriceWrap: {
+    flex: 1,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: colors.primary[50],
+    borderWidth: 1, borderColor: colors.primary[200],
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.sm, paddingVertical: 6,
+    minHeight: 44,
+  },
+  editItemSmallLabel: { ...typography.caption, color: colors.primary[500], fontWeight: '600' },
+  editItemPriceSymbol: { ...typography.caption, color: colors.primary[600], fontWeight: '700' },
+  editItemNumInput: {
+    flex: 1,
+    fontSize: 15, fontWeight: '600',
+    color: colors.primary[800], padding: 0, textAlign: 'right',
+    minHeight: 28,
+  },
+
+  // Raw text modal
+  rawTextHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    width: '100%', marginBottom: spacing.md,
+  },
+  copyBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: colors.primary[100],
+    paddingHorizontal: spacing.sm + 2, paddingVertical: 6,
+    borderRadius: borderRadius.full,
+  },
+  copyBtnDone: { backgroundColor: colors.accent[50] },
+  copyBtnText: { fontSize: 12, fontWeight: '700', color: colors.primary[700] },
 
   // Bottom bar
   bottomBar: {

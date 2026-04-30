@@ -132,6 +132,10 @@ class Expense(models.Model):
         related_name="expenses",
     )
     description = models.TextField(blank=True)
+    notes = models.TextField(
+        blank=True,
+        help_text="User-authored free-text notes (separate from description).",
+    )
     merchant = models.CharField(max_length=255, blank=True)
     date = models.DateField()
     time = models.TimeField(null=True, blank=True)
@@ -212,6 +216,10 @@ class Income(models.Model):
         help_text="e.g., 'TBC Salary', 'Freelance Project'",
     )
     description = models.TextField(blank=True)
+    notes = models.TextField(
+        blank=True,
+        help_text="User-authored free-text notes (separate from description).",
+    )
     date = models.DateField()
     is_recurring = models.BooleanField(default=False)
     recurring = models.ForeignKey(
