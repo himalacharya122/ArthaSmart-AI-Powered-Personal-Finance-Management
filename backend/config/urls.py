@@ -1,5 +1,7 @@
 """URL configuration for ArthaSmart."""
 
+from django.conf import settings  # type: ignore
+from django.conf.urls.static import static  # type: ignore
 from django.contrib import admin  # type: ignore
 from django.urls import include, path  # type: ignore
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView  # type: ignore
@@ -28,3 +30,8 @@ urlpatterns = [
         name="swagger-ui",
     ),
 ]
+
+# Serve uploaded media files (receipt images, etc.) in development.
+# In production, a real web server (nginx / S3 / Cloudflare) handles /media/.
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
