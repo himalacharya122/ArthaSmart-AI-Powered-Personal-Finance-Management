@@ -46,28 +46,29 @@ export function Sidebar() {
 
       {/* Sidebar */}
       <aside
+        style={{ backgroundColor: 'var(--surface)' }}
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex flex-col overflow-hidden bg-white border-r border-primary-950/20 text-white lg:static lg:z-auto',
+          'fixed inset-y-0 left-0 z-50 flex flex-col overflow-hidden border-r border-border text-white lg:static lg:z-auto',
           'transition-[width,transform] duration-200 ease-in-out',
           sidebarOpen ? 'w-64' : 'w-20',
           mobileNavOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         )}
       >
         {/* Logo */}
-        <div className="flex h-16 items-center justify-between px-4 border-b border-primary-950/20">
+        <div className="flex h-16 items-center justify-between px-4 border-b border-border">
           <div className="flex items-center gap-3 overflow-hidden whitespace-nowrap">
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary-950/80 font-bold text-white text-sm">
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-accent-green font-bold text-background-start text-sm shadow-glow-green">
               A
             </div>
             <span className={cn(
-              'text-lg font-bold tracking-tight transition-opacity duration-200',
-              sidebarOpen ? 'text-primary-950 opacity-100' : 'opacity-0',
+              'text-xl font-bold tracking-tighter transition-opacity duration-200',
+              sidebarOpen ? 'text-primary-text opacity-100' : 'opacity-0',
             )}>
               {APP_NAME}
             </span>
           </div>
           <button
-            className="rounded-md p-1 hover:bg-primary-600 lg:hidden"
+            className="rounded-md p-1 hover:bg-surface-hover lg:hidden"
             onClick={() => setMobileNavOpen(false)}
           >
             <X className="h-5 w-5" />
@@ -75,7 +76,7 @@ export function Sidebar() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 overflow-y-auto overflow-x-hidden px-3 py-4">
+        <nav className="flex-1 space-y-1 overflow-y-auto overflow-x-hidden px-3 py-6">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
@@ -84,15 +85,15 @@ export function Sidebar() {
               onClick={() => setMobileNavOpen(false)}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium whitespace-nowrap overflow-hidden transition-colors',
+                  'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium whitespace-nowrap overflow-hidden transition-all duration-300',
                   isActive
-                    ? 'bg-primary-950/80 text-white'
-                    : 'text-black/70 hover:bg-primary-600 hover:text-white',
-                  !sidebarOpen && 'justify-center',
+                    ? 'bg-accent-green/10 text-accent-green shadow-inner-glow'
+                    : 'text-primary-secondary hover:bg-surface-hover hover:text-primary-text',
+                  !sidebarOpen && 'justify-center px-0',
                 )
               }
             >
-              <item.icon className="h-5 w-5 flex-shrink-0" />
+              <item.icon className={cn("h-5 w-5 flex-shrink-0", sidebarOpen ? "" : "mx-auto")} />
               <span className={cn(
                 'transition-opacity duration-200',
                 sidebarOpen ? 'opacity-100' : 'opacity-0 w-0',
@@ -104,9 +105,9 @@ export function Sidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-primary-950/20 p-4 overflow-hidden whitespace-nowrap">
+        <div className="border-t border-border p-4 overflow-hidden whitespace-nowrap">
           <p className={cn(
-            'text-xs text-black/70 transition-opacity duration-200',
+            'text-xs text-primary-secondary transition-opacity duration-200',
             sidebarOpen ? 'opacity-100' : 'opacity-0',
           )}>
             &copy; 2026 {APP_NAME}

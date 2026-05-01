@@ -32,32 +32,37 @@ export function IncomeExpenseChart({ data }: IncomeExpenseChartProps) {
   return (
     <ResponsiveContainer width="100%" height={260}>
       <BarChart data={chartData} barGap={4}>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(9,29,42,0.1)" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#2d3349" vertical={false} />
         <XAxis
           dataKey="month"
-          tick={{ fontSize: 12, fill: 'rgba(9,29,42,0.6)' }}
+          tick={{ fontSize: 12, fill: '#8b92ab' }}
           axisLine={false}
           tickLine={false}
         />
         <YAxis
-          tick={{ fontSize: 12, fill: 'rgba(9,29,42,0.6)' }}
+          tick={{ fontSize: 12, fill: '#8b92ab' }}
           axisLine={false}
           tickLine={false}
         />
         <Tooltip
           contentStyle={{
-            borderRadius: '8px',
-            border: '1px solid rgba(9,29,42,0.2)',
+            backgroundColor: 'rgba(26, 31, 53, 0.8)',
+            backdropFilter: 'blur(8px)',
+            borderRadius: '12px',
+            border: '1px solid #2d3349',
             fontSize: '13px',
-            color: '#091D2A',
+            color: '#ffffff',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
           }}
-          cursor={{ fill: 'rgba(9,29,42,0.04)' }}
+          itemStyle={{ color: '#ffffff' }}
+          cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
         />
         <Legend
-          wrapperStyle={{ fontSize: '13px', color: 'rgba(9,29,42,0.7)' }}
+          wrapperStyle={{ fontSize: '13px', paddingTop: '20px' }}
+          formatter={(value) => <span style={{ color: '#8b92ab' }}>{value}</span>}
         />
-        <Bar dataKey="Income" fill="#3A9E55" radius={[4, 4, 0, 0]} />
-        <Bar dataKey="Expenses" fill="#091D2A" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="Income" fill="#00d4aa" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="Expenses" fill="#ff4757" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

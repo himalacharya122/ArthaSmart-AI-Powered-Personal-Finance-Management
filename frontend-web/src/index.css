@@ -1,9 +1,16 @@
-@font-face {
-  font-family: 'Manrope';
-  src: url('/fonts/Manrope-Variable.woff2') format('woff2');
-  font-weight: 200 800;
-  font-display: swap;
-  font-style: normal;
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+
+:root {
+  --background-start: #0a0e1a;
+  --background-end: #151b2e;
+  --surface: #1a1f35;
+  --surface-hover: #1f243a;
+  --accent-green: #00d4aa;
+  --accent-red: #ff4757;
+  --accent-gold: #ffd93d;
+  --border: #2d3349;
+  --primary-text: #ffffff;
+  --primary-secondary: #8b92ab;
 }
 
 @tailwind base;
@@ -12,6 +19,50 @@
 
 @layer base {
   body {
-    @apply bg-surface text-primary-800 font-sans antialiased;
+    background: linear-gradient(135deg, var(--background-start) 0%, var(--background-end) 100%);
+    @apply text-white font-sans antialiased;
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-sans tracking-tight;
+  }
+}
+
+@layer components {
+  .crypto-card {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    @apply rounded-xl transition-all duration-300;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  }
+  
+  .crypto-card:hover {
+    border-color: rgba(0, 212, 170, 0.5);
+    box-shadow: 0 0 15px rgba(0, 212, 170, 0.3);
+    transform: translateY(-2px);
+  }
+
+  .number-font {
+    @apply font-mono tracking-tighter;
+  }
+}
+
+@layer utilities {
+  .bg-surface {
+    background-color: var(--surface) !important;
+  }
+  .bg-surface-hover:hover {
+    background-color: var(--surface-hover) !important;
+  }
+  .text-primary-text {
+    color: var(--primary-text) !important;
+  }
+  .text-primary-secondary {
+    color: var(--primary-secondary) !important;
+  }
+  .border-border {
+    border-color: var(--border) !important;
   }
 }

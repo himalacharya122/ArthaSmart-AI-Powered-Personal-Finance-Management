@@ -15,7 +15,7 @@ const paddingClasses = {
 
 export function Card({ children, className, padding = 'md' }: CardProps) {
   return (
-    <div className={cn('rounded-lg bg-card shadow-sm border border-primary-100', paddingClasses[padding], className)}>
+    <div className={cn('crypto-card overflow-hidden', paddingClasses[padding], className)}>
       {children}
     </div>
   );

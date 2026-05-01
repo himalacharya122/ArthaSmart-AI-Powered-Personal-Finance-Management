@@ -49,11 +49,15 @@ export function SpendingChart({ categories, currency = 'NPR' }: SpendingChartPro
         <Tooltip
           formatter={(value) => formatCurrency(Number(value), currency)}
           contentStyle={{
-            borderRadius: '8px',
-            border: '1px solid rgba(9,29,42,0.2)',
+            backgroundColor: 'rgba(26, 31, 53, 0.8)',
+            backdropFilter: 'blur(8px)',
+            borderRadius: '12px',
+            border: '1px solid #2d3349',
             fontSize: '13px',
-            color: '#091D2A',
+            color: '#ffffff',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
           }}
+          itemStyle={{ color: '#ffffff' }}
         />
       </PieChart>
     </ResponsiveContainer>
