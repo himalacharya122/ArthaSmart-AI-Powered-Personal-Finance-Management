@@ -1,13 +1,13 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { formatCurrency } from '@/utils/format';
 
-const FALLBACK_COLORS = [
-  '#091D2A', // primary-950
-  '#1F6F8B', // primary-500
-  '#4787AF', // primary-400
-  '#75A5C3', // primary-300
-  '#3A9E55', // accent-600
-  '#7DD89A', // accent-300
+const MUTED_COLORS = [
+  '#1e3a8a', // Navy
+  '#15803d', // Forest Green
+  '#b45309', // Amber
+  '#57534e', // Warm Gray
+  '#0f766e', // Teal
+  '#78716c', // Light Warm Gray
 ];
 
 interface SpendingChartProps {
@@ -19,12 +19,12 @@ export function SpendingChart({ categories, currency = 'NPR' }: SpendingChartPro
   const data = categories.map((c, i) => ({
     name: c.name,
     value: parseFloat(c.total),
-    color: c.color || FALLBACK_COLORS[i % FALLBACK_COLORS.length],
+    color: MUTED_COLORS[i % MUTED_COLORS.length],
   }));
 
   if (data.length === 0 || data.every((d) => d.value === 0)) {
     return (
-      <p className="flex h-48 items-center justify-center text-sm text-primary-950/50">
+      <p className="flex h-48 items-center justify-center text-sm text-[#78716c]">
         No spending data yet
       </p>
     );
@@ -39,8 +39,9 @@ export function SpendingChart({ categories, currency = 'NPR' }: SpendingChartPro
           cy="50%"
           innerRadius={55}
           outerRadius={85}
-          paddingAngle={3}
+          paddingAngle={2}
           dataKey="value"
+          stroke="none"
         >
           {data.map((entry) => (
             <Cell key={entry.name} fill={entry.color} />
@@ -49,10 +50,13 @@ export function SpendingChart({ categories, currency = 'NPR' }: SpendingChartPro
         <Tooltip
           formatter={(value) => formatCurrency(Number(value), currency)}
           contentStyle={{
-            borderRadius: '8px',
-            border: '1px solid rgba(9,29,42,0.2)',
-            fontSize: '13px',
-            color: '#091D2A',
+            borderRadius: '4px',
+            border: '1px solid #e7e5e4',
+            boxShadow: '0 4px 6px -1px rgba(41, 37, 36, 0.1)',
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#292524',
+            background: '#fafaf9',
           }}
         />
       </PieChart>
