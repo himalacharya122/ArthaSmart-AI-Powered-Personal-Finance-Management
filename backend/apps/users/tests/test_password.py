@@ -110,7 +110,7 @@ class TestPasswordResetRequest:
         def boom(*a, **kw):
             raise RuntimeError("smtp down")
 
-        monkeypatch.setattr("apps.users.views.send_mail", boom)
+        monkeypatch.setattr("apps.users.views.EmailMultiAlternatives.send", boom)
         r = api_client.post(RESET_URL, {"email": u.email}, format="json")
         assert r.status_code == 500
 
