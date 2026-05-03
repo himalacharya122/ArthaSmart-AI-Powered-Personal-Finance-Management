@@ -8,11 +8,11 @@ interface RecentExpensesProps {
 }
 
 const MUTED_COLORS = [
-  'bg-[#1e3a8a]', // Navy
-  'bg-[#15803d]', // Forest Green
-  'bg-[#b45309]', // Amber/Brown
-  'bg-[#57534e]', // Warm Gray
-  'bg-[#0f766e]', // Teal
+  'bg-primary-950',
+  'bg-accent-500',
+  'bg-danger-500',
+  'bg-primary-400',
+  'bg-primary-700',
 ];
 
 export function RecentExpenses({ expenses, currency = 'NPR' }: RecentExpensesProps) {
@@ -20,7 +20,7 @@ export function RecentExpenses({ expenses, currency = 'NPR' }: RecentExpensesPro
 
   if (expenses.length === 0) {
     return (
-      <p className="py-6 text-center text-sm text-[#78716c]">No expenses yet</p>
+      <p className="py-6 text-center text-[13px] text-primary-950/60 font-medium">No expenses yet</p>
     );
   }
 
@@ -28,11 +28,11 @@ export function RecentExpenses({ expenses, currency = 'NPR' }: RecentExpensesPro
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-[#e7e5e4] text-left text-xs font-semibold uppercase tracking-wider text-[#78716c]">
-            <th className="pb-3 pl-2 pr-4 font-semibold">Date</th>
-            <th className="pb-3 pr-4 font-semibold">Description</th>
-            <th className="pb-3 pr-4 font-semibold">Category</th>
-            <th className="pb-3 pr-2 text-right font-semibold">Amount</th>
+          <tr className="border-b border-[rgba(9,29,42,0.07)] text-left text-[11px] font-[700] uppercase tracking-wider text-primary-950/60">
+            <th className="pb-3 pl-2 pr-4">Date</th>
+            <th className="pb-3 pr-4">Description</th>
+            <th className="pb-3 pr-4">Category</th>
+            <th className="pb-3 pr-2 text-right">Amount</th>
           </tr>
         </thead>
         <tbody>
@@ -41,25 +41,21 @@ export function RecentExpenses({ expenses, currency = 'NPR' }: RecentExpensesPro
             return (
               <tr
                 key={exp.id}
-                className={`border-b border-[#e7e5e4] last:border-0 cursor-pointer transition-colors ${
-                  i % 2 === 0 ? 'bg-white' : 'bg-[#f5f5f4]'
-                } hover:bg-[#e7e5e4]/50`}
+                className="border-b border-[rgba(9,29,42,0.07)] last:border-0 cursor-pointer transition-colors hover:bg-[#F6F7F9]"
                 onClick={() => navigate('/expenses')}
               >
-                <td className="py-3 pl-2 pr-4 text-[#78716c] font-medium">{formatDate(exp.date, 'dd MMM')}</td>
-                <td className="py-3 pr-4 font-semibold text-[#292524]">
+                <td className="py-3 pl-2 pr-4 text-primary-950/60 font-medium">{formatDate(exp.date, 'dd MMM')}</td>
+                <td className="py-3 pr-4 font-[700] text-primary-950">
                   {exp.description || exp.merchant || 'Untitled'}
                 </td>
                 <td className="py-3 pr-4">
                   <span className="inline-flex items-center gap-2">
-                    <span
-                      className={`inline-block h-2 w-2 rounded-full flex-shrink-0 ${colorClass}`}
-                    />
-                    <span className="text-[#78716c] font-medium">{exp.category_name || 'Uncategorized'}</span>
+                    <span className={`inline-block h-2 w-2 rounded-full flex-shrink-0 ${colorClass}`} />
+                    <span className="text-primary-950/60 font-medium">{exp.category_name || 'Uncategorized'}</span>
                   </span>
                 </td>
                 <td className="py-3 pr-2 text-right">
-                  <span className="inline-flex items-center rounded-full bg-[#fce7f3] px-2.5 py-0.5 text-sm font-semibold text-[#9d174d]">
+                  <span className="inline-flex items-center text-[13px] font-[800] text-primary-950 tracking-tight">
                     {formatCurrency(exp.amount, exp.currency || currency)}
                   </span>
                 </td>

@@ -1,13 +1,13 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { formatCurrency } from '@/utils/format';
 
-const MUTED_COLORS = [
-  '#1e3a8a', // Navy
-  '#15803d', // Forest Green
-  '#b45309', // Amber
-  '#57534e', // Warm Gray
-  '#0f766e', // Teal
-  '#78716c', // Light Warm Gray
+const BRAND_COLORS = [
+  '#091D2A', // primary-950
+  '#4DB86A', // accent-500
+  '#E74C3C', // danger-500
+  '#4787AF', // primary-400
+  '#154360', // primary-700
+  '#A3C3D7', // primary-200
 ];
 
 interface SpendingChartProps {
@@ -19,12 +19,12 @@ export function SpendingChart({ categories, currency = 'NPR' }: SpendingChartPro
   const data = categories.map((c, i) => ({
     name: c.name,
     value: parseFloat(c.total),
-    color: MUTED_COLORS[i % MUTED_COLORS.length],
+    color: BRAND_COLORS[i % BRAND_COLORS.length],
   }));
 
   if (data.length === 0 || data.every((d) => d.value === 0)) {
     return (
-      <p className="flex h-48 items-center justify-center text-sm text-[#78716c]">
+      <p className="flex h-48 items-center justify-center text-[13px] text-primary-950/60 font-medium">
         No spending data yet
       </p>
     );
@@ -37,9 +37,9 @@ export function SpendingChart({ categories, currency = 'NPR' }: SpendingChartPro
           data={data}
           cx="50%"
           cy="50%"
-          innerRadius={55}
+          innerRadius={60}
           outerRadius={85}
-          paddingAngle={2}
+          paddingAngle={3}
           dataKey="value"
           stroke="none"
         >
@@ -50,14 +50,15 @@ export function SpendingChart({ categories, currency = 'NPR' }: SpendingChartPro
         <Tooltip
           formatter={(value) => formatCurrency(Number(value), currency)}
           contentStyle={{
-            borderRadius: '4px',
-            border: '1px solid #e7e5e4',
-            boxShadow: '0 4px 6px -1px rgba(41, 37, 36, 0.1)',
-            fontSize: '14px',
-            fontWeight: '600',
-            color: '#292524',
-            background: '#fafaf9',
+            borderRadius: '8px',
+            border: '1px solid rgba(9,29,42,0.07)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+            fontSize: '13px',
+            fontWeight: '700',
+            color: '#091D2A',
+            background: '#ffffff',
           }}
+          itemStyle={{ color: '#091D2A', fontWeight: '800' }}
         />
       </PieChart>
     </ResponsiveContainer>

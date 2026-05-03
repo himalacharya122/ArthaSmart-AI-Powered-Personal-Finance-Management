@@ -17,7 +17,7 @@ interface IncomeExpenseChartProps {
 export function IncomeExpenseChart({ data }: IncomeExpenseChartProps) {
   if (data.length === 0) {
     return (
-      <p className="flex h-48 items-center justify-center text-sm text-[#78716c]">
+      <p className="flex h-48 items-center justify-center text-[13px] text-primary-950/60 font-medium">
         No data yet
       </p>
     );
@@ -32,48 +32,39 @@ export function IncomeExpenseChart({ data }: IncomeExpenseChartProps) {
   return (
     <ResponsiveContainer width="100%" height={260}>
       <BarChart data={chartData} barGap={6}>
-        <defs>
-          <linearGradient id="incomeFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#15803d" stopOpacity={1} />
-            <stop offset="100%" stopColor="#15803d" stopOpacity={0.8} />
-          </linearGradient>
-          <linearGradient id="expenseFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#1e3a8a" stopOpacity={1} />
-            <stop offset="100%" stopColor="#1e3a8a" stopOpacity={0.8} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(9,29,42,0.07)" vertical={false} />
         <XAxis
           dataKey="month"
-          tick={{ fontSize: 13, fill: '#78716c', fontWeight: 500 }}
+          tick={{ fontSize: 12, fill: '#091D2A', fontWeight: 600, opacity: 0.6 }}
           axisLine={false}
           tickLine={false}
           dy={10}
         />
         <YAxis
-          tick={{ fontSize: 13, fill: '#78716c', fontWeight: 500 }}
-          axisLine={{ stroke: '#e7e5e4' }}
+          tick={{ fontSize: 12, fill: '#091D2A', fontWeight: 600, opacity: 0.6 }}
+          axisLine={{ stroke: 'rgba(9,29,42,0.07)' }}
           tickLine={false}
           dx={-10}
         />
         <Tooltip
           contentStyle={{
-            borderRadius: '4px',
-            border: '1px solid #e7e5e4',
-            boxShadow: '0 4px 6px -1px rgba(41, 37, 36, 0.1)',
-            fontSize: '14px',
-            fontWeight: '600',
-            color: '#292524',
-            background: '#fafaf9',
+            borderRadius: '8px',
+            border: '1px solid rgba(9,29,42,0.07)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+            fontSize: '13px',
+            fontWeight: '700',
+            color: '#091D2A',
+            background: '#ffffff',
           }}
-          cursor={{ fill: 'rgba(120, 113, 108, 0.05)' }}
+          cursor={{ fill: 'rgba(9,29,42,0.03)' }}
+          itemStyle={{ color: '#091D2A', fontWeight: '800' }}
         />
         <Legend
-          wrapperStyle={{ fontSize: '13px', fontWeight: '500', color: '#78716c', paddingTop: '16px' }}
+          wrapperStyle={{ fontSize: '12px', fontWeight: '700', color: '#091D2A', opacity: 0.8, paddingTop: '16px' }}
           iconType="circle"
         />
-        <Bar dataKey="Income" fill="url(#incomeFill)" radius={[4, 4, 0, 0]} />
-        <Bar dataKey="Expenses" fill="url(#expenseFill)" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="Income" fill="#4DB86A" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="Expenses" fill="#E74C3C" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );
