@@ -15,9 +15,7 @@ from apps.chat.services.context_builder import build_user_context, build_user_me
 pytestmark = pytest.mark.django_db
 
 
-# ---------------------------------------------------------------------------
 # ai_client.call_ai_chat — delegates to httpx and handles failure modes
-# ---------------------------------------------------------------------------
 
 
 class TestCallAIChat:
@@ -63,9 +61,7 @@ class TestCallAIChat:
         assert "something went wrong" in r["reply"].lower()
 
 
-# ---------------------------------------------------------------------------
 # action_executor.execute_actions
-# ---------------------------------------------------------------------------
 
 
 class TestExecuteActions:
@@ -167,9 +163,7 @@ class TestExecuteActions:
         assert Expense.objects.filter(category__name="Food & Drink").exists()
 
 
-# ---------------------------------------------------------------------------
 # context_builder
-# ---------------------------------------------------------------------------
 
 
 class TestBuildUserContext:
@@ -183,7 +177,7 @@ class TestBuildUserContext:
     def test_calculates_savings_rate(self, user, expense_factory, income_factory):
         from datetime import date
 
-        today = date.today().replace(day=15)
+        today = date.today()
         expense_factory(user=user, amount=Decimal("300"), date=today)
         income_factory(user=user, amount=Decimal("1000"), date=today)
         ctx = build_user_context(user)
