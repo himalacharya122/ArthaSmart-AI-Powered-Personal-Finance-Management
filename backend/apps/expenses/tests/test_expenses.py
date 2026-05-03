@@ -101,15 +101,15 @@ class TestExpenseCreate:
         )
         assert r.status_code == 400
 
-    def test_source_cannot_be_set_via_api(self, authenticated_client):
-        """perform_create hardcodes source=manual."""
+    def test_source_can_be_set_via_api(self, authenticated_client):
+        """Source can be explicitly set (e.g. for OCR flow)."""
         r = authenticated_client.post(
             LIST_URL,
             {"amount": "100", "date": "2026-04-22", "source": "ocr"},
             format="json",
         )
         assert r.status_code == 201
-        assert Expense.objects.get(pk=r.data["id"]).source == "manual"
+        assert Expense.objects.get(pk=r.data["id"]).source == "ocr"
 
 
 class TestExpenseRetrieveUpdate:

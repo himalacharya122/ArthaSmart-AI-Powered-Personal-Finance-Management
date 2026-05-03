@@ -4,7 +4,7 @@ import logging
 
 from django.conf import settings  # type: ignore
 from django.contrib.auth.tokens import default_token_generator  # type: ignore
-from django.core.mail import send_mail, EmailMultiAlternatives  # type: ignore
+from django.core.mail import EmailMultiAlternatives, send_mail  # type: ignore
 from django.utils.encoding import force_bytes, force_str  # type: ignore
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode  # type: ignore
 from rest_framework import generics, status  # type: ignore
