@@ -15,8 +15,21 @@ const paddingClasses = {
 
 export function Card({ children, className, padding = 'md' }: CardProps) {
   return (
-    <div className={cn('rounded-lg bg-card shadow-sm border border-primary-100', paddingClasses[padding], className)}>
-      {children}
+    <div 
+      className={cn(
+        'group relative overflow-hidden bg-white transition-all duration-300',
+        paddingClasses[padding],
+        className
+      )}
+      style={{ 
+        borderRadius: '14px', 
+        border: '1px solid rgba(9,29,42,0.07)',
+        boxShadow: 'none'
+      }}
+    >
+      <div className="relative z-10">
+        {children}
+      </div>
     </div>
   );
 }

@@ -24,7 +24,7 @@ export function SummaryCard({ label, value, icon, trend, trendUp, loading }: Sum
   return (
     <div 
       className={cn(
-        "group relative overflow-hidden bg-white p-6 transition-transform hover:-translate-y-1",
+        "group relative overflow-hidden bg-white p-6",
         "border border-[rgba(9,29,42,0.07)] shadow-sm"
       )} 
       style={{ borderRadius: '16px' }}

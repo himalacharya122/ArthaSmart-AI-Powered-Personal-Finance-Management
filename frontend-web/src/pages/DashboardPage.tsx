@@ -22,9 +22,6 @@ const PanelCard = ({ title, linkTo, linkText, children, className = "" }: any) =
     className={`group relative overflow-hidden bg-white p-6 transition-all duration-300 ${className}`}
     style={{ borderRadius: '14px', border: '1px solid rgba(9,29,42,0.07)' }}
   >
-    {/* Hover accent bar */}
-    <div className="absolute left-0 top-1/2 w-[2px] h-0 bg-accent-500 -translate-y-1/2 transition-all duration-300 group-hover:h-full"></div>
-
     <div className="mb-6 flex items-center justify-between relative z-10">
       <div className="flex items-center gap-2">
         <div className="w-1 h-1 bg-accent-500"></div>
@@ -61,7 +58,7 @@ export function DashboardPage() {
   }
 
   return (
-    <div className="bg-[#F6F7F9] font-sans min-h-screen p-6 -m-6 selection:bg-accent-500/30 selection:text-primary-950">
+    <div className="bg-[#F6F7F9] font-sans min-h-screen p-6 -m-6">
       
       {/* Masthead */}
       <div className="bg-primary-950 -mx-6 -mt-6 px-8 pt-10 pb-20">

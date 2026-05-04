@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import { formatCurrency, formatDate } from '@/utils/format';
 import type { DashboardData } from '@/types/report';
 
@@ -16,7 +15,6 @@ const MUTED_COLORS = [
 ];
 
 export function RecentExpenses({ expenses, currency = 'NPR' }: RecentExpensesProps) {
-  const navigate = useNavigate();
 
   if (expenses.length === 0) {
     return (
@@ -41,8 +39,7 @@ export function RecentExpenses({ expenses, currency = 'NPR' }: RecentExpensesPro
             return (
               <tr
                 key={exp.id}
-                className="border-b border-[rgba(9,29,42,0.07)] last:border-0 cursor-pointer transition-colors hover:bg-[#F6F7F9]"
-                onClick={() => navigate('/expenses')}
+                className="border-b border-[rgba(9,29,42,0.07)] last:border-0"
               >
                 <td className="py-3 pl-2 pr-4 text-primary-950/60 font-medium">{formatDate(exp.date, 'dd MMM')}</td>
                 <td className="py-3 pr-4 font-[700] text-primary-950">
