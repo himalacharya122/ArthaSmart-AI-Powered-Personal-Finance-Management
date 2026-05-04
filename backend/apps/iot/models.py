@@ -43,6 +43,29 @@ class IoTDevice(models.Model):
     api_key_expires_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     last_seen = models.DateTimeField(null=True, blank=True)
+    # -------------------------------------------------------------------------
+    # IoT Receipt Scanner — last known LAN IP of the device
+    # The firmware sends X-Device-IP on every poll request; PollView writes it
+    # here so the web UI can build a direct snapshot URL for live preview.
+    # Only meaningful on the same LAN — blank until first successful poll.
+    # To remove: delete this field, run a migration, and remove from PollView +
+    # IoTDeviceSerializer + the X-Device-IP httpJson() header in main.cpp.
+    last_ip = models.CharField(
+        max_length=45,
+        blank=True,
+        default="",
+        help_text="Last reported LAN IP (IPv4 or IPv6). Populated by poll endpoint.",
+    )
+    # -------------------------------------------------------------------------
+    # IoT Receipt Scanner — remote capture flag
+    # Set to True by POST /api/v1/iot/devices/{id}/capture/ (web UI).
+    # The ESP32-CAM firmware polls GET /api/v1/iot/poll/ and consumes this flag
+    # (reads True → fires shutter → backend resets to False atomically).
+    # Only meaningful for device_type="receipt_scanner"; ignored for nfc_logger.
+    # To remove: delete this field, run a migration, remove the `capture` action
+    # from IoTDeviceViewSet in views.py, and remove PollView from urls.py/ingest.py.
+    pending_capture = models.BooleanField(default=False)
+    # -------------------------------------------------------------------------
     firmware_version = models.CharField(max_length=50, blank=True)
     metadata = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
