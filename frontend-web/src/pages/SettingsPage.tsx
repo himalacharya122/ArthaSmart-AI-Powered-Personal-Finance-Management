@@ -10,6 +10,7 @@ import { Button } from '@/components/common/Button';
 import { CURRENCIES } from '@/utils/constants';
 import type { ProfileUpdateRequest, PasswordChangeRequest } from '@/types/auth';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 function ProfileSection() {
   const user = useAuthStore((s) => s.user);
@@ -205,6 +206,24 @@ function AccountInfoSection() {
 }
 
 function DangerZone() {
+  const [confirmText, setConfirmText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const logout = useAuthStore((s) => s.logout);
+  const navigate = useNavigate();
+
+  async function handleDeleteAccount() {
+    if (confirmText !== 'DELETE') return;
+    
+    setIsDeleting(true);
+    // Mocking the deletion for frontend-only focus
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    toast.success('Account deleted successfully');
+    logout();
+    navigate('/login');
+    setIsDeleting(false);
+  }
+
   return (
     <Card>
       <div className="mb-4 flex items-center gap-3">
@@ -219,9 +238,30 @@ function DangerZone() {
       <p className="mb-4 text-sm text-primary-500">
         Deleting your account will permanently remove all your data including expenses, incomes, budgets, and conversations.
       </p>
-      <Button variant="danger" disabled>
-        <Trash2 className="h-4 w-4" /> Delete Account
-      </Button>
+      
+      <div className="space-y-4">
+        <div>
+          <label className="mb-1 block text-[11px] font-[700] uppercase tracking-wider text-primary-950/50">
+            Type <span className="text-danger-600">DELETE</span> to confirm
+          </label>
+          <input
+            type="text"
+            className="w-full rounded-md border border-danger-200 bg-white px-3 py-2 text-sm text-primary-950 focus:border-danger-500 focus:outline-none focus:ring-1 focus:ring-danger-500"
+            placeholder="DELETE"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+          />
+        </div>
+        <Button 
+          variant="danger" 
+          disabled={confirmText !== 'DELETE'} 
+          loading={isDeleting}
+          onClick={handleDeleteAccount}
+          className="w-full"
+        >
+          <Trash2 className="h-4 w-4" /> Delete Account
+        </Button>
+      </div>
     </Card>
   );
 }
