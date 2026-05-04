@@ -108,3 +108,24 @@ export async function deleteCategory(id) {
 export async function deleteAccount() {
   await api.delete('/api/v1/auth/profile/delete/');
 }
+
+/* Recurring Transactions */
+
+export async function getRecurringTransactions(params = {}) {
+  const { data } = await api.get('/api/v1/recurring-transactions/', { params });
+  return data;
+}
+
+export async function createRecurringTransaction(payload) {
+  const { data } = await api.post('/api/v1/recurring-transactions/', payload);
+  return data;
+}
+
+export async function updateRecurringTransaction(id, payload) {
+  const { data } = await api.patch(`/api/v1/recurring-transactions/${id}/`, payload);
+  return data;
+}
+
+export async function deleteRecurringTransaction(id) {
+  await api.delete(`/api/v1/recurring-transactions/${id}/`);
+}

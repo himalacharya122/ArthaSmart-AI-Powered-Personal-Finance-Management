@@ -90,6 +90,12 @@ class RecurringTransaction(models.Model):
 class Expense(models.Model):
     """A single expense transaction."""
 
+    class PaymentMethod(models.TextChoices):
+        CARD = "card", "Card"
+        CASH = "cash", "Cash"
+        WALLET = "wallet", "Wallet"
+        BANK = "bank", "Bank Transfer"
+
     class Source(models.TextChoices):
         MANUAL = "manual", "Manual Entry"
         OCR = "ocr", "OCR Receipt Scan"
@@ -166,6 +172,12 @@ class Expense(models.Model):
         max_length=20,
         choices=Source.choices,
         default=Source.MANUAL,
+    )
+    payment_method = models.CharField(
+        max_length=20,
+        choices=PaymentMethod.choices,
+        blank=True,
+        default='',
     )
     location = models.CharField(max_length=255, blank=True)
     tags = models.JSONField(default=list, blank=True)

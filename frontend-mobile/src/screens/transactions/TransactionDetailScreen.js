@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -16,6 +17,13 @@ import { CATEGORY_ICONS, SCREEN_NAMES } from '../../utils/constants';
 import { formatCurrency, formatDate } from '../../utils/format';
 import * as txnService from '../../services/transactions';
 import { useAppStore } from '../../store/appStore';
+
+const PAYMENT_METHOD_LABELS = {
+  card: { label: 'Card', icon: 'credit-card' },
+  cash: { label: 'Cash', icon: 'payments' },
+  wallet: { label: 'Wallet', icon: 'account-balance-wallet' },
+  bank: { label: 'Bank Transfer', icon: 'account-balance' },
+};
 
 /**
  * Read-only detail screen for a single transaction (expense or income).
@@ -80,16 +88,14 @@ export function TransactionDetailScreen({ navigation, route }) {
                   merchant: txn.merchant || '',
                   date: today,
                   currency: txn.currency || 'NPR',
+                  payment_method: txn.payment_method || '',
                 };
                 if (txn.category?.id) payload.category_id = txn.category.id;
-                if (txn.metadata) payload.metadata = txn.metadata;
+                if (txn.metadata) payload.metadata = { ...txn.metadata, attached_receipt_uri: null };
                 const created = await txnService.createExpense(payload);
                 showToast('Expense duplicated', 'success');
                 if (created?.id) {
-                  navigation.replace(SCREEN_NAMES.TRANSACTION_DETAIL, {
-                    id: created.id,
-                    type: 'expense',
-                  });
+                  navigation.replace(SCREEN_NAMES.TRANSACTION_DETAIL, { id: created.id, type: 'expense' });
                 } else {
                   navigation.goBack();
                 }
@@ -106,10 +112,7 @@ export function TransactionDetailScreen({ navigation, route }) {
                 const created = await txnService.createIncome(payload);
                 showToast('Income duplicated', 'success');
                 if (created?.id) {
-                  navigation.replace(SCREEN_NAMES.TRANSACTION_DETAIL, {
-                    id: created.id,
-                    type: 'income',
-                  });
+                  navigation.replace(SCREEN_NAMES.TRANSACTION_DETAIL, { id: created.id, type: 'income' });
                 } else {
                   navigation.goBack();
                 }
@@ -121,7 +124,7 @@ export function TransactionDetailScreen({ navigation, route }) {
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -148,7 +151,7 @@ export function TransactionDetailScreen({ navigation, route }) {
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -159,9 +162,7 @@ export function TransactionDetailScreen({ navigation, route }) {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <MaterialIcons name="arrow-back" size={24} color={colors.primary[700]} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>
-            {isExpense ? 'Expense' : 'Income'}
-          </Text>
+          <Text style={styles.headerTitle}>{isExpense ? 'Expense' : 'Income'}</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loaderWrap}>
@@ -176,6 +177,8 @@ export function TransactionDetailScreen({ navigation, route }) {
   const catIcon = CATEGORY_ICONS[catName] || (isExpense ? 'shopping-bag' : 'account-balance-wallet');
   const items = Array.isArray(txn.metadata?.items) ? txn.metadata.items : [];
   const isOcrSourced = txn.source === 'ocr' || txn.metadata?.source === 'ocr';
+  const attachedReceiptUri = txn.metadata?.attached_receipt_uri;
+  const pmInfo = txn.payment_method ? PAYMENT_METHOD_LABELS[txn.payment_method] : null;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -183,9 +186,7 @@ export function TransactionDetailScreen({ navigation, route }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <MaterialIcons name="arrow-back" size={24} color={colors.primary[700]} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {isExpense ? 'Expense' : 'Income'}
-        </Text>
+        <Text style={styles.headerTitle}>{isExpense ? 'Expense' : 'Income'}</Text>
         <TouchableOpacity onPress={handleEdit} style={styles.backBtn}>
           <MaterialIcons name="edit" size={20} color={colors.primary[700]} />
         </TouchableOpacity>
@@ -207,7 +208,7 @@ export function TransactionDetailScreen({ navigation, route }) {
           </View>
         </View>
 
-        {/* Details list */}
+        {/* Details section */}
         <Text style={styles.sectionLabel}>DETAILS</Text>
         <View style={styles.cardGroup}>
           <DetailRow icon="label" label="Category" value={catName} />
@@ -222,6 +223,10 @@ export function TransactionDetailScreen({ navigation, route }) {
 
           {txn.description ? (
             <DetailRow icon="short-text" label="Description" value={txn.description} multiline />
+          ) : null}
+
+          {pmInfo ? (
+            <DetailRow icon={pmInfo.icon} label="Payment Method" value={pmInfo.label} />
           ) : null}
 
           {txn.is_recurring ? (
@@ -242,7 +247,7 @@ export function TransactionDetailScreen({ navigation, route }) {
           />
         </View>
 
-        {/* Notes — separate card so empty state reads cleanly */}
+        {/* Notes */}
         {txn.notes ? (
           <>
             <Text style={[styles.sectionLabel, { marginTop: spacing.lg }]}>NOTES</Text>
@@ -252,7 +257,21 @@ export function TransactionDetailScreen({ navigation, route }) {
           </>
         ) : null}
 
-        {/* Items — visible when this transaction came from a scanned receipt */}
+        {/* Attached receipt image */}
+        {attachedReceiptUri ? (
+          <>
+            <Text style={[styles.sectionLabel, { marginTop: spacing.lg }]}>RECEIPT</Text>
+            <View style={styles.receiptImageCard}>
+              <Image
+                source={{ uri: attachedReceiptUri }}
+                style={styles.receiptImage}
+                resizeMode="contain"
+              />
+            </View>
+          </>
+        ) : null}
+
+        {/* Line items (from OCR scans) */}
         {items.length > 0 && (
           <>
             <Text style={[styles.sectionLabel, { marginTop: spacing.lg }]}>
@@ -282,7 +301,7 @@ export function TransactionDetailScreen({ navigation, route }) {
           </>
         )}
 
-        {isOcrSourced && items.length === 0 && (
+        {isOcrSourced && items.length === 0 && !attachedReceiptUri && (
           <Text style={styles.hint}>
             No line items captured for this scan. Re-scan the receipt to add items.
           </Text>
@@ -421,7 +440,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   heroAmount: {
-    fontSize: 30,
+    fontSize: 32,
     fontWeight: '700',
     marginTop: spacing.xs,
     letterSpacing: -0.5,
@@ -449,15 +468,12 @@ const styles = StyleSheet.create({
     borderColor: colors.primary[100],
     overflow: 'hidden',
   },
-
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.sm + 4,
     paddingHorizontal: spacing.md,
     borderBottomWidth: 1,
-    // Slightly stronger than primary[50] so the separators read clearly
-    // without becoming visually heavy.
     borderBottomColor: colors.primary[100],
   },
   detailIconBg: {
@@ -472,7 +488,7 @@ const styles = StyleSheet.create({
   detailLabel: { ...typography.body, fontSize: 14, color: colors.primary[500], flex: 1 },
   detailValue: { ...typography.body, fontSize: 14, fontWeight: '600', color: colors.primary[800] },
 
-  // Notes card
+  // Notes
   notesCard: {
     backgroundColor: colors.white,
     borderRadius: borderRadius.md,
@@ -481,6 +497,20 @@ const styles = StyleSheet.create({
     borderColor: colors.primary[100],
   },
   notesText: { ...typography.body, fontSize: 14, color: colors.primary[700], lineHeight: 21 },
+
+  // Attached receipt
+  receiptImageCard: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.primary[100],
+    ...shadow.sm,
+  },
+  receiptImage: {
+    width: '100%',
+    height: 220,
+  },
 
   // Items
   itemRow: {
@@ -499,7 +529,7 @@ const styles = StyleSheet.create({
 
   hint: { ...typography.caption, color: colors.primary[400], marginTop: spacing.sm, lineHeight: 17 },
 
-  // Action row (Duplicate + Delete)
+  // Action row
   actionsRow: {
     flexDirection: 'row',
     gap: spacing.sm,
