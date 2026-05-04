@@ -29,6 +29,7 @@ class ExpenseListSerializer(serializers.ModelSerializer):
             "time",
             "source",
             "is_recurring",
+            "payment_method",
             "created_at",
         ]
 
@@ -63,6 +64,7 @@ class ExpenseDetailSerializer(serializers.ModelSerializer):
             "is_recurring",
             "recurring",
             "source",
+            "payment_method",
             "location",
             "tags",
             "metadata",

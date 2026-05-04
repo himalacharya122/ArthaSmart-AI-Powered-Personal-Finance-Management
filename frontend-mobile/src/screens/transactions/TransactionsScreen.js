@@ -8,72 +8,80 @@ import {
   RefreshControl,
   ActivityIndicator,
   TextInput,
-  Modal as RNModal,
-  Switch,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { parseISO } from 'date-fns';
+import { format as fmtDate } from 'date-fns';
 import { colors, typography, spacing, borderRadius, shadow } from '../../theme';
 import { SCREEN_NAMES, CATEGORY_ICONS } from '../../utils/constants';
-import { formatCurrency, formatSectionDate, formatDate, formatCurrencyCompact } from '../../utils/format';
+import { formatCurrency, formatCurrencyCompact, formatSectionDate } from '../../utils/format';
 import { useAppStore } from '../../store/appStore';
 import * as txnService from '../../services/transactions';
-import { EmptyState } from '../../components/common/EmptyState';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
-import { Button } from '../../components/common/Button';
-import { ConfirmModal } from '../../components/common/Modal';
+import { BottomSheet } from '../../components/common/BottomSheet';
 
-const TABS = ['Expenses', 'Income'];
+const TABS = ['All', 'Expenses', 'Income'];
 
-/* helper: group flat list into date sections */
+// Manrope variants — applied directly so this screen matches the rest of the
+// app (typography.* helpers carry fontFamily, but our custom inline styles
+// here use raw fontSize/fontWeight which RN doesn't auto-resolve to Manrope).
+const F = {
+  semi: 'Manrope-SemiBold',
+  bold: 'Manrope-Bold',
+  xbold: 'Manrope-ExtraBold',
+};
+
 function groupByDate(items) {
   const map = {};
   items.forEach((item) => {
     const key = formatSectionDate(item.date);
-    if (!map[key]) map[key] = { title: key, data: [] };
+    if (!map[key]) map[key] = { title: key, data: [], rawDate: item.date };
     map[key].data.push(item);
   });
   return Object.values(map);
 }
 
+function timeFromIso(iso) {
+  if (!iso) return null;
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return null;
+    return fmtDate(d, 'h:mm a');
+  } catch {
+    return null;
+  }
+}
+
 export function TransactionsScreen({ navigation }) {
   const showToast = useAppStore((s) => s.showToast);
 
+  // 0 = All, 1 = Expenses, 2 = Income
   const [activeTab, setActiveTab] = useState(0);
   const [expenses, setExpenses] = useState([]);
   const [incomes, setIncomes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  // Pagination per type
   const [expensePage, setExpensePage] = useState(1);
   const [incomePage, setIncomePage] = useState(1);
   const [expenseHasMore, setExpenseHasMore] = useState(true);
   const [incomeHasMore, setIncomeHasMore] = useState(true);
 
-  // Summaries
+  // Cycle totals (header pills)
   const [expenseTotal, setExpenseTotal] = useState(0);
   const [incomeTotal, setIncomeTotal] = useState(0);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
-  const [selectedCatFilter, setSelectedCatFilter] = useState(null);
+  const [selectedCatId, setSelectedCatId] = useState(null);
+  const [dateFilter, setDateFilter] = useState('all');
+  const [showFilters, setShowFilters] = useState(false);
   const [categories, setCategories] = useState([]);
-
-  // Expandable
-  const [expandedId, setExpandedId] = useState(null);
-
-  // Delete confirm
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [deleting, setDeleting] = useState(false);
-
-  // Export modal
-  const [showExport, setShowExport] = useState(false);
-  const [exportFormat, setExportFormat] = useState('csv');
-  const [exportDateFrom, setExportDateFrom] = useState('');
-  const [exportDateTo, setExportDateTo] = useState('');
 
   const fetchData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -81,8 +89,8 @@ export function TransactionsScreen({ navigation }) {
 
     try {
       const [expRes, incRes, expSummary, incSummary, catRes] = await Promise.all([
-        txnService.getExpenses({ ordering: '-date', page: 1, page_size: 20 }),
-        txnService.getIncomes({ ordering: '-date', page: 1, page_size: 20 }),
+        txnService.getExpenses({ ordering: '-date', page: 1, page_size: 30 }),
+        txnService.getIncomes({ ordering: '-date', page: 1, page_size: 30 }),
         txnService.getExpenseSummary().catch(() => ({ total: '0' })),
         txnService.getIncomeSummary().catch(() => ({ total: '0' })),
         txnService.getCategories().catch(() => ({ results: [] })),
@@ -105,29 +113,48 @@ export function TransactionsScreen({ navigation }) {
     }
   }, [showToast]);
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchData();
-    }, [fetchData])
-  );
+  useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
 
   const loadMore = async () => {
     if (loadingMore) return;
-    if (activeTab === 0 && expenseHasMore) {
+    if (activeTab === 0) {
+      // All tab — load more from whichever side has more left
+      if (expenseHasMore) {
+        setLoadingMore(true);
+        try {
+          const next = expensePage + 1;
+          const res = await txnService.getExpenses({ ordering: '-date', page: next, page_size: 30 });
+          setExpenses((p) => [...p, ...(res.results || [])]);
+          setExpensePage(next);
+          setExpenseHasMore(!!res.next);
+        } catch { /* ignore */ }
+        setLoadingMore(false);
+      } else if (incomeHasMore) {
+        setLoadingMore(true);
+        try {
+          const next = incomePage + 1;
+          const res = await txnService.getIncomes({ ordering: '-date', page: next, page_size: 30 });
+          setIncomes((p) => [...p, ...(res.results || [])]);
+          setIncomePage(next);
+          setIncomeHasMore(!!res.next);
+        } catch { /* ignore */ }
+        setLoadingMore(false);
+      }
+    } else if (activeTab === 1 && expenseHasMore) {
       setLoadingMore(true);
       try {
         const next = expensePage + 1;
-        const res = await txnService.getExpenses({ ordering: '-date', page: next, page_size: 20 });
+        const res = await txnService.getExpenses({ ordering: '-date', page: next, page_size: 30 });
         setExpenses((p) => [...p, ...(res.results || [])]);
         setExpensePage(next);
         setExpenseHasMore(!!res.next);
       } catch { /* ignore */ }
       setLoadingMore(false);
-    } else if (activeTab === 1 && incomeHasMore) {
+    } else if (activeTab === 2 && incomeHasMore) {
       setLoadingMore(true);
       try {
         const next = incomePage + 1;
-        const res = await txnService.getIncomes({ ordering: '-date', page: next, page_size: 20 });
+        const res = await txnService.getIncomes({ ordering: '-date', page: next, page_size: 30 });
         setIncomes((p) => [...p, ...(res.results || [])]);
         setIncomePage(next);
         setIncomeHasMore(!!res.next);
@@ -136,206 +163,168 @@ export function TransactionsScreen({ navigation }) {
     }
   };
 
-  /* ─── filtered + sectioned data ─── */
-  const raw = activeTab === 0 ? expenses : incomes;
-  const hasMore = activeTab === 0 ? expenseHasMore : incomeHasMore;
+  // ─── Filtered + sectioned data ───────────────────────────────────────────
+  const merged = useMemo(() => {
+    if (activeTab === 0) {
+      const tagged = [
+        ...expenses.map((e) => ({ ...e, _kind: 'expense' })),
+        ...incomes.map((i) => ({ ...i, _kind: 'income' })),
+      ];
+      return tagged.sort((a, b) => {
+        const da = new Date(a.date || 0).getTime();
+        const db = new Date(b.date || 0).getTime();
+        return db - da;
+      });
+    }
+    if (activeTab === 1) return expenses.map((e) => ({ ...e, _kind: 'expense' }));
+    return incomes.map((i) => ({ ...i, _kind: 'income' }));
+  }, [activeTab, expenses, incomes]);
 
   const filteredData = useMemo(() => {
-    let list = raw;
+    let list = merged;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       list = list.filter((t) => {
-        const haystack = [t.description, t.merchant, t.source_name, t.category?.name]
+        const haystack = [t.description, t.merchant, t.source_name, t.notes, t.category?.name]
           .filter(Boolean)
           .join(' ')
           .toLowerCase();
         return haystack.includes(q);
       });
     }
-    if (selectedCatFilter) {
-      list = list.filter((t) => t.category?.id === selectedCatFilter);
+    if (selectedCatId) {
+      list = list.filter((t) => t.category?.id === selectedCatId);
+    }
+    if (dateFilter !== 'all') {
+      const now = new Date();
+      let cutoff = new Date();
+      let endDate = null;
+      
+      if (dateFilter === '7days') {
+        cutoff.setDate(now.getDate() - 7);
+      } else if (dateFilter === 'thisMonth') {
+        cutoff = new Date(now.getFullYear(), now.getMonth(), 1);
+      } else if (dateFilter === 'lastMonth') {
+        cutoff = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+      }
+      
+      list = list.filter((t) => {
+        const tDate = new Date(t.date || t.created_at);
+        if (endDate) {
+          return tDate >= cutoff && tDate <= endDate;
+        }
+        return tDate >= cutoff;
+      });
     }
     return list;
-  }, [raw, searchQuery, selectedCatFilter]);
+  }, [merged, searchQuery, selectedCatId, dateFilter]);
 
   const sections = useMemo(() => groupByDate(filteredData), [filteredData]);
 
-  /* actions */
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    setDeleting(true);
-    try {
-      if (activeTab === 0) {
-        await txnService.deleteExpense(deleteTarget.id);
-        setExpenses((p) => p.filter((e) => e.id !== deleteTarget.id));
-      } else {
-        await txnService.deleteIncome(deleteTarget.id);
-        setIncomes((p) => p.filter((i) => i.id !== deleteTarget.id));
-      }
-      showToast('Deleted successfully', 'success');
-    } catch {
-      showToast('Failed to delete', 'error');
-    } finally {
-      setDeleting(false);
-      setDeleteTarget(null);
-      setExpandedId(null);
-    }
-  };
-
-  const handleDuplicate = async (item) => {
-    try {
-      if (activeTab === 0) {
-        const { id, created_at, updated_at, ...rest } = item;
-        await txnService.createExpense({
-          amount: rest.amount,
-          description: rest.description,
-          merchant: rest.merchant,
-          date: rest.date,
-          category_id: rest.category?.id || null,
-          currency: rest.currency || 'NPR',
-        });
-      } else {
-        await txnService.createIncome({
-          amount: item.amount,
-          source_name: item.source_name,
-          description: item.description,
-          date: item.date,
-          category_id: item.category?.id || null,
-          currency: item.currency || 'NPR',
-        });
-      }
-      showToast('Duplicated! Refreshing...', 'success');
-      fetchData(true);
-    } catch {
-      showToast('Failed to duplicate', 'error');
-    }
-  };
-
-  const handleEdit = (item) => {
-    setExpandedId(null);
-    if (activeTab === 0) {
-      navigation.navigate(SCREEN_NAMES.ADD_EXPENSE, { expense: item });
-    } else {
-      navigation.navigate(SCREEN_NAMES.ADD_INCOME, { income: item });
-    }
-  };
-
-  const handleExport = () => {
-    // For now show a coming-soon toast — real export requires a backend endpoint or client-side lib
-    showToast(`Export as ${exportFormat.toUpperCase()} coming soon!`, 'info');
-    setShowExport(false);
-  };
-
-  /* active tab categories */
+  // Categories shown as chips: depend on tab and existing transactions' categories
   const tabCategories = useMemo(() => {
-    const type = activeTab === 0 ? 'expense' : 'income';
-    return categories.filter((c) => c.type === type);
+    if (activeTab === 1) return categories.filter((c) => c.type === 'expense');
+    if (activeTab === 2) return categories.filter((c) => c.type === 'income');
+    return categories;
   }, [categories, activeTab]);
 
-  /* render */
-  const renderSectionHeader = ({ section }) => (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{section.title}</Text>
-    </View>
-  );
+  const hasMore =
+    activeTab === 0 ? (expenseHasMore || incomeHasMore) :
+    activeTab === 1 ? expenseHasMore : incomeHasMore;
 
-  const renderItem = ({ item }) => {
-    const isExpense = activeTab === 0;
-    const catName = item.category?.name || 'Other';
+  const balance = incomeTotal - expenseTotal;
+
+  // Tap export icon → push the existing Export Data screen on the current
+  // stack so "back" returns to Transactions, not Home or Settings.
+  // (The screen is registered on both TransactionsStack and SettingsStack.)
+  const goToExport = () => {
+    navigation.navigate(SCREEN_NAMES.EXPORT_DATA);
+  };
+
+  // ─── Renderers ───────────────────────────────────────────────────────────
+
+  const renderSectionHeader = ({ section }) => {
+    // Section total: sum of expenses (negative) when on All/Expenses tab,
+    // sum of incomes (positive) on Income tab. Matches what users care about
+    // ("how much did I spend today?").
+    let total = 0;
+    let sign = '-';
+    let color = colors.danger[500];
+    if (activeTab === 2) {
+      total = section.data.reduce((s, t) => s + Number(t.amount || 0), 0);
+      sign = '+';
+      color = colors.accent[600];
+    } else {
+      total = section.data
+        .filter((t) => t._kind !== 'income')
+        .reduce((s, t) => s + Number(t.amount || 0), 0);
+    }
+    return (
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>{section.title}</Text>
+      </View>
+    );
+  };
+
+  const renderItem = ({ item, index, section }) => {
+    const isExpense = item._kind !== 'income';
+    const catName = item.category?.name || (isExpense ? 'Other' : 'Income');
     const catColor = item.category?.color || colors.primary[400];
-    const iconName = CATEGORY_ICONS[catName] || 'more-horiz';
-    const label = isExpense
-      ? item.description || item.merchant || 'Expense'
-      : item.source_name || item.description || 'Income';
-    const isExpanded = expandedId === item.id;
+    const iconName = CATEGORY_ICONS[catName] || (isExpense ? 'shopping-bag' : 'account-balance-wallet');
+
+    // Title preference: merchant > description > source > category
+    const title = isExpense
+      ? (item.merchant || item.description || catName)
+      : (item.source_name || item.description || catName);
+
+    const time = timeFromIso(item.created_at);
+    const meta = time ? `${catName} · ${time}` : catName;
+
+    const isFirst = index === 0;
+    const isLast = index === section.data.length - 1;
+
+    const openDetail = () =>
+      navigation.navigate(SCREEN_NAMES.TRANSACTION_DETAIL, {
+        id: item.id,
+        type: isExpense ? 'expense' : 'income',
+      });
 
     return (
-      <View>
-        <TouchableOpacity
-          style={[styles.txnItem, isExpanded && styles.txnItemExpanded]}
-          activeOpacity={0.7}
-          onPress={() => setExpandedId(isExpanded ? null : item.id)}
-        >
-          <View style={[styles.txnIcon, { backgroundColor: catColor + '20' }]}>
+      <View
+        style={[
+          styles.txnWrap,
+          isFirst && styles.txnWrapFirst,
+          isLast && styles.txnWrapLast,
+        ]}
+      >
+        <TouchableOpacity style={styles.txnItem} activeOpacity={0.7} onPress={openDetail}>
+          <View style={[styles.txnIcon, { backgroundColor: catColor + '22' }]}>
             <MaterialIcons name={iconName} size={20} color={catColor} />
           </View>
           <View style={styles.txnInfo}>
-            <Text style={styles.txnLabel} numberOfLines={1}>{label}</Text>
-            <Text style={styles.txnMeta}>{catName}</Text>
+            <Text style={styles.txnLabel} numberOfLines={1}>{title}</Text>
+            <Text style={styles.txnMeta} numberOfLines={1}>{meta}</Text>
           </View>
-          <View style={styles.txnRight}>
-            <Text style={[styles.txnAmount, { color: isExpense ? colors.danger[500] : colors.accent[600] }]}>
-              {isExpense ? '-' : '+'}{formatCurrency(item.amount, item.currency)}
-            </Text>
-            <MaterialIcons
-              name={isExpanded ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
-              size={20}
-              color={colors.primary[400]}
-            />
-          </View>
+          <Text
+            style={[
+              styles.txnAmount,
+              { color: isExpense ? colors.danger[500] : colors.accent[600] },
+            ]}
+          >
+            {isExpense ? '- ' : '+ '}{formatCurrency(item.amount, item.currency)}
+          </Text>
         </TouchableOpacity>
-
-        {/* Expanded details */}
-        {isExpanded && (
-          <View style={styles.expandedCard}>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Date</Text>
-              <Text style={styles.detailValue}>{formatDate(item.date)}</Text>
-            </View>
-            {isExpense && item.merchant ? (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Merchant</Text>
-                <Text style={styles.detailValue}>{item.merchant}</Text>
-              </View>
-            ) : null}
-            {!isExpense && item.source_name ? (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Source</Text>
-                <Text style={styles.detailValue}>{item.source_name}</Text>
-              </View>
-            ) : null}
-            {item.description ? (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Description</Text>
-                <Text style={styles.detailValue}>{item.description}</Text>
-              </View>
-            ) : null}
-            {item.is_recurring && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Recurring</Text>
-                <Text style={[styles.detailValue, { color: colors.accent[600] }]}>Yes</Text>
-              </View>
-            )}
-
-            {/* Actions */}
-            <View style={styles.expandedActions}>
-              <TouchableOpacity style={styles.actionBtn} onPress={() => handleEdit(item)}>
-                <MaterialIcons name="edit" size={18} color={colors.info[500]} />
-                <Text style={[styles.actionText, { color: colors.info[500] }]}>Edit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.actionBtn} onPress={() => handleDuplicate(item)}>
-                <MaterialIcons name="content-copy" size={18} color={colors.accent[600]} />
-                <Text style={[styles.actionText, { color: colors.accent[600] }]}>Duplicate</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.actionBtn} onPress={() => setDeleteTarget(item)}>
-                <MaterialIcons name="delete-outline" size={18} color={colors.danger[500]} />
-                <Text style={[styles.actionText, { color: colors.danger[500] }]}>Delete</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
+        {!isLast && <View style={styles.txnDivider} />}
       </View>
     );
   };
 
-  const renderFooter = () => {
-    if (!loadingMore) return null;
-    return (
-      <View style={styles.listFooter}>
-        <ActivityIndicator size="small" color={colors.accent[500]} />
-      </View>
-    );
-  };
+  const renderFooter = () => loadingMore ? (
+    <View style={styles.listFooter}>
+      <ActivityIndicator size="small" color={colors.accent[500]} />
+    </View>
+  ) : null;
 
   if (loading) {
     return (
@@ -345,214 +334,273 @@ export function TransactionsScreen({ navigation }) {
     );
   }
 
-  const balance = incomeTotal - expenseTotal;
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header row */}
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Transactions</Text>
+        <Text style={styles.bigTitle}>Transactions</Text>
         <View style={styles.headerActions}>
-          <TouchableOpacity onPress={() => setShowSearch(!showSearch)} style={styles.iconBtn}>
-            <MaterialIcons name="search" size={22} color={colors.primary[700]} />
+          <TouchableOpacity
+            onPress={() => { setShowSearch((v) => !v); if (showSearch) setSearchQuery(''); }}
+            style={[styles.iconBtn, showSearch && styles.iconBtnActive]}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons
+              name="search"
+              size={20}
+              color={showSearch ? colors.white : colors.primary[700]}
+            />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setShowExport(true)} style={styles.iconBtn}>
-            <MaterialIcons name="file-download" size={22} color={colors.primary[700]} />
+          
+          <TouchableOpacity
+            onPress={() => setShowFilters(true)}
+            style={[styles.iconBtn, (selectedCatId || dateFilter !== 'all') && styles.iconBtnActiveFilter]}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons
+              name="tune"
+              size={20}
+              color={(selectedCatId || dateFilter !== 'all') ? colors.white : colors.primary[700]}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={goToExport} style={styles.iconBtn} activeOpacity={0.7}>
+            <MaterialIcons name="file-download" size={20} color={colors.primary[700]} />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Search bar */}
+      {/* Search */}
       {showSearch && (
         <View style={styles.searchBar}>
-          <MaterialIcons name="search" size={20} color={colors.primary[400]} />
+          <MaterialIcons name="search" size={18} color={colors.primary[500]} />
           <TextInput
             style={styles.searchInput}
-            placeholder={activeTab === 0 ? 'Search expenses...' : 'Search income...'}
+            placeholder="Search merchant, category, notes..."
             placeholderTextColor={colors.primary[400]}
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoFocus
+            returnKeyType="search"
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={10}>
               <MaterialIcons name="close" size={18} color={colors.primary[400]} />
             </TouchableOpacity>
           )}
         </View>
       )}
 
-      {/* Summary cards */}
+      {/* Summary pills */}
       <View style={styles.summaryRow}>
-        <View style={[styles.summaryCard, { borderLeftColor: colors.danger[400] }]}>
-          <Text style={styles.summaryLabel}>Expenses</Text>
-          <Text style={[styles.summaryValue, { color: colors.danger[500] }]}>
-            {formatCurrencyCompact(expenseTotal)}
-          </Text>
-        </View>
-        <View style={[styles.summaryCard, { borderLeftColor: colors.accent[400] }]}>
-          <Text style={styles.summaryLabel}>Income</Text>
-          <Text style={[styles.summaryValue, { color: colors.accent[600] }]}>
-            {formatCurrencyCompact(incomeTotal)}
-          </Text>
-        </View>
-        <View style={[styles.summaryCard, { borderLeftColor: balance >= 0 ? colors.accent[400] : colors.danger[400] }]}>
-          <Text style={styles.summaryLabel}>Balance</Text>
-          <Text style={[styles.summaryValue, { color: balance >= 0 ? colors.accent[600] : colors.danger[500] }]}>
-            {formatCurrencyCompact(Math.abs(balance))}
-          </Text>
-        </View>
+        <SummaryPill
+          dotColor={colors.danger[500]}
+          label="EXPENSES"
+          amount={formatCurrencyCompact(expenseTotal)}
+          color={colors.danger[500]}
+        />
+        <SummaryPill
+          dotColor={colors.accent[500]}
+          label="INCOME"
+          amount={formatCurrencyCompact(incomeTotal)}
+          color={colors.accent[600]}
+        />
+        <SummaryPill
+          dotColor={balance >= 0 ? colors.accent[500] : colors.danger[500]}
+          label="REMAINING"
+          amount={`${balance >= 0 ? '+ ' : '- '}${formatCurrencyCompact(Math.abs(balance))}`}
+          color={balance >= 0 ? colors.accent[600] : colors.danger[500]}
+        />
       </View>
 
-      {/* Tab Switcher */}
-      <View style={styles.tabBar}>
+      {/* Tab segmented */}
+      <View style={styles.segmentTrack}>
         {TABS.map((tab, idx) => (
           <TouchableOpacity
             key={tab}
-            style={[styles.tab, activeTab === idx && styles.tabActive]}
-            onPress={() => { setActiveTab(idx); setExpandedId(null); setSelectedCatFilter(null); setSearchQuery(''); }}
+            style={[styles.segmentTab, activeTab === idx && styles.segmentTabActive]}
+            onPress={() => { setActiveTab(idx); setSelectedCatId(null); setDateFilter('all'); }}
+            activeOpacity={0.7}
           >
-            <Text style={[styles.tabText, activeTab === idx && styles.tabTextActive]}>{tab}</Text>
+            <Text style={[styles.segmentText, activeTab === idx && styles.segmentTextActive]}>
+              {tab}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      {/* Category filter chips */}
-      {tabCategories.length > 0 && (
-        <View style={styles.filterRow}>
-          <TouchableOpacity
-            style={[styles.filterChip, !selectedCatFilter && styles.filterChipActive]}
-            onPress={() => setSelectedCatFilter(null)}
-          >
-            <Text style={[styles.filterChipText, !selectedCatFilter && styles.filterChipTextActive]}>All</Text>
-          </TouchableOpacity>
-          {tabCategories.slice(0, 6).map((cat) => (
-            <TouchableOpacity
-              key={cat.id}
-              style={[styles.filterChip, selectedCatFilter === cat.id && styles.filterChipActive]}
-              onPress={() => setSelectedCatFilter(selectedCatFilter === cat.id ? null : cat.id)}
-            >
-              <Text style={[styles.filterChipText, selectedCatFilter === cat.id && styles.filterChipTextActive]}>{cat.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
 
-      {/* Transaction List — SectionList grouped by date */}
+
+      {/* List */}
       {filteredData.length === 0 ? (
-        <EmptyState
-          icon={activeTab === 0 ? 'receipt-long' : 'account-balance-wallet'}
-          title={activeTab === 0 ? 'No expenses yet' : 'No income yet'}
-          description={
-            searchQuery || selectedCatFilter
-              ? 'No transactions match your filters.'
-              : activeTab === 0
-                ? 'Start tracking your spending by adding your first expense.'
-                : 'Record your income sources to track your earnings.'
-          }
-          actionTitle={searchQuery || selectedCatFilter ? 'Clear Filters' : (activeTab === 0 ? 'Add Expense' : 'Add Income')}
-          onAction={() => {
-            if (searchQuery || selectedCatFilter) {
-              setSearchQuery('');
-              setSelectedCatFilter(null);
-            } else {
-              navigation.navigate(activeTab === 0 ? SCREEN_NAMES.ADD_EXPENSE : SCREEN_NAMES.ADD_INCOME);
-            }
-          }}
-        />
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.emptyWrap}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} colors={[colors.accent[600]]} />}
+        >
+          <View style={styles.emptyCard}>
+            <View style={styles.emptyIconBg}>
+              <MaterialIcons name="receipt-long" size={28} color={colors.primary[400]} />
+            </View>
+            <Text style={styles.emptyTitle}>
+              {searchQuery || selectedCatId || dateFilter !== 'all' ? 'No matching transactions' : 'No transactions yet'}
+            </Text>
+            <Text style={styles.emptyDesc}>
+              {searchQuery || selectedCatId || dateFilter !== 'all'
+                ? 'Try a different search or clear your filters.'
+                : 'Log your first expense or scan a receipt to get started.'}
+            </Text>
+            <TouchableOpacity
+              style={styles.emptyCta}
+              onPress={() => {
+                if (searchQuery || selectedCatId || dateFilter !== 'all') {
+                  setSearchQuery('');
+                  setSelectedCatId(null);
+                  setDateFilter('all');
+                  return;
+                }
+                navigation.navigate(
+                  activeTab === 2 ? SCREEN_NAMES.ADD_INCOME : SCREEN_NAMES.ADD_EXPENSE
+                );
+              }}
+              activeOpacity={0.85}
+            >
+              <MaterialIcons
+                name={searchQuery || selectedCatId || dateFilter !== 'all' ? 'clear' : 'add'}
+                size={18}
+                color={colors.white}
+              />
+              <Text style={styles.emptyCtaText}>
+                {searchQuery || selectedCatId || dateFilter !== 'all'
+                  ? 'Clear filters'
+                  : activeTab === 2 ? 'Log first income' : 'Log first expense'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       ) : (
         <SectionList
           sections={sections}
-          keyExtractor={(item) => String(item.id)}
+          keyExtractor={(item) => `${item._kind}-${item.id}`}
           renderSectionHeader={renderSectionHeader}
           renderItem={renderItem}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} colors={[colors.accent[600]]} />
           }
           onEndReached={hasMore ? loadMore : undefined}
-          onEndReachedThreshold={0.3}
+          onEndReachedThreshold={0.4}
           ListFooterComponent={renderFooter}
           showsVerticalScrollIndicator={false}
           stickySectionHeadersEnabled={false}
         />
       )}
 
-      {/* FAB */}
+      {/* Floating quick-add */}
       <TouchableOpacity
         style={styles.fab}
-        activeOpacity={0.8}
-        onPress={() => navigation.navigate(activeTab === 0 ? SCREEN_NAMES.ADD_EXPENSE : SCREEN_NAMES.ADD_INCOME)}
+        activeOpacity={0.85}
+        onPress={() =>
+          navigation.navigate(activeTab === 2 ? SCREEN_NAMES.ADD_INCOME : SCREEN_NAMES.ADD_EXPENSE)
+        }
       >
-        <MaterialIcons name="add" size={28} color={colors.white} />
+        <MaterialIcons name="add" size={26} color={colors.white} />
       </TouchableOpacity>
 
-      {/* Delete Confirm Modal */}
-      <ConfirmModal
-        visible={!!deleteTarget}
-        title="Delete Transaction"
-        message={`Are you sure you want to delete this ${activeTab === 0 ? 'expense' : 'income'}? This cannot be undone.`}
-        confirmTitle="Delete"
-        confirmVariant="danger"
-        icon="delete-outline"
-        iconColor={colors.danger[500]}
-        onConfirm={handleDelete}
-        onCancel={() => setDeleteTarget(null)}
-        loading={deleting}
-      />
-
-      {/* Export Modal */}
-      <RNModal visible={showExport} transparent animationType="slide" onRequestClose={() => setShowExport(false)}>
-        <TouchableOpacity style={styles.exportOverlay} activeOpacity={1} onPress={() => setShowExport(false)}>
-          <TouchableOpacity activeOpacity={1} style={styles.exportSheet}>
-            <View style={styles.exportHandle} />
-            <Text style={styles.exportTitle}>Export Data</Text>
-
-            <Text style={styles.exportLabel}>Format</Text>
-            <View style={styles.exportFormatRow}>
-              {['csv', 'pdf'].map((fmt) => (
+      {/* Filter Modal */}
+      <BottomSheet visible={showFilters} onClose={() => setShowFilters(false)}>
+        <View style={styles.sheetContent}>
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>Filters</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+              {(selectedCatId || dateFilter !== 'all') && (
+                <TouchableOpacity onPress={() => { setSelectedCatId(null); setDateFilter('all'); }}>
+                  <Text style={{ fontFamily: F.semi, fontSize: 14, color: colors.danger[600] }}>Clear</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity onPress={() => setShowFilters(false)}>
+                <MaterialIcons name="close" size={24} color={colors.primary[500]} />
+              </TouchableOpacity>
+            </View>
+          </View>
+          
+          <ScrollView style={styles.sheetScroll} showsVerticalScrollIndicator={false}>
+            {/* Date Range */}
+            <Text style={styles.filterSectionTitle}>Date Range</Text>
+            <View style={styles.filterOptionsGrid}>
+              {[
+                { id: 'all', label: 'All Time' },
+                { id: '7days', label: 'Last 7 Days' },
+                { id: 'thisMonth', label: 'This Month' },
+                { id: 'lastMonth', label: 'Last Month' },
+              ].map((opt) => (
                 <TouchableOpacity
-                  key={fmt}
-                  style={[styles.exportFormatBtn, exportFormat === fmt && styles.exportFormatBtnActive]}
-                  onPress={() => setExportFormat(fmt)}
+                  key={opt.id}
+                  style={[styles.filterOpt, dateFilter === opt.id && styles.filterOptActive]}
+                  onPress={() => setDateFilter(opt.id)}
+                  activeOpacity={0.7}
                 >
-                  <MaterialIcons
-                    name={fmt === 'csv' ? 'table-chart' : 'picture-as-pdf'}
-                    size={20}
-                    color={exportFormat === fmt ? colors.accent[600] : colors.primary[500]}
-                  />
-                  <Text style={[styles.exportFormatText, exportFormat === fmt && styles.exportFormatTextActive]}>
-                    {fmt.toUpperCase()}
+                  <Text style={[styles.filterOptText, dateFilter === opt.id && styles.filterOptTextActive]}>
+                    {opt.label}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
 
-            <Text style={styles.exportLabel}>Date Range (optional)</Text>
-            <View style={styles.exportDateRow}>
-              <TextInput
-                style={styles.exportDateInput}
-                placeholder="From (YYYY-MM-DD)"
-                placeholderTextColor={colors.primary[400]}
-                value={exportDateFrom}
-                onChangeText={setExportDateFrom}
-              />
-              <Text style={styles.exportDateDash}>—</Text>
-              <TextInput
-                style={styles.exportDateInput}
-                placeholder="To (YYYY-MM-DD)"
-                placeholderTextColor={colors.primary[400]}
-                value={exportDateTo}
-                onChangeText={setExportDateTo}
-              />
+            {/* Category */}
+            <Text style={[styles.filterSectionTitle, { marginTop: spacing.lg }]}>Category</Text>
+            <View style={styles.filterOptionsGrid}>
+              <TouchableOpacity
+                style={[styles.filterOpt, !selectedCatId && styles.filterOptActive]}
+                onPress={() => setSelectedCatId(null)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.filterOptText, !selectedCatId && styles.filterOptTextActive]}>All</Text>
+              </TouchableOpacity>
+              {tabCategories.map((cat) => {
+                const selected = selectedCatId === cat.id;
+                return (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={[styles.filterOpt, selected && styles.filterOptActive]}
+                    onPress={() => setSelectedCatId(cat.id)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.filterOptText, selected && styles.filterOptTextActive]} numberOfLines={1}>
+                      {cat.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
+            <View style={{ height: spacing.xl }} />
+          </ScrollView>
 
-            <Button title={`Export as ${exportFormat.toUpperCase()}`} onPress={handleExport} variant="accent" size="lg" fullWidth style={{ marginTop: spacing.md }} />
-            <Button title="Cancel" onPress={() => setShowExport(false)} variant="ghost" size="md" fullWidth style={{ marginTop: spacing.xs }} />
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </RNModal>
+          <View style={styles.sheetFooter}>
+            <TouchableOpacity
+              style={styles.sheetApplyBtn}
+              onPress={() => setShowFilters(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.sheetApplyText}>Show Results</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </BottomSheet>
     </SafeAreaView>
+  );
+}
+
+function SummaryPill({ dotColor, label, amount, color }) {
+  return (
+    <View style={styles.summaryPill}>
+      <View style={styles.summaryTopRow}>
+        <Text style={styles.summaryLabel}>{label}</Text>
+      </View>
+      <Text style={[styles.summaryAmount, { color }]} numberOfLines={1}>
+        {amount}
+      </Text>
+    </View>
   );
 }
 
@@ -560,76 +608,235 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.primary[50] },
 
   // Header
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.xs },
-  headerTitle: { ...typography.h1, fontSize: 24 },
-  headerActions: { flexDirection: 'row', gap: spacing.xs },
-  iconBtn: { width: 36, height: 36, borderRadius: borderRadius.md, backgroundColor: colors.primary[100], alignItems: 'center', justifyContent: 'center' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  bigTitle: { fontFamily: F.xbold, fontSize: 26, color: colors.primary[900], letterSpacing: -0.4 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  iconBtn: {
+    width: 38, height: 38, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.white,
+    borderWidth: 1, borderColor: colors.primary[100],
+  },
+  iconBtnActive: { backgroundColor: colors.primary[900], borderColor: colors.primary[900] },
+  iconBtnActiveFilter: { backgroundColor: colors.primary[900], borderColor: colors.primary[900] },
 
   // Search
-  searchBar: { flexDirection: 'row', alignItems: 'center', marginHorizontal: spacing.lg, marginBottom: spacing.sm, backgroundColor: colors.white, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.primary[200], paddingHorizontal: spacing.sm, height: 40 },
-  searchInput: { flex: 1, ...typography.body, fontSize: 14, color: colors.primary[800], marginLeft: spacing.xs, paddingVertical: 0 },
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.xs,
+    marginHorizontal: spacing.lg, marginBottom: spacing.sm,
+    backgroundColor: colors.white,
+    borderRadius: 10,
+    paddingHorizontal: spacing.sm + 2,
+    height: 42,
+    borderWidth: 1, borderColor: colors.primary[600],
+  },
+  searchInput: { flex: 1, fontFamily: F.semi, fontSize: 14, color: colors.primary[800], paddingVertical: 0 },
 
   // Summary
-  summaryRow: { flexDirection: 'row', marginHorizontal: spacing.lg, marginBottom: spacing.sm, gap: spacing.sm },
-  summaryCard: { flex: 1, backgroundColor: colors.white, borderRadius: borderRadius.sm, padding: spacing.sm, borderLeftWidth: 3 },
-  summaryLabel: { ...typography.caption, color: colors.primary[400], marginBottom: 2 },
-  summaryValue: { fontSize: 13, fontWeight: '700' },
+  summaryRow: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  summaryPill: {
+    flex: 1,
+    backgroundColor: colors.white,
+    borderRadius: 9,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.sm + 2,
+    borderWidth: 1, borderColor: colors.primary[100],
+  },
+  summaryTopRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  summaryLabel: { fontSize: 12, fontWeight: '700', color: colors.primary[600] },
+  summaryAmount: { fontSize: 16, fontWeight: '700', letterSpacing: -0.2 },
 
-  // Tabs
-  tabBar: { flexDirection: 'row', marginHorizontal: spacing.lg, marginBottom: spacing.sm, backgroundColor: colors.primary[100], borderRadius: borderRadius.md, padding: 3 },
-  tab: { flex: 1, paddingVertical: spacing.sm + 2, alignItems: 'center', borderRadius: borderRadius.sm },
-  tabActive: { backgroundColor: colors.white, ...shadow.sm },
-  tabText: { ...typography.bodySmall, color: colors.primary[500], fontWeight: '600' },
-  tabTextActive: { color: colors.primary[800] },
+  // Segmented tab
+  segmentTrack: {
+    flexDirection: 'row',
+    marginHorizontal: spacing.lg,
+    backgroundColor: colors.primary[100],
+    borderRadius: 24,
+    padding: 4,
+    marginBottom: spacing.sm + 4,
+  },
+  segmentTab: { flex: 1, alignItems: 'center', paddingVertical: spacing.sm + 2, borderRadius: 8 },
+  segmentTabActive: { backgroundColor: colors.primary[900], borderRadius: 24, ...shadow.sm },
+  segmentText: { fontSize: 14, fontWeight: '600', color: colors.primary[900] },
+  segmentTextActive: { color: colors.white },
 
-  // Category filter
-  filterRow: { flexDirection: 'row', paddingHorizontal: spacing.lg, marginBottom: spacing.sm, gap: spacing.xs, flexWrap: 'wrap' },
-  filterChip: { paddingHorizontal: spacing.sm + 2, paddingVertical: spacing.xs, borderRadius: borderRadius.full, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.primary[200] },
-  filterChipActive: { backgroundColor: colors.accent[50], borderColor: colors.accent[500] },
-  filterChipText: { ...typography.caption, color: colors.primary[500], fontWeight: '500' },
-  filterChipTextActive: { color: colors.accent[700] },
+  // Filter Sheet
+  sheetContent: {
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xxl,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  sheetTitle: { fontFamily: F.bold, fontSize: 20, color: colors.primary[900] },
+  sheetScroll: {
+    maxHeight: 400,
+    paddingHorizontal: spacing.lg,
+  },
+  filterSectionTitle: {
+    fontFamily: F.bold,
+    fontSize: 14,
+    color: colors.primary[900],
+    marginBottom: spacing.sm,
+  },
+  filterOptionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  filterOpt: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary[50],
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  filterOptActive: {
+    backgroundColor: colors.primary[900],
+  },
+  filterOptText: {
+    fontFamily: F.semi,
+    fontSize: 14,
+    color: colors.primary[700],
+  },
+  filterOptTextActive: {
+    color: colors.white,
+  },
+  sheetFooter: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.primary[100],
+  },
+  sheetApplyBtn: {
+    backgroundColor: colors.primary[900],
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.full,
+    alignItems: 'center',
+  },
+  sheetApplyText: {
+    fontFamily: F.bold,
+    fontSize: 16,
+    color: colors.white,
+  },
 
   // Section headers
-  sectionHeader: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xs },
-  sectionTitle: { ...typography.caption, fontWeight: '700', color: colors.primary[400], letterSpacing: 0.5 },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
+  },
+  sectionTitle: { fontSize: 11, fontWeight: '700', color: colors.primary[500] },
 
   // List
-  list: { paddingBottom: 100 },
-  txnItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, marginHorizontal: spacing.lg, borderRadius: borderRadius.md, padding: spacing.md, marginBottom: 1, borderWidth: 1, borderColor: colors.primary[100] },
-  txnItemExpanded: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, marginBottom: 0, borderBottomWidth: 0 },
-  txnIcon: { width: 42, height: 42, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center', marginRight: spacing.sm },
+  listContent: { paddingTop: 0, paddingBottom: 100 },
+  txnWrap: {
+    backgroundColor: colors.white,
+    marginHorizontal: spacing.lg,
+    borderColor: colors.primary[100],
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+  },
+  // First row of each section: top border + rounded top corners so the card
+  // doesn't look "cut" at the top.
+  txnWrapFirst: {
+    borderTopWidth: 1,
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
+  },
+  txnWrapLast: {
+    borderBottomWidth: 1,
+    borderBottomLeftRadius: 14,
+    borderBottomRightRadius: 14,
+  },
+  txnItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 4,
+  },
+  txnIcon: {
+    width: 40, height: 40, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center',
+    marginRight: spacing.sm + 2,
+  },
   txnInfo: { flex: 1, marginRight: spacing.sm },
-  txnLabel: { ...typography.body, fontSize: 14, color: colors.primary[800], fontWeight: '500' },
-  txnMeta: { ...typography.caption, color: colors.primary[400], marginTop: 2 },
-  txnRight: { alignItems: 'flex-end' },
-  txnAmount: { fontSize: 14, fontWeight: '600' },
-
-  // Expanded
-  expandedCard: { marginHorizontal: spacing.lg, backgroundColor: colors.primary[50], borderWidth: 1, borderTopWidth: 0, borderColor: colors.primary[100], borderBottomLeftRadius: borderRadius.md, borderBottomRightRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.sm },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xs },
-  detailLabel: { ...typography.caption, color: colors.primary[400] },
-  detailValue: { ...typography.caption, color: colors.primary[700], fontWeight: '500' },
-  expandedActions: { flexDirection: 'row', justifyContent: 'space-around', marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.primary[200] },
-  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: spacing.xs, paddingHorizontal: spacing.sm },
-  actionText: { fontSize: 12, fontWeight: '600' },
+  txnLabel: { fontSize: 14, fontWeight: '600', color: colors.primary[900] },
+  txnMeta: { fontSize: 12, color: colors.primary[500], marginTop: 2 },
+  txnAmount: { fontSize: 14, fontWeight: '700' },
+  // Full-width divider — no left indent so the line spans the whole card
+  txnDivider: {
+    height: 1,
+    backgroundColor: colors.primary[100],
+  },
 
   listFooter: { paddingVertical: spacing.md, alignItems: 'center' },
 
-  // FAB
-  fab: { position: 'absolute', right: spacing.lg, bottom: spacing.lg + 4, width: 56, height: 56, borderRadius: 28, backgroundColor: colors.accent[600], alignItems: 'center', justifyContent: 'center', ...shadow.lg },
+  // Empty state — flexGrow lets the ScrollView still bounce on pull-to-refresh
+  // while justifyContent centres the card in the remaining list area.
+  emptyWrap: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: spacing.lg,
+  },
+  emptyCard: {
+    backgroundColor: colors.white,
+    borderRadius: 14,
+    paddingVertical: spacing.xl + 4,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    borderWidth: 1, borderColor: colors.primary[100],
+  },
+  emptyIconBg: {
+    width: 56, height: 56, borderRadius: 14,
+    backgroundColor: colors.primary[100],
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: colors.primary[900], marginBottom: 4 },
+  emptyDesc: {
+    fontSize: 13,
+    color: colors.primary[500],
+    textAlign: 'center',
+    lineHeight: 19,
+    marginBottom: spacing.md,
+    maxWidth: 260,
+  },
+  emptyCta: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: colors.primary[900],
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 4,
+    borderRadius: borderRadius.full,
+  },
+  emptyCtaText: { fontSize: 14, fontWeight: '700', color: colors.white },
 
-  // Export modal
-  exportOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  exportSheet: { backgroundColor: colors.white, borderTopLeftRadius: borderRadius.xl, borderTopRightRadius: borderRadius.xl, padding: spacing.lg, paddingBottom: spacing.xxl },
-  exportHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.primary[200], alignSelf: 'center', marginBottom: spacing.md },
-  exportTitle: { ...typography.h3, textAlign: 'center', marginBottom: spacing.lg },
-  exportLabel: { ...typography.label, marginBottom: spacing.sm },
-  exportFormatRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg },
-  exportFormatBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, paddingVertical: spacing.sm + 2, borderRadius: borderRadius.md, borderWidth: 1.5, borderColor: colors.primary[200] },
-  exportFormatBtnActive: { borderColor: colors.accent[500], backgroundColor: colors.accent[50] },
-  exportFormatText: { ...typography.bodySmall, fontWeight: '600', color: colors.primary[500] },
-  exportFormatTextActive: { color: colors.accent[700] },
-  exportDateRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  exportDateInput: { flex: 1, borderWidth: 1, borderColor: colors.primary[200], borderRadius: borderRadius.md, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, ...typography.bodySmall, color: colors.primary[700] },
-  exportDateDash: { color: colors.primary[400] },
+  // FAB
+  fab: {
+    position: 'absolute',
+    right: spacing.lg,
+    bottom: spacing.lg + 8,
+    width: 52, height: 52, borderRadius: 26,
+    backgroundColor: colors.primary[900],
+    alignItems: 'center', justifyContent: 'center',
+    ...shadow.lg,
+  },
 });
