@@ -57,12 +57,12 @@ export function BudgetForm({ budget, loading, onSubmit, onCancel }: BudgetFormPr
           error={errors.amount?.message}
           {...register('amount', { required: 'Amount is required' })}
         />
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wide text-primary-600">
+        <div className="space-y-1">
+          <label className="block text-sm font-bold text-primary-950/80">
             Period
           </label>
           <select
-            className="mt-1 block w-full rounded-md border border-primary-200 bg-white px-3 py-2.5 text-sm text-primary-800 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            className="mt-2 block w-full rounded-md border border-primary-950/20 bg-white py-3 px-3 text-sm text-primary-950 focus:border-primary-950/40 focus:outline-none focus:ring-0 transition-colors"
             {...register('period', { required: 'Period is required' })}
           >
             <option value="daily">Daily</option>
@@ -74,12 +74,12 @@ export function BudgetForm({ budget, loading, onSubmit, onCancel }: BudgetFormPr
         </div>
       </div>
 
-      <div>
-        <label className="block text-xs font-semibold uppercase tracking-wide text-primary-600">
+      <div className="space-y-1">
+        <label className="block text-sm font-bold text-primary-950/80">
           Category (optional)
         </label>
         <select
-          className="mt-1 block w-full rounded-md border border-primary-200 bg-white px-3 py-2.5 text-sm text-primary-800 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+          className="mt-2 block w-full rounded-md border border-primary-950/20 bg-white py-3 px-3 text-sm text-primary-950 focus:border-primary-950/40 focus:outline-none focus:ring-0 transition-colors"
           {...register('category_id', { setValueAs: (v) => (v ? Number(v) : null) })}
         >
           <option value="">All categories</option>

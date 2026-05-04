@@ -10,7 +10,6 @@ import {
   useRejectActions,
 } from '@/hooks/useChat';
 import { Button } from '@/components/common/Button';
-import { PageHeader } from '@/components/common/PageHeader';
 import { CardSkeleton } from '@/components/common/LoadingSkeleton';
 import { ActionCard } from '@/components/chat/ActionCard';
 import { QuickActions } from '@/components/chat/QuickActions';
@@ -84,12 +83,12 @@ export function ChatPage() {
           'max-lg:absolute max-lg:inset-y-0 max-lg:left-0 max-lg:z-20',
           !sidebarOpen && 'max-lg:hidden',
         )}>
-          <div className="flex items-center justify-between px-4 py-4 bg-primary-950">
+          <div className="flex items-center justify-between px-5 h-[72px] bg-primary-950 border-r border-white/5">
             <h2 className="text-[11px] font-[700] tracking-wider uppercase text-white/40">Conversations</h2>
             <button 
               onClick={handleNewConversation} 
               disabled={createConv.isPending}
-              className="text-white/60 hover:text-white transition-colors"
+              className="text-white/60 hover:text-white transition-colors p-1"
             >
               <MessageSquarePlus className="h-4 w-4" />
             </button>
@@ -144,7 +143,7 @@ export function ChatPage() {
         {/* Main chat area */}
         <div className="flex flex-1 flex-col bg-white">
           {/* Top bar */}
-          <div className="flex items-center gap-3 px-5 py-4 bg-primary-950">
+          <div className="flex items-center gap-3 px-5 h-[72px] bg-primary-950">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="rounded p-1.5 text-white/50 hover:bg-white/10"
