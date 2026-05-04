@@ -438,29 +438,32 @@ function NfcTagForm({
   );
 }
 
-function NfcTagsTab() {
+function NfcTagsTab({ 
+  onAddTag, 
+  onEditTag,
+  formOpen,
+  setFormOpen,
+  editing,
+  setEditing
+}: { 
+  onAddTag: () => void;
+  onEditTag: (tag: NFCTag) => void;
+  formOpen: boolean;
+  setFormOpen: (open: boolean) => void;
+  editing: NFCTag | null;
+  setEditing: (tag: NFCTag | null) => void;
+}) {
   const { data, isLoading } = useNfcTags();
   const createMut = useCreateNfcTag();
   const updateMut = useUpdateNfcTag();
   const deleteMut = useDeleteNfcTag();
 
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<NFCTag | null>(null);
   const [deleting, setDeleting] = useState<NFCTag | null>(null);
 
   const tags = data?.results || [];
 
   return (
     <>
-      <div className="mb-4 flex justify-end">
-        <Button
-          variant="accent"
-          onClick={() => { setEditing(null); setFormOpen(true); }}
-        >
-          <Plus className="h-4 w-4" /> Add tag
-        </Button>
-      </div>
-
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => <CardSkeleton key={i} />)}
@@ -471,7 +474,7 @@ function NfcTagsTab() {
           title="No NFC tags"
           description="Register a tag here, then tap it with the NFC logger to auto-log the expense."
           actionLabel="Add tag"
-          onAction={() => setFormOpen(true)}
+          onAction={onAddTag}
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -517,7 +520,7 @@ function NfcTagsTab() {
 
               <div className="mt-auto flex justify-end gap-1 pt-2">
                 <button
-                  onClick={() => { setEditing(t); setFormOpen(true); }}
+                  onClick={() => onEditTag(t)}
                   className="rounded p-1 text-primary-950/60 hover:bg-primary-50 hover:text-primary-950"
                 >
                   <Pencil className="h-4 w-4" />
@@ -731,6 +734,8 @@ function PairTab({ onPaired }: { onPaired: () => void }) {
 
 export function IoTDevicesPage() {
   const [tab, setTab] = useState<Tab>('devices');
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<NFCTag | null>(null);
 
   const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'devices', label: 'Devices', icon: Smartphone },
@@ -738,11 +743,30 @@ export function IoTDevicesPage() {
     { id: 'pair', label: 'Pair a Device', icon: Plus },
   ];
 
+  const handleAddTag = () => {
+    setEditing(null);
+    setFormOpen(true);
+  };
+
+  const handleEditTag = (tag: NFCTag) => {
+    setEditing(tag);
+    setFormOpen(true);
+  };
+
   return (
     <div>
       <PageHeader
         title="IoT Devices"
         description="Manage your ArthaSmart hardware — receipt scanners and NFC loggers."
+        action={tab === 'tags' && (
+          <Button
+            variant="accent"
+            onClick={handleAddTag}
+            className="shadow-md"
+          >
+            <Plus className="h-4 w-4" /> Add Tag
+          </Button>
+        )}
       />
 
       <div className="mb-6 flex gap-1 rounded-lg bg-primary-100 p-1 w-fit">
@@ -764,7 +788,16 @@ export function IoTDevicesPage() {
       </div>
 
       {tab === 'devices' && <DevicesTab onGoToPair={() => setTab('pair')} />}
-      {tab === 'tags' && <NfcTagsTab />}
+      {tab === 'tags' && (
+        <NfcTagsTab 
+          onAddTag={handleAddTag} 
+          onEditTag={handleEditTag}
+          formOpen={formOpen}
+          setFormOpen={setFormOpen}
+          editing={editing}
+          setEditing={setEditing}
+        />
+      )}
       {tab === 'pair' && <PairTab onPaired={() => setTab('devices')} />}
     </div>
   );
