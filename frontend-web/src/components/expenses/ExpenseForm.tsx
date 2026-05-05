@@ -1,9 +1,10 @@
 import { useForm } from 'react-hook-form';
+import { Store } from 'lucide-react';
 import { useCategories } from '@/hooks/useCategories';
+import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
-import type { ExpenseCreate } from '@/types/expense';
-import type { Expense } from '@/types/expense';
+import type { ExpenseCreate, Expense } from '@/types/expense';
 
 interface ExpenseFormProps {
   expense?: Expense | null;
@@ -13,6 +14,8 @@ interface ExpenseFormProps {
 }
 
 export function ExpenseForm({ expense, loading, onSubmit, onCancel }: ExpenseFormProps) {
+  const user = useAuthStore((s) => s.user);
+  const currency = user?.preferred_currency || 'NPR';
   const { data: catData } = useCategories('expense');
   const categories = catData?.results || [];
 
@@ -32,7 +35,7 @@ export function ExpenseForm({ expense, loading, onSubmit, onCancel }: ExpenseFor
         }
       : {
           date: new Date().toISOString().split('T')[0],
-          currency: 'NPR',
+          currency: currency,
         },
   });
 
@@ -44,6 +47,7 @@ export function ExpenseForm({ expense, loading, onSubmit, onCancel }: ExpenseFor
           type="number"
           step="0.01"
           placeholder="0.00"
+          icon={<span className="text-xs font-bold">{currency === 'NPR' ? 'Rs.' : currency}</span>}
           error={errors.amount?.message}
           {...register('amount', { required: 'Amount is required' })}
         />
@@ -73,6 +77,7 @@ export function ExpenseForm({ expense, loading, onSubmit, onCancel }: ExpenseFor
       <Input
         label="Merchant"
         placeholder="e.g. British Cafe"
+        icon={<Store className="h-4 w-4" />}
         {...register('merchant')}
       />
 
