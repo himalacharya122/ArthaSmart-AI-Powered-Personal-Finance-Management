@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageSquarePlus, Send, Trash2, Bot, User, Loader2 } from 'lucide-react';
+import { MessageSquarePlus, Send, Trash2, Bot, User, Loader2, PanelLeft } from 'lucide-react';
 import {
   useConversations,
   useConversation,
@@ -146,9 +146,10 @@ export function ChatPage() {
           <div className="flex items-center gap-3 px-5 h-[72px] bg-primary-950">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="rounded p-1.5 text-white/50 hover:bg-white/10"
+              className="rounded p-1.5 text-white/50 hover:bg-white/10 transition-colors"
+              title={sidebarOpen ? "Hide Sidebar" : "Show Sidebar"}
             >
-              <MessageSquarePlus className="h-4 w-4" />
+              <PanelLeft className={cn("h-4 w-4 transition-transform", !sidebarOpen && "rotate-180")} />
             </button>
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white">
               <Bot className="h-5 w-5" />
