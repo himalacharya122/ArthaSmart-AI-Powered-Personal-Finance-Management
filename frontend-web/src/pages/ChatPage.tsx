@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageSquarePlus, Send, Trash2, Bot, User, Loader2, PanelLeft } from 'lucide-react';
+import { MessageSquarePlus, Send, Trash2, Sparkles, User, Loader2, PanelLeft } from 'lucide-react';
 import {
   useConversations,
   useConversation,
@@ -152,7 +152,7 @@ export function ChatPage() {
               <PanelLeft className={cn("h-4 w-4 transition-transform", !sidebarOpen && "rotate-180")} />
             </button>
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white">
-              <Bot className="h-5 w-5" />
+              <Sparkles className="h-5 w-5" />
             </div>
             <div>
               <h2 className="text-sm font-[800] text-white tracking-tight">ArthaSmart AI</h2>
@@ -185,7 +185,7 @@ export function ChatPage() {
                 {sendMsg.isPending && (
                   <div className="flex gap-4">
                     <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-accent-50">
-                      <Bot className="h-4 w-4 text-accent-600" />
+                      <Sparkles className="h-4 w-4 text-accent-600" />
                     </div>
                     <div className="rounded-2xl rounded-bl-none bg-[#F6F7F9] px-5 py-3.5 border border-[rgba(9,29,42,0.05)]">
                       <div className="flex items-center gap-2">
@@ -261,7 +261,7 @@ function ChatBubble({
     <div className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}>
       {!isUser && (
         <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-accent-100">
-          <Bot className="h-4 w-4 text-accent-600" />
+          <Sparkles className="h-4 w-4 text-accent-600" />
         </div>
       )}
       <div className={cn('max-w-[75%]', isUser && 'order-first')}>
