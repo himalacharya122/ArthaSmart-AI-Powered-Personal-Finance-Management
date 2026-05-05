@@ -22,11 +22,22 @@ class IoTDeviceSerializer(serializers.ModelSerializer):
             "api_key_expires_at",
             "is_active",
             "last_seen",
+            # IoT Receipt Scanner — device LAN IP for live preview snapshot URL.
+            # Set by PollView from the X-Device-IP request header.
+            # To remove: delete this line and the last_ip field from models.py.
+            "last_ip",
             "firmware_version",
             "metadata",
             "created_at",
         ]
-        read_only_fields = ["id", "api_key", "api_key_expires_at", "last_seen", "created_at"]
+        read_only_fields = [
+            "id",
+            "api_key",
+            "api_key_expires_at",
+            "last_seen",
+            "last_ip",
+            "created_at",
+        ]
 
 
 class NFCTagSerializer(serializers.ModelSerializer):
