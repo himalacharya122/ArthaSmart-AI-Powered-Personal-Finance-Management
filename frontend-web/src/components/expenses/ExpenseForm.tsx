@@ -1,9 +1,10 @@
 import { useForm } from 'react-hook-form';
+import { Store } from 'lucide-react';
 import { useCategories } from '@/hooks/useCategories';
+import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
-import type { ExpenseCreate } from '@/types/expense';
-import type { Expense } from '@/types/expense';
+import type { ExpenseCreate, Expense } from '@/types/expense';
 
 interface ExpenseFormProps {
   expense?: Expense | null;
@@ -13,6 +14,8 @@ interface ExpenseFormProps {
 }
 
 export function ExpenseForm({ expense, loading, onSubmit, onCancel }: ExpenseFormProps) {
+  const user = useAuthStore((s) => s.user);
+  const currency = user?.preferred_currency || 'NPR';
   const { data: catData } = useCategories('expense');
   const categories = catData?.results || [];
 
@@ -32,7 +35,7 @@ export function ExpenseForm({ expense, loading, onSubmit, onCancel }: ExpenseFor
         }
       : {
           date: new Date().toISOString().split('T')[0],
-          currency: 'NPR',
+          currency: currency,
         },
   });
 
@@ -44,15 +47,16 @@ export function ExpenseForm({ expense, loading, onSubmit, onCancel }: ExpenseFor
           type="number"
           step="0.01"
           placeholder="0.00"
+          icon={<span className="text-xs font-bold">{currency === 'NPR' ? 'Rs.' : currency}</span>}
           error={errors.amount?.message}
           {...register('amount', { required: 'Amount is required' })}
         />
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wide text-primary-600">
+        <div className="space-y-1">
+          <label className="block text-sm font-bold text-primary-950/80">
             Category
           </label>
           <select
-            className="mt-1 block w-full rounded-md border border-primary-200 bg-white px-3 py-2.5 text-sm text-primary-800 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            className="mt-2 block w-full rounded-md border border-primary-950/20 bg-white py-3 px-3 text-sm text-primary-950 focus:border-primary-950/40 focus:outline-none focus:ring-0 transition-colors"
             {...register('category_id', { setValueAs: (v) => (v ? Number(v) : null) })}
           >
             <option value="">Select category</option>
@@ -73,6 +77,7 @@ export function ExpenseForm({ expense, loading, onSubmit, onCancel }: ExpenseFor
       <Input
         label="Merchant"
         placeholder="e.g. British Cafe"
+        icon={<Store className="h-4 w-4" />}
         {...register('merchant')}
       />
 

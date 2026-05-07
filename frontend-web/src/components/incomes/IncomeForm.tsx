@@ -1,5 +1,7 @@
 import { useForm } from 'react-hook-form';
+import { Building2 } from 'lucide-react';
 import { useCategories } from '@/hooks/useCategories';
+import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import type { IncomeCreate, Income } from '@/types/income';
@@ -12,6 +14,8 @@ interface IncomeFormProps {
 }
 
 export function IncomeForm({ income, loading, onSubmit, onCancel }: IncomeFormProps) {
+  const user = useAuthStore((s) => s.user);
+  const currency = user?.preferred_currency || 'NPR';
   const { data: catData } = useCategories('income');
   const categories = catData?.results || [];
 
@@ -30,7 +34,7 @@ export function IncomeForm({ income, loading, onSubmit, onCancel }: IncomeFormPr
         }
       : {
           date: new Date().toISOString().split('T')[0],
-          currency: 'NPR',
+          currency: currency,
         },
   });
 
@@ -42,15 +46,16 @@ export function IncomeForm({ income, loading, onSubmit, onCancel }: IncomeFormPr
           type="number"
           step="0.01"
           placeholder="0.00"
+          icon={<span className="text-xs font-bold">{currency === 'NPR' ? 'Rs.' : currency}</span>}
           error={errors.amount?.message}
           {...register('amount', { required: 'Amount is required' })}
         />
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wide text-primary-600">
+        <div className="space-y-1">
+          <label className="block text-sm font-bold text-primary-950/80">
             Category
           </label>
           <select
-            className="mt-1 block w-full rounded-md border border-primary-200 bg-white px-3 py-2.5 text-sm text-primary-800 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            className="mt-2 block w-full rounded-md border border-primary-950/20 bg-white py-3 px-3 text-sm text-primary-950 focus:border-primary-950/40 focus:outline-none focus:ring-0 transition-colors"
             {...register('category_id', { setValueAs: (v) => (v ? Number(v) : null) })}
           >
             <option value="">Select category</option>
@@ -64,6 +69,7 @@ export function IncomeForm({ income, loading, onSubmit, onCancel }: IncomeFormPr
       <Input
         label="Source Name"
         placeholder="e.g. Salary, Freelance, Investment"
+        icon={<Building2 className="h-4 w-4" />}
         error={errors.source_name?.message}
         {...register('source_name', { required: 'Source name is required' })}
       />
