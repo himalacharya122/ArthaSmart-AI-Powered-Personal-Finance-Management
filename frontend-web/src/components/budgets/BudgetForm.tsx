@@ -1,5 +1,7 @@
 import { useForm } from 'react-hook-form';
+import { Target, BellRing } from 'lucide-react';
 import { useCategories } from '@/hooks/useCategories';
+import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import type { BudgetCreate, Budget } from '@/types/budget';
@@ -12,6 +14,8 @@ interface BudgetFormProps {
 }
 
 export function BudgetForm({ budget, loading, onSubmit, onCancel }: BudgetFormProps) {
+  const user = useAuthStore((s) => s.user);
+  const currency = user?.preferred_currency || 'NPR';
   const { data: catData } = useCategories('expense');
   const categories = catData?.results || [];
 
@@ -44,6 +48,7 @@ export function BudgetForm({ budget, loading, onSubmit, onCancel }: BudgetFormPr
       <Input
         label="Budget Name"
         placeholder="e.g. Food Budget"
+        icon={<Target className="h-4 w-4" />}
         error={errors.name?.message}
         {...register('name', { required: 'Name is required' })}
       />
@@ -54,15 +59,16 @@ export function BudgetForm({ budget, loading, onSubmit, onCancel }: BudgetFormPr
           type="number"
           step="0.01"
           placeholder="0.00"
+          icon={<span className="text-xs font-bold">{currency === 'NPR' ? 'Rs.' : currency}</span>}
           error={errors.amount?.message}
           {...register('amount', { required: 'Amount is required' })}
         />
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wide text-primary-600">
+        <div className="space-y-1">
+          <label className="block text-sm font-bold text-primary-950/80">
             Period
           </label>
           <select
-            className="mt-1 block w-full rounded-md border border-primary-200 bg-white px-3 py-2.5 text-sm text-primary-800 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            className="mt-2 block w-full rounded-md border border-primary-950/20 bg-white py-3 px-3 text-sm text-primary-950 focus:border-primary-950/40 focus:outline-none focus:ring-0 transition-colors"
             {...register('period', { required: 'Period is required' })}
           >
             <option value="daily">Daily</option>
@@ -74,12 +80,12 @@ export function BudgetForm({ budget, loading, onSubmit, onCancel }: BudgetFormPr
         </div>
       </div>
 
-      <div>
-        <label className="block text-xs font-semibold uppercase tracking-wide text-primary-600">
+      <div className="space-y-1">
+        <label className="block text-sm font-bold text-primary-950/80">
           Category (optional)
         </label>
         <select
-          className="mt-1 block w-full rounded-md border border-primary-200 bg-white px-3 py-2.5 text-sm text-primary-800 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+          className="mt-2 block w-full rounded-md border border-primary-950/20 bg-white py-3 px-3 text-sm text-primary-950 focus:border-primary-950/40 focus:outline-none focus:ring-0 transition-colors"
           {...register('category_id', { setValueAs: (v) => (v ? Number(v) : null) })}
         >
           <option value="">All categories</option>
@@ -109,6 +115,7 @@ export function BudgetForm({ budget, loading, onSubmit, onCancel }: BudgetFormPr
         type="number"
         min={0}
         max={100}
+        icon={<BellRing className="h-4 w-4" />}
         {...register('alert_threshold', { valueAsNumber: true })}
       />
 

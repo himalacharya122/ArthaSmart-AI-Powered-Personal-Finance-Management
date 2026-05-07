@@ -80,7 +80,7 @@ export function ExpensesPage() {
       />
 
       {/* Filters */}
-      <Card className="mb-4" padding="sm">
+      <Card className="-mt-12 relative z-10 mb-6" padding="sm">
         <ExpenseFilters filters={filters} onChange={setFilters} />
       </Card>
 
@@ -106,7 +106,7 @@ export function ExpensesPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-primary-100 text-left text-xs font-semibold uppercase text-primary-400">
+                <tr className="border-b border-[rgba(9,29,42,0.07)] text-left text-[11px] font-[700] uppercase tracking-wider text-primary-950/60">
                   <th className="px-4 py-3">Date</th>
                   <th className="px-4 py-3">Amount</th>
                   <th className="px-4 py-3">Category</th>
@@ -119,44 +119,44 @@ export function ExpensesPage() {
                 {expenses.map((exp) => (
                   <tr
                     key={exp.id}
-                    className="border-b border-primary-50 last:border-0 hover:bg-primary-50/50"
+                    className="border-b border-[rgba(9,29,42,0.07)] last:border-0 hover:bg-[#F6F7F9] transition-colors"
                   >
-                    <td className="px-4 py-3 text-primary-500">
+                    <td className="px-4 py-3 text-primary-950/60 font-medium">
                       {formatDate(exp.date, 'dd MMM yyyy')}
                     </td>
-                    <td className="px-4 py-3 font-semibold text-danger-500">
+                    <td className="px-4 py-3 font-[800] text-danger-500 tracking-tight">
                       -{formatCurrency(exp.amount, exp.currency || currency)}
                     </td>
                     <td className="px-4 py-3">
                       {exp.category ? (
                         <span className="inline-flex items-center gap-1.5">
                           <span
-                            className="inline-block h-2.5 w-2.5 rounded-full"
+                            className="inline-block h-2 w-2 rounded-full"
                             style={{ backgroundColor: exp.category.color || '#94a3b8' }}
                           />
-                          <span className="text-primary-600">{exp.category.name}</span>
+                          <span className="text-primary-950 font-semibold">{exp.category.name}</span>
                         </span>
                       ) : (
-                        <span className="text-primary-300">--</span>
+                        <span className="text-primary-950/30">--</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-primary-500 hidden md:table-cell">
+                    <td className="px-4 py-3 text-primary-950/60 hidden md:table-cell font-medium">
                       {exp.merchant || '--'}
                     </td>
-                    <td className="px-4 py-3 text-primary-500 hidden lg:table-cell max-w-[200px] truncate">
+                    <td className="px-4 py-3 text-primary-950/60 hidden lg:table-cell max-w-[200px] truncate font-medium">
                       {exp.description || '--'}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => openEdit(exp)}
-                          className="rounded p-1.5 text-primary-400 hover:bg-primary-100 hover:text-primary-600"
+                          className="rounded p-1.5 text-primary-950/40 hover:bg-primary-50 hover:text-primary-950 transition-colors"
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => setDeleting(exp)}
-                          className="rounded p-1.5 text-primary-400 hover:bg-danger-50 hover:text-danger-500"
+                          className="rounded p-1.5 text-primary-950/40 hover:bg-danger-50 hover:text-danger-500 transition-colors"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>

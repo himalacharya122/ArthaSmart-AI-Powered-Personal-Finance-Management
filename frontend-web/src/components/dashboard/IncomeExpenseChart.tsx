@@ -17,7 +17,7 @@ interface IncomeExpenseChartProps {
 export function IncomeExpenseChart({ data }: IncomeExpenseChartProps) {
   if (data.length === 0) {
     return (
-      <p className="flex h-48 items-center justify-center text-sm text-primary-950/50">
+      <p className="flex h-48 items-center justify-center text-[13px] text-primary-950/60 font-medium">
         No data yet
       </p>
     );
@@ -31,33 +31,40 @@ export function IncomeExpenseChart({ data }: IncomeExpenseChartProps) {
 
   return (
     <ResponsiveContainer width="100%" height={260}>
-      <BarChart data={chartData} barGap={4}>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(9,29,42,0.1)" vertical={false} />
+      <BarChart data={chartData} barGap={6}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(9,29,42,0.07)" vertical={false} />
         <XAxis
           dataKey="month"
-          tick={{ fontSize: 12, fill: 'rgba(9,29,42,0.6)' }}
+          tick={{ fontSize: 12, fill: '#091D2A', fontWeight: 600, opacity: 0.6 }}
           axisLine={false}
           tickLine={false}
+          dy={10}
         />
         <YAxis
-          tick={{ fontSize: 12, fill: 'rgba(9,29,42,0.6)' }}
-          axisLine={false}
+          tick={{ fontSize: 12, fill: '#091D2A', fontWeight: 600, opacity: 0.6 }}
+          axisLine={{ stroke: 'rgba(9,29,42,0.07)' }}
           tickLine={false}
+          dx={-10}
         />
         <Tooltip
           contentStyle={{
             borderRadius: '8px',
-            border: '1px solid rgba(9,29,42,0.2)',
+            border: '1px solid rgba(9,29,42,0.07)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
             fontSize: '13px',
+            fontWeight: '700',
             color: '#091D2A',
+            background: '#ffffff',
           }}
-          cursor={{ fill: 'rgba(9,29,42,0.04)' }}
+          cursor={{ fill: 'rgba(9,29,42,0.03)' }}
+          itemStyle={{ color: '#091D2A', fontWeight: '800' }}
         />
         <Legend
-          wrapperStyle={{ fontSize: '13px', color: 'rgba(9,29,42,0.7)' }}
+          wrapperStyle={{ fontSize: '12px', fontWeight: '700', color: '#091D2A', opacity: 0.8, paddingTop: '16px' }}
+          iconType="circle"
         />
-        <Bar dataKey="Income" fill="#3A9E55" radius={[4, 4, 0, 0]} />
-        <Bar dataKey="Expenses" fill="#091D2A" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="Income" fill="#4DB86A" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="Expenses" fill="#E74C3C" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

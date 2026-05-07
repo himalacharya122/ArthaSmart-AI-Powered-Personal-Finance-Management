@@ -5,37 +5,46 @@ interface TopCategoriesProps {
   currency?: string;
 }
 
+const BRAND_COLORS = [
+  '#091D2A', // primary-950
+  '#4DB86A', // accent-500
+  '#E74C3C', // danger-500
+  '#4787AF', // primary-400
+  '#154360', // primary-700
+];
+
 export function TopCategories({ categories, currency = 'NPR' }: TopCategoriesProps) {
   if (categories.length === 0) {
     return (
-      <p className="py-6 text-center text-sm text-primary-950/50">No category data yet</p>
+      <p className="py-6 text-center text-[13px] text-primary-950/60 font-medium">No category data yet</p>
     );
   }
 
   const maxTotal = Math.max(...categories.map((c) => parseFloat(c.total)));
 
   return (
-    <div className="space-y-3">
-      {categories.map((cat) => {
+    <div className="space-y-5">
+      {categories.map((cat, i) => {
         const pct = maxTotal > 0 ? (parseFloat(cat.total) / maxTotal) * 100 : 0;
+        const color = BRAND_COLORS[i % BRAND_COLORS.length];
         return (
           <div key={cat.name}>
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between text-sm mb-2">
+              <div className="flex items-center gap-2.5">
                 <span
-                  className="inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full"
-                  style={{ backgroundColor: cat.color || '#4787AF' }}
+                  className="inline-block h-2 w-2 flex-shrink-0 rounded-full"
+                  style={{ backgroundColor: color }}
                 />
-                <span className="font-semibold text-primary-950">{cat.name}</span>
+                <span className="font-[700] text-primary-950">{cat.name}</span>
               </div>
-              <span className="font-medium text-primary-950/70">
+              <span className="font-[800] text-primary-950 tracking-tight">
                 {formatCurrency(cat.total, currency)}
               </span>
             </div>
-            <div className="mt-1.5 h-1.5 w-full rounded-full bg-primary-950/10">
+            <div className="h-1.5 w-full rounded-full bg-[rgba(9,29,42,0.07)]">
               <div
                 className="h-1.5 rounded-full transition-all duration-500"
-                style={{ width: `${pct}%`, backgroundColor: cat.color || '#4787AF' }}
+                style={{ width: `${pct}%`, backgroundColor: color }}
               />
             </div>
           </div>

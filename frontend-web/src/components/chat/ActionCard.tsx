@@ -56,82 +56,82 @@ export function ActionCard({ actions, status, results, onConfirm, onReject, isCo
           <div
             key={idx}
             className={cn(
-              'rounded-lg border p-3 text-sm',
-              status === 'confirmed' && 'border-accent-200 bg-accent-50',
-              status === 'rejected' && 'border-primary-200 bg-primary-50 opacity-60',
-              status === 'pending' && 'border-primary-200 bg-white',
+              'rounded-xl border p-4 text-sm transition-all',
+              status === 'confirmed' && 'border-accent-200 bg-accent-50/50',
+              status === 'rejected' && 'border-[rgba(9,29,42,0.07)] bg-[#F6F7F9] opacity-60',
+              status === 'pending' && 'border-[rgba(9,29,42,0.1)] bg-white shadow-sm',
             )}
           >
-            <div className="flex items-center gap-2 mb-1.5">
+            <div className="flex items-center gap-2 mb-2">
               <Icon className={cn(
                 'h-4 w-4',
-                isDelete ? 'text-danger-500' : isExpense ? 'text-danger-400' : 'text-accent-600',
+                isDelete ? 'text-danger-500' : isExpense ? 'text-danger-500' : 'text-accent-600',
               )} />
-              <span className="font-medium text-primary-800">{label}</span>
+              <span className="font-[700] text-primary-950">{label}</span>
               {status === 'confirmed' && (
-                <span className="ml-auto inline-flex items-center gap-1 text-xs text-accent-600">
+                <span className="ml-auto inline-flex items-center gap-1 text-[11px] font-[700] text-accent-600 uppercase tracking-wider">
                   <Check className="h-3 w-3" /> Saved
                 </span>
               )}
               {status === 'rejected' && (
-                <span className="ml-auto inline-flex items-center gap-1 text-xs text-primary-400">
+                <span className="ml-auto inline-flex items-center gap-1 text-[11px] font-[700] text-primary-950/40 uppercase tracking-wider">
                   <X className="h-3 w-3" /> Cancelled
                 </span>
               )}
               {error && (
-                <span className="ml-auto text-xs text-danger-500">Failed: {error.error}</span>
+                <span className="ml-auto text-[11px] font-[700] text-danger-500 uppercase tracking-wider">Failed: {error.error}</span>
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-primary-600">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[12px] text-primary-950/70 font-medium">
               {action.data.amount != null && (
                 <div>
-                  <span className="text-primary-400">Amount: </span>
-                  <span className="font-medium">{formatCurrency(action.data.amount, currency)}</span>
+                  <span className="text-primary-950/40">Amount: </span>
+                  <span className="font-[800] text-primary-950">{formatCurrency(action.data.amount, currency)}</span>
                 </div>
               )}
               {action.data.category && (
                 <div>
-                  <span className="text-primary-400">Category: </span>
-                  <span className="font-medium capitalize">{action.data.category}</span>
+                  <span className="text-primary-950/40">Category: </span>
+                  <span className="font-semibold text-primary-950 capitalize">{action.data.category}</span>
                 </div>
               )}
               {action.data.merchant && (
                 <div>
-                  <span className="text-primary-400">Merchant: </span>
-                  <span className="font-medium">{action.data.merchant}</span>
+                  <span className="text-primary-950/40">Merchant: </span>
+                  <span className="font-semibold text-primary-950">{action.data.merchant}</span>
                 </div>
               )}
               {action.data.source_name && (
                 <div>
-                  <span className="text-primary-400">Source: </span>
-                  <span className="font-medium">{action.data.source_name}</span>
+                  <span className="text-primary-950/40">Source: </span>
+                  <span className="font-semibold text-primary-950">{action.data.source_name}</span>
                 </div>
               )}
               {action.data.description && (
                 <div className="col-span-2">
-                  <span className="text-primary-400">Note: </span>
-                  <span>{action.data.description}</span>
+                  <span className="text-primary-950/40">Note: </span>
+                  <span className="text-primary-950">{action.data.description}</span>
                 </div>
               )}
               {action.data.date && (
                 <div>
-                  <span className="text-primary-400">Date: </span>
-                  <span>{action.data.date}</span>
+                  <span className="text-primary-950/40">Date: </span>
+                  <span className="text-primary-950">{action.data.date}</span>
                 </div>
               )}
               {(action.data.expense_id || action.data.income_id) && (
                 <div>
-                  <span className="text-primary-400">ID: </span>
-                  <span>#{action.data.expense_id || action.data.income_id}</span>
+                  <span className="text-primary-950/40">ID: </span>
+                  <span className="text-primary-950">#{action.data.expense_id || action.data.income_id}</span>
                 </div>
               )}
             </div>
 
             {/* Confirmed result details */}
             {status === 'confirmed' && result && isCreate && result.id && (
-              <p className="mt-1.5 text-xs text-accent-600">
-                Saved as #{result.id}
+              <p className="mt-2 text-[11px] font-[700] text-accent-600 uppercase tracking-wider">
+                Logged as transaction #{result.id}
               </p>
             )}
           </div>
@@ -140,24 +140,26 @@ export function ActionCard({ actions, status, results, onConfirm, onReject, isCo
 
       {/* Confirm / Cancel buttons */}
       {status === 'pending' && (
-        <div className="flex items-center gap-2 pt-1">
+        <div className="flex items-center gap-2 pt-2">
           <Button
             variant="accent"
             size="sm"
+            className="rounded-lg h-9 font-bold"
             onClick={onConfirm}
             loading={isConfirming}
             disabled={isRejecting}
           >
-            <Check className="h-3.5 w-3.5" /> Confirm
+            <Check className="h-4 w-4" /> Confirm
           </Button>
           <Button
             variant="ghost"
             size="sm"
+            className="rounded-lg h-9 font-bold text-primary-950/60 hover:text-primary-950"
             onClick={onReject}
             loading={isRejecting}
             disabled={isConfirming}
           >
-            <X className="h-3.5 w-3.5" /> Cancel
+            <X className="h-4 w-4" /> Cancel
           </Button>
         </div>
       )}
