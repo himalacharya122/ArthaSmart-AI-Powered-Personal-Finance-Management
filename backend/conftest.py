@@ -20,9 +20,7 @@ import pytest  # type: ignore
 from django.db.models.signals import post_save  # type: ignore
 from rest_framework.test import APIClient  # type: ignore
 
-# ---------------------------------------------------------------------------
 # Factories
-# ---------------------------------------------------------------------------
 
 
 class UserFactory(factory.django.DjangoModelFactory):
@@ -115,9 +113,7 @@ class RecurringTransactionFactory(factory.django.DjangoModelFactory):
     is_active = True
 
 
-# ---------------------------------------------------------------------------
 # Fixtures
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture

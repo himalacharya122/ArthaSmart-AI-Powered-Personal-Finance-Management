@@ -34,8 +34,11 @@ def _reject(pk, msg_id):
 
 class TestConversationCRUD:
     def test_list_scoped(self, authenticated_client, user, other_user):
-        ChatConversation.objects.create(user=user, title="mine")
-        ChatConversation.objects.create(user=other_user, title="theirs")
+        from django.utils import timezone  # type: ignore
+
+        now = timezone.now()
+        ChatConversation.objects.create(user=user, title="mine", last_message_at=now)
+        ChatConversation.objects.create(user=other_user, title="theirs", last_message_at=now)
         r = authenticated_client.get(LIST_URL)
         titles = {c["title"] for c in r.data["results"]}
         assert titles == {"mine"}
@@ -240,6 +243,6 @@ class TestVoiceTranscribe:
 
 
 def _fake_audio_file():
-    from django.core.files.uploadedfile import SimpleUploadedFile
+    from django.core.files.uploadedfile import SimpleUploadedFile  # type: ignore
 
     return SimpleUploadedFile("a.webm", b"x" * 200, content_type="audio/webm")
