@@ -15,7 +15,7 @@ from rest_framework.routers import DefaultRouter  # type: ignore
 
 from .ingest import IngestNFCTapView, IngestReceiptView
 from .pairing import PairingClaimView, PairingRequestView, PairingStatusView
-from .views import IoTDeviceViewSet, NFCTagViewSet
+from .views import IoTDeviceViewSet, NFCTagViewSet, PollView  # IoT Receipt Scanner: PollView
 
 app_name = "iot"
 
@@ -35,6 +35,10 @@ urlpatterns = [
     # Ingestion (device API key)
     path("ingest/receipt/", IngestReceiptView.as_view(), name="ingest-receipt"),
     path("ingest/nfc-tap/", IngestNFCTapView.as_view(), name="ingest-nfc-tap"),
+    # IoT Receipt Scanner — command poll (device API key)
+    # ESP32-CAM hits this every 2 s; returns {"capture": true/false}.
+    # To remove: delete this line and PollView from views.py.
+    path("poll/", PollView.as_view(), name="iot-poll"),
     # User-facing CRUD (JWT) - kept last so /pair/... and /ingest/... don't
     # accidentally get swallowed by a router-registered prefix.
     path("", include(router.urls)),
