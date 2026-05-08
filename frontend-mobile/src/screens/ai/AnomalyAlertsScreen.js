@@ -1,14 +1,3 @@
-/**
- * Anomaly Alerts — AI-detected anomalies and budget warnings.
- *
- * Features:
- * - "X new" badge in header
- * - Filter pills (All / Anomalies / Budget / Recurring)
- * - Alert cards with severity badges (HIGH/MEDIUM/LOW)
- * - Progress bars for budget warnings
- * - Contextual action buttons (Mark OK / Review / Ask AI / Dismiss)
- * - Resolved section with dimmed opacity
- */
 import { useState, useCallback, useMemo } from 'react';
 import {
   View,
@@ -17,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -66,7 +56,7 @@ export function AnomalyAlertsScreen({ navigation }) {
 
   useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
 
-  const handleGenerate = async () => {
+  const doGenerate = async () => {
     setGenerating(true);
     try {
       const res = await chatService.generateInsights();
@@ -77,6 +67,17 @@ export function AnomalyAlertsScreen({ navigation }) {
     } finally {
       setGenerating(false);
     }
+  };
+
+  const handleGenerate = () => {
+    Alert.alert(
+      'Generate Insights',
+      'Scan your recent transactions for anomalies and spending alerts?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Generate', onPress: doGenerate },
+      ],
+    );
   };
 
   const handleDismiss = async (id) => {
@@ -99,7 +100,6 @@ export function AnomalyAlertsScreen({ navigation }) {
     }
   };
 
-  // Filter logic
   const filteredInsights = useMemo(() => {
     let list = insights;
     if (filter !== 'all') {
@@ -191,10 +191,7 @@ export function AnomalyAlertsScreen({ navigation }) {
             return (
               <View
                 key={alert.id}
-                style={[
-                  styles.alertCard,
-                  { borderLeftColor: sev.border, backgroundColor: sev.bg },
-                ]}
+                style={[styles.alertCard, { backgroundColor: sev.bg, borderColor: sev.border }]}
               >
                 {/* Card Header */}
                 <View style={styles.alertHeader}>
@@ -226,14 +223,14 @@ export function AnomalyAlertsScreen({ navigation }) {
                 {/* Action Buttons */}
                 <View style={styles.alertActions}>
                   {isAnomaly && (
-                    <TouchableOpacity style={styles.actionBtnOutline} onPress={() => handleMarkRead(alert.id)}>
-                      <MaterialIcons name="check-circle-outline" size={14} color={colors.primary[600]} />
-                      <Text style={styles.actionBtnOutlineText}>Mark OK</Text>
+                    <TouchableOpacity style={styles.actionBtnMarkOk} onPress={() => handleMarkRead(alert.id)}>
+                      <MaterialIcons name="check-circle-outline" size={14} color={colors.white} />
+                      <Text style={styles.actionBtnMarkOkText}>Mark OK</Text>
                     </TouchableOpacity>
                   )}
-                  <TouchableOpacity style={styles.actionBtnOutline} onPress={() => handleDismiss(alert.id)}>
-                    <MaterialIcons name="close" size={14} color={colors.primary[500]} />
-                    <Text style={styles.actionBtnOutlineText}>Dismiss</Text>
+                  <TouchableOpacity style={styles.actionBtnDismiss} onPress={() => handleDismiss(alert.id)}>
+                    <MaterialIcons name="close" size={14} color={colors.white} />
+                    <Text style={styles.actionBtnDismissText}>Dismiss</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.actionBtnDark}
@@ -246,7 +243,7 @@ export function AnomalyAlertsScreen({ navigation }) {
                       }
                     }}
                   >
-                    <MaterialIcons name="smart-toy" size={14} color={colors.white} />
+                    <MaterialIcons name="chat" size={14} color={colors.white} />
                     <Text style={styles.actionBtnDarkText}>Ask AI</Text>
                   </TouchableOpacity>
                 </View>
@@ -266,7 +263,7 @@ export function AnomalyAlertsScreen({ navigation }) {
                   <View style={styles.resolvedHeader}>
                     <MaterialIcons name="check-circle" size={16} color={colors.accent[500]} />
                     <Text style={styles.resolvedTitle} numberOfLines={1}>{alert.title}</Text>
-                    <View style={[styles.severityBadge, { backgroundColor: sev.badge, opacity: 0.6 }]}>
+                    <View style={[styles.severityBadge, { backgroundColor: sev.badge }]}>
                       <Text style={[styles.severityText, { color: sev.text }]}>{sev.label}</Text>
                     </View>
                   </View>
@@ -284,8 +281,17 @@ export function AnomalyAlertsScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.primary[50] },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.primary[100] },
+  container: { flex: 1, backgroundColor: colors.white },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.primary[100],
+  },
   backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   headerTitleRow: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
   headerTitle: { ...typography.h3 },
@@ -294,7 +300,6 @@ const styles = StyleSheet.create({
   generateBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   scrollContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
 
-  // Filter pills
   filterScroll: { marginBottom: spacing.md },
   filterRow: { gap: spacing.sm, paddingVertical: spacing.xs },
   filterPill: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.full, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.primary[200] },
@@ -302,37 +307,55 @@ const styles = StyleSheet.create({
   filterPillText: { ...typography.bodySmall, color: colors.primary[600], fontWeight: '500' },
   filterPillTextActive: { color: colors.white },
 
-  sectionLabel: { ...typography.caption, fontWeight: '700', color: colors.primary[400], letterSpacing: 0.5, marginBottom: spacing.sm, marginTop: spacing.lg },
+  sectionLabel: {
+    ...typography.caption,
+    fontWeight: '700',
+    color: colors.primary[500],
+    marginBottom: spacing.sm,
+    marginTop: spacing.lg,
+    textTransform: 'uppercase',
+  },
 
-  // Alert cards
-  alertCard: { borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.sm, borderLeftWidth: 4, borderWidth: 1, borderColor: colors.primary[100] },
+  alertCard: {
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    ...shadow.sm,
+  },
   alertHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
   alertTitle: { ...typography.body, fontSize: 14, fontWeight: '600', color: colors.primary[800], flex: 1 },
   severityBadge: { paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: borderRadius.sm },
-  severityText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.5 },
+  severityText: { fontSize: 10, fontWeight: '700' },
   alertDesc: { ...typography.bodySmall, color: colors.primary[600], lineHeight: 18, marginBottom: spacing.sm },
   alertTime: { ...typography.caption, color: colors.primary[400], fontSize: 11, marginBottom: spacing.sm },
 
-  // Budget progress
   budgetProgress: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
   budgetBarBg: { flex: 1, height: 6, backgroundColor: colors.primary[200], borderRadius: 3, overflow: 'hidden' },
   budgetBarFill: { height: 6, borderRadius: 3 },
   budgetPct: { fontSize: 11, fontWeight: '600' },
 
-  // Action buttons
   alertActions: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
-  actionBtnOutline: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm + 2, paddingVertical: spacing.xs + 2, borderRadius: borderRadius.sm, borderWidth: 1, borderColor: colors.primary[200], backgroundColor: colors.white },
-  actionBtnOutlineText: { ...typography.caption, color: colors.primary[600], fontWeight: '500', fontSize: 12 },
-  actionBtnDark: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm + 4, paddingVertical: spacing.xs + 2, borderRadius: borderRadius.sm, backgroundColor: colors.primary[800] },
+  actionBtnMarkOk: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm + 2, paddingVertical: spacing.xs + 2, borderRadius: borderRadius.sm, backgroundColor: colors.primary[800] },
+  actionBtnMarkOkText: { color: colors.white, fontWeight: '600', fontSize: 12 },
+  actionBtnDismiss: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm + 2, paddingVertical: spacing.xs + 2, borderRadius: borderRadius.sm, backgroundColor: colors.danger[500] },
+  actionBtnDismissText: { color: colors.white, fontWeight: '600', fontSize: 12 },
+  actionBtnDark: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm + 4, paddingVertical: spacing.xs + 2, borderRadius: borderRadius.sm, backgroundColor: colors.accent[600] },
   actionBtnDarkText: { color: colors.white, fontWeight: '600', fontSize: 12 },
 
-  // Resolved
-  resolvedCard: { backgroundColor: colors.white, borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.primary[100], opacity: 0.6 },
+  resolvedCard: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.primary[100],
+    ...shadow.sm,
+  },
   resolvedHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xs },
-  resolvedTitle: { ...typography.body, fontSize: 13, color: colors.primary[600], flex: 1 },
-  resolvedDesc: { ...typography.caption, color: colors.primary[400], lineHeight: 16 },
+  resolvedTitle: { ...typography.body, fontSize: 13, color: colors.primary[700], flex: 1 },
+  resolvedDesc: { ...typography.caption, color: colors.primary[500], lineHeight: 16 },
 
-  // Empty
   emptyState: { alignItems: 'center', paddingVertical: spacing.xxl, gap: spacing.sm },
   emptyTitle: { ...typography.h3, color: colors.accent[600] },
   emptyDesc: { ...typography.bodySmall, color: colors.primary[400], textAlign: 'center', maxWidth: 260 },

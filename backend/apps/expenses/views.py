@@ -1,7 +1,7 @@
 """Views for expenses, incomes, and recurring transactions."""
 
 from django.db.models import Sum  # type: ignore
-from django.db.models.functions import TruncMonth  # type: ignore
+from django.db.models.functions import ExtractWeekDay, TruncMonth  # type: ignore
 from django_filters.rest_framework import DjangoFilterBackend  # type: ignore
 from rest_framework import viewsets  # type: ignore
 from rest_framework.decorators import action  # type: ignore
@@ -75,6 +75,20 @@ class ExpenseViewSet(viewsets.ModelViewSet):
             .order_by("-month")[:12]
         )
 
+        # Aggregate by day of week (Django: 1=Sun, 2=Mon, ..., 7=Sat)
+        # Map to Mon-Sun order (indices 0-6) for the frontend bar chart
+        by_weekday_qs = (
+            qs.annotate(weekday=ExtractWeekDay("date"))
+            .values("weekday")
+            .annotate(total=Sum("amount"))
+        )
+        # 1=Sun→6, 2=Mon→0, 3=Tue→1, 4=Wed→2, 5=Thu→3, 6=Fri→4, 7=Sat→5
+        _weekday_map = {2: 0, 3: 1, 4: 2, 5: 3, 6: 4, 7: 5, 1: 6}
+        by_weekday = [0.0] * 7
+        for item in by_weekday_qs:
+            idx = _weekday_map.get(item["weekday"], 0)
+            by_weekday[idx] = float(item["total"])
+
         return Response(
             {
                 "total": str(total),
@@ -95,6 +109,7 @@ class ExpenseViewSet(viewsets.ModelViewSet):
                     }
                     for item in by_month
                 ],
+                "by_weekday": by_weekday,  # [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
             }
         )
 

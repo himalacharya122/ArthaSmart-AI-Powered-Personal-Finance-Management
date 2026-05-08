@@ -177,7 +177,7 @@ class Expense(models.Model):
         max_length=20,
         choices=PaymentMethod.choices,
         blank=True,
-        default='',
+        default="",
     )
     location = models.CharField(max_length=255, blank=True)
     tags = models.JSONField(default=list, blank=True)
