@@ -17,7 +17,15 @@ import { RecentExpenses } from '@/components/dashboard/RecentExpenses';
 import { CardSkeleton } from '@/components/common/LoadingSkeleton';
 import { formatCurrency, formatPercentage } from '@/utils/format';
 
-const PanelCard = ({ title, linkTo, linkText, children, className = "" }: any) => (
+interface PanelCardProps {
+  title: string;
+  linkTo: string;
+  linkText: string;
+  children: React.ReactNode;
+  className?: string;
+}
+
+const PanelCard = ({ title, linkTo, linkText, children, className = "" }: PanelCardProps) => (
   <div 
     className={`group relative overflow-hidden bg-white p-6 transition-all duration-300 ${className}`}
     style={{ borderRadius: '14px', border: '1px solid rgba(9,29,42,0.07)' }}

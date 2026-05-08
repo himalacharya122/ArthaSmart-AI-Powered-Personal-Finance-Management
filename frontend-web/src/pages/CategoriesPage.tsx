@@ -29,7 +29,7 @@ function CategoryForm({ category, onSubmit, onCancel, loading }: {
       ? { name: category.name, type: category.type, icon: category.icon, color: category.color }
       : { type: 'expense', color: '#3498DB' },
   });
-
+  // eslint-disable-next-line react-hooks/incompatible-library
   const selectedColor = watch('color');
 
   return (
