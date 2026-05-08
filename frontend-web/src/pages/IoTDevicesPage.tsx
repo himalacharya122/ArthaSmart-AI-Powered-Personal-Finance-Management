@@ -1,4 +1,5 @@
-import { useState } from 'react';
+/* eslint-disable react-hooks/purity */
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { isAxiosError } from 'axios';
 import {
@@ -6,10 +7,13 @@ import {
   Cpu,
   Copy,
   CreditCard,
+  Eye,        // IoT Receipt Scanner: icon for "Preview & Capture" button
   KeyRound,
+  Loader2,    // IoT Receipt Scanner: loading spinner in preview modal
   Pencil,
   Plus,
   RefreshCw,
+  ScanLine,   // IoT Receipt Scanner: icon for "Capture" button inside preview modal
   Smartphone,
   Trash2,
 } from 'lucide-react';
@@ -24,6 +28,7 @@ import {
   useUpdateNfcTag,
   useDeleteNfcTag,
   useClaimPairingCode,
+  useTriggerCapture,  // IoT Receipt Scanner: remote shutter hook (used in PreviewCaptureModal)
 } from '@/hooks/useIot';
 import { useCategories } from '@/hooks/useCategories';
 import { useAuthStore } from '@/store/authStore';
@@ -75,6 +80,129 @@ async function copyToClipboard(value: string, label = 'Copied') {
 }
 
 // ---------------------------------------------------------------------------
+// IoT Receipt Scanner — live preview modal
+// ---------------------------------------------------------------------------
+// Shows a refreshing snapshot from the ESP32-CAM before triggering capture.
+// The ESP32 serves GET /snapshot on port 80 of its local IP. The browser
+// fetches it directly (same LAN) — no backend proxy needed.
+//
+// `device.last_ip` is populated by the backend when the firmware sends an
+// X-Device-IP header on each poll request. It's empty until the first poll.
+//
+// To remove this feature:
+//   1. Delete this component.
+//   2. Restore the old "Capture now" button in DevicesTab (see comment there).
+//   3. Restore `const captureMut = useTriggerCapture()` in DevicesTab.
+//   4. Remove the Eye, Loader2 lucide imports above.
+
+function PreviewCaptureModal({
+  device,
+  open,
+  onClose,
+}: {
+  device: Device;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const captureMut = useTriggerCapture();
+  // Append a timestamp to the src so the browser re-fetches rather than using cache.
+  const [snapshotTs, setSnapshotTs] = useState(Date.now());
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError, setImgError] = useState(false);
+
+  // Reset image state and start refresh interval each time the modal opens.
+  useEffect(() => {
+    if (!open) return;
+    setImgLoaded(false);
+    setImgError(false);
+    setSnapshotTs(Date.now());
+
+    // Refresh snapshot every 1.5 s so the user sees a live-ish feed.
+    const id = setInterval(() => {
+      setImgLoaded(false);
+      setSnapshotTs(Date.now());
+    }, 1500);
+    return () => clearInterval(id);
+  }, [open]);
+
+  const snapshotUrl = device.last_ip
+    ? `http://${device.last_ip}/snapshot?t=${snapshotTs}`
+    : null;
+
+  function handleCapture() {
+    captureMut.mutate(device.id, {
+      onSuccess: () => {
+        toast.success('Capturing — check Receipts page in a few seconds');
+        onClose();
+      },
+    });
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title={`Preview — ${device.name}`}>
+      <p className="mb-3 text-xs text-primary-950/60">
+        Live feed from your ESP32-CAM · refreshes every 1.5 s · frame the receipt then click Capture
+      </p>
+
+      {/* Preview area */}
+      <div className="relative w-full overflow-hidden rounded-lg bg-primary-950/5" style={{ aspectRatio: '4/3' }}>
+        {snapshotUrl && !imgError ? (
+          <>
+            {/* Spinner while the JPEG is loading */}
+            {!imgLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary-950/30" />
+              </div>
+            )}
+            <img
+              key={snapshotTs}
+              src={snapshotUrl}
+              alt="Live ESP32-CAM preview"
+              onLoad={() => setImgLoaded(true)}
+              onError={() => { setImgError(true); setImgLoaded(false); }}
+              className={cn(
+                'h-full w-full object-contain transition-opacity duration-300',
+                imgLoaded ? 'opacity-100' : 'opacity-0',
+              )}
+            />
+          </>
+        ) : (
+          /* No IP yet, or snapshot fetch failed */
+          <div className="flex h-full items-center justify-center p-6 text-center">
+            <div>
+              <Camera className="mx-auto h-10 w-10 text-primary-950/20 mb-3" />
+              <p className="text-sm font-medium text-primary-950/60">
+                {!device.last_ip
+                  ? 'Device IP not yet known'
+                  : `Cannot reach ${device.last_ip}`}
+              </p>
+              <p className="mt-1 text-xs text-primary-950/40">
+                {!device.last_ip
+                  ? 'The IP appears after the first poll (~2 s). Close and reopen this modal.'
+                  : 'Make sure your browser and the ESP32-CAM are on the same WiFi network.'}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-4 flex justify-end gap-3">
+        <Button variant="ghost" onClick={onClose}>Cancel</Button>
+        <Button
+          variant="accent"
+          disabled={!device.is_active || captureMut.isPending}
+          loading={captureMut.isPending}
+          onClick={handleCapture}
+          title={device.is_active ? 'Fire shutter now' : 'Enable device first'}
+        >
+          <ScanLine className="h-4 w-4" /> Capture
+        </Button>
+      </div>
+    </Modal>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Devices tab
 // ---------------------------------------------------------------------------
 
@@ -118,6 +246,10 @@ function DevicesTab({ onGoToPair }: { onGoToPair: () => void }) {
   const [deleting, setDeleting] = useState<Device | null>(null);
   const [rotating, setRotating] = useState<Device | null>(null);
   const [rotatedKey, setRotatedKey] = useState<string | null>(null);
+  // IoT Receipt Scanner — preview modal state.
+  // `previewDevice` is the scanner whose live feed to show.
+  // To remove: delete these two lines and the PreviewCaptureModal usage below.
+  const [previewDevice, setPreviewDevice] = useState<Device | null>(null);
 
   const devices = data?.results || [];
 
@@ -192,6 +324,24 @@ function DevicesTab({ onGoToPair }: { onGoToPair: () => void }) {
               >
                 {d.is_active ? 'Disable' : 'Enable'}
               </button>
+              {/*
+                IoT Receipt Scanner — "Preview & Capture" button.
+                Opens a live preview modal (ESP32 snapshot every 1.5 s) so
+                the user can frame the receipt before triggering the shutter.
+                The modal calls POST /api/v1/iot/devices/{id}/capture/ on confirm.
+                To remove: delete this comment + button block, and remove the
+                PreviewCaptureModal component defined above DevicesTab.
+              */}
+              {d.device_type === 'receipt_scanner' && (
+                <button
+                  onClick={() => setPreviewDevice(d)}
+                  disabled={!d.is_active}
+                  className="inline-flex items-center gap-1 rounded-md bg-accent-600 px-2 py-1 text-xs font-medium text-white hover:bg-accent-700 disabled:opacity-40"
+                  title={d.is_active ? 'Open live preview and capture' : 'Enable device first'}
+                >
+                  <Eye className="h-3.5 w-3.5" /> Preview & Capture
+                </button>
+              )}
               <button
                 onClick={() => setRotating(d)}
                 className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-primary-950/80 hover:bg-primary-50"
@@ -310,6 +460,16 @@ function DevicesTab({ onGoToPair }: { onGoToPair: () => void }) {
           </Button>
         </div>
       </Modal>
+
+      {/* IoT Receipt Scanner — live preview modal (see PreviewCaptureModal above).
+          To remove: delete this block and previewDevice state + setPreviewDevice above. */}
+      {previewDevice && (
+        <PreviewCaptureModal
+          device={previewDevice}
+          open={previewDevice !== null}
+          onClose={() => setPreviewDevice(null)}
+        />
+      )}
     </>
   );
 }

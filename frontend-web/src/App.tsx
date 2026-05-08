@@ -22,6 +22,7 @@ import { NotificationsPage } from '@/pages/NotificationsPage';
 import { ChatPage } from '@/pages/ChatPage';
 import { InsightsPage } from '@/pages/InsightsPage';
 import { IoTDevicesPage } from '@/pages/IoTDevicesPage';
+import { ReceiptsPage } from '@/pages/ReceiptsPage'; // IoT Receipt Scanner: review OCR results
 import { SettingsPage } from '@/pages/SettingsPage';
 import { PrivacyPage } from '@/pages/PrivacyPage';
 import { TermsPage } from '@/pages/TermsPage';
@@ -70,6 +71,8 @@ function App() {
             <Route path="/insights" element={<InsightsPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/iot-devices" element={<IoTDevicesPage />} />
+            {/* IoT Receipt Scanner: page for reviewing OCR results and confirming expenses */}
+            <Route path="/receipts" element={<ReceiptsPage />} />
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>

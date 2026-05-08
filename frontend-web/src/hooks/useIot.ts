@@ -11,6 +11,7 @@ import {
   updateNfcTag,
   deleteNfcTag,
   claimPairingCode,
+  triggerCapture,  // IoT Receipt Scanner: remote shutter trigger
 } from '@/api/iot';
 import type { DeviceUpdate, NFCTagCreate, PairingClaim } from '@/types/iot';
 
@@ -107,6 +108,34 @@ export function useDeleteNfcTag() {
       toast.success('Tag removed');
     },
     onError: () => toast.error('Failed to remove tag'),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// IoT Receipt Scanner — remote capture trigger
+// ---------------------------------------------------------------------------
+//
+// Sends a "shoot" command to the backend, which the ESP32-CAM firmware picks
+// up on its next poll cycle (≤ 2 s). The device then captures a JPEG and
+// uploads it via /api/v1/iot/ingest/receipt/, creating a pending Receipt.
+//
+// No invalidation needed on success: the receipt list will refresh on its
+// own 30 s poll interval (configured in useReceipts). A toast tells the user
+// to watch the Receipts page.
+//
+// Requires backend: POST /api/v1/iot/devices/{id}/capture/ to exist.
+// To remove: delete this hook and remove the "Capture now" button from
+// src/pages/IoTDevicesPage.tsx. Also remove triggerCapture from api/iot.ts.
+
+export function useTriggerCapture() {
+  return useMutation({
+    mutationFn: (deviceId: number) => triggerCapture(deviceId),
+    onSuccess: () =>
+      toast.success('Capture triggered — check the Receipts page in a few seconds'),
+    onError: () =>
+      toast.error(
+        'Could not trigger capture. Make sure the backend capture endpoint is deployed.',
+      ),
   });
 }
 
