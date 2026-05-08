@@ -19,6 +19,10 @@ export interface Device {
   api_key_expires_at: string | null;
   is_active: boolean;
   last_seen: string | null;
+  /** IoT Receipt Scanner — last known LAN IP, set by poll endpoint from X-Device-IP header.
+   *  Used by the preview modal to build `http://{last_ip}/snapshot`.
+   *  Empty string until the device has polled at least once. To remove: delete this line. */
+  last_ip: string;
   firmware_version: string;
   metadata: Record<string, unknown>;
   created_at: string;
