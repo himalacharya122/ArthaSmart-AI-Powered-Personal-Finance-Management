@@ -72,3 +72,23 @@ export async function claimPairingCode(data: PairingClaim): Promise<PairingClaim
   const res = await apiClient.post<PairingClaimResponse>('/iot/pair/claim/', data);
   return res.data;
 }
+
+// ---------------------------------------------------------------------------
+// IoT Receipt Scanner — remote capture trigger
+// ---------------------------------------------------------------------------
+//
+// Clicking "Capture now" in the web UI hits this endpoint, which sets
+// `pending_capture = True` on the IoTDevice row. The ESP32-CAM firmware
+// polls GET /api/v1/iot/poll/ every 2 s, sees the flag, fires the shutter,
+// uploads the JPEG, and clears the flag.
+//
+// Backend endpoint to add (if not already done):
+//   POST /api/v1/iot/devices/{id}/capture/   (apps/iot/views.py IoTDeviceViewSet)
+//   — sets device.pending_capture = True, returns 200 {}
+//
+// To remove: delete this function and remove useTriggerCapture from useIot.ts,
+// then remove the "Capture now" button from IoTDevicesPage.tsx.
+
+export async function triggerCapture(deviceId: number): Promise<void> {
+  await apiClient.post(`/iot/devices/${deviceId}/capture/`);
+}
