@@ -12,10 +12,26 @@ class IoTDeviceAdmin(admin.ModelAdmin):
 
 @admin.register(DevicePairing)
 class DevicePairingAdmin(admin.ModelAdmin):
-    list_display = ("pairing_code", "hardware_id", "device_type", "status", "created_at", "expires_at")
+    list_display = (
+        "pairing_code",
+        "hardware_id",
+        "device_type",
+        "status",
+        "created_at",
+        "expires_at",
+    )
     list_filter = ("status", "device_type")
     search_fields = ("pairing_code", "hardware_id")
-    readonly_fields = ("pairing_code", "hardware_id", "device_type", "status", "expires_at", "claimed_at", "created_at", "device")
+    readonly_fields = (
+        "pairing_code",
+        "hardware_id",
+        "device_type",
+        "status",
+        "expires_at",
+        "claimed_at",
+        "created_at",
+        "device",
+    )
 
 
 @admin.register(NFCTag)

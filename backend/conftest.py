@@ -12,6 +12,7 @@ Why these live here:
 
 from __future__ import annotations
 
+import os
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -19,6 +20,24 @@ import factory  # type: ignore
 import pytest  # type: ignore
 from django.db.models.signals import post_save  # type: ignore
 from rest_framework.test import APIClient  # type: ignore
+
+
+def pytest_configure():
+    """
+    Force test settings before any fixtures run.
+    """
+    os.environ["CELERY_TASK_ALWAYS_EAGER"] = "True"
+    from django.conf import settings  # type: ignore
+
+    settings.CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        }
+    }
+    settings.CELERY_TASK_ALWAYS_EAGER = True
+    settings.CELERY_BROKER_URL = "memory://"
+    settings.CELERY_RESULT_BACKEND = "cache"
+
 
 # Factories
 

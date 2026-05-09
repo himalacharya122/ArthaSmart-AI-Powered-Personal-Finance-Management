@@ -248,6 +248,8 @@ class ReleaseHardwareView(APIView):
             )
 
         return Response(
-            {"detail": f"Removed {deleted_count} device(s) for hardware_id={hardware_id}. Reboot the ESP32 to re-pair."},
+            {
+                "detail": f"Removed {deleted_count} device(s) for hardware_id={hardware_id}. Reboot the ESP32 to re-pair."
+            },
             status=status.HTTP_200_OK,
         )
