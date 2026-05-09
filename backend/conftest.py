@@ -38,6 +38,10 @@ def pytest_configure():
     settings.CELERY_BROKER_URL = "memory://"
     settings.CELERY_RESULT_BACKEND = "cache"
 
+    # Silence security warnings by using a unique, long random key for each test session
+    import secrets
+    settings.SECRET_KEY = secrets.token_urlsafe(64)
+
 
 # Factories
 
