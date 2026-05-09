@@ -1,0 +1,23 @@
+{
+  "folders": [
+    {
+      "path": "backend",
+      "name": "Backend (Django)"
+    },
+    {
+      "path": "ai-service",
+      "name": "AI Service (FastAPI)"
+    }
+  ],
+  "settings": {
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-python.python",
+      "ms-python.pylance",
+      "ms-python.vscode-pylance"
+    ]
+  }
+}

@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "django_filters",
     "drf_spectacular",
+    "django_celery_beat",
     # Project apps
     "apps.users",
     "apps.categories",
@@ -190,7 +191,7 @@ PASSWORD_RESET_TIMEOUT = 3600  # 1 hour
 
 # AI Service
 AI_SERVICE_URL = config("AI_SERVICE_URL", default="http://localhost:8001")
-AI_SERVICE_KEY = config("AI_SERVICE_KEY", default="artha-ai-service-key-change-in-production")
+AI_SERVICE_KEY = config("SERVICE_SECRET_KEY", default="artha-ai-service-key-change-in-production")
 
 # Celery (activate later when Redis is ready)
 CELERY_BROKER_URL = config("CELERY_BROKER_URL", default="redis://localhost:6379/1")
@@ -199,26 +200,16 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_TIMEZONE = "Asia/Kathmandu"
 
-# Cache, use Redis if available, fall back to local memory in development
 REDIS_URL = config("REDIS_URL", default="redis://localhost:6379/0")
-if DEBUG:
-    # In development, use local memory cache so the app works without Redis
-    CACHES = {
-        "default": {
-            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-            "LOCATION": "arthasmart-dev-cache",
-        }
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_URL,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
     }
-else:
-    CACHES = {
-        "default": {
-            "BACKEND": "django_redis.cache.RedisCache",
-            "LOCATION": REDIS_URL,
-            "OPTIONS": {
-                "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            },
-        }
-    }
+}
 
 # Google OAuth
 GOOGLE_CLIENT_IDS = [

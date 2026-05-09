@@ -1,5 +1,3 @@
-version: "3.9"
-
 # ArthaSmart - Full local stack
 # Quick start:  docker compose up --build
 # See the repo README / DOCKER_USAGE section for common commands.
@@ -135,21 +133,7 @@ services:
     depends_on:
       - backend
 
-  # MQTT Broker (IoT Communication)
-  mqtt-broker:
-    image: eclipse-mosquitto:2
-    restart: unless-stopped
-    volumes:
-      - ./iot/mosquitto/config:/mosquitto/config
-      - mosquitto_data:/mosquitto/data
-      - mosquitto_log:/mosquitto/log
-    ports:
-      - "1883:1883"
-      - "9001:9001"
-
 volumes:
   postgres_data:
   redis_data:
   backend_media:
-  mosquitto_data:
-  mosquitto_log:
