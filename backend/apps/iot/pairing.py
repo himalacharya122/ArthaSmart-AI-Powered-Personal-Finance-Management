@@ -22,7 +22,7 @@ from datetime import timedelta
 from django.db import transaction  # type: ignore
 from django.utils import timezone  # type: ignore
 from rest_framework import status  # type: ignore
-from rest_framework.permissions import AllowAny, IsAuthenticated  # type: ignore
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated  # type: ignore
 from rest_framework.response import Response  # type: ignore
 from rest_framework.views import APIView  # type: ignore
 
@@ -204,3 +204,50 @@ class PairingStatusView(APIView):
 
         # EXPIRED
         return Response({"status": "expired"}, status=status.HTTP_410_GONE)
+
+
+class ReleaseHardwareView(APIView):
+    """POST /api/v1/iot/pair/release/  — admin removes a stale hardware registration.
+
+    Lets a superuser delete a device record by hardware_id (or by pairing_code
+    to look it up automatically). Use this when a device was previously paired
+    under a different account and needs to be re-paired.
+
+    Body (one of):
+      {"hardware_id": "AABBCC112233"}
+      {"pairing_code": "840139"}        <- looks up hardware_id from the live pairing
+    """
+
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        hardware_id = request.data.get("hardware_id", "").strip()
+        pairing_code = request.data.get("pairing_code", "").strip()
+
+        if not hardware_id and not pairing_code:
+            return Response(
+                {"detail": "Provide either hardware_id or pairing_code."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not hardware_id:
+            try:
+                pairing = DevicePairing.objects.get(pairing_code=pairing_code)
+                hardware_id = pairing.hardware_id
+            except DevicePairing.DoesNotExist:
+                return Response(
+                    {"detail": "No pairing record found for that code."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+        deleted_count, _ = IoTDevice.objects.filter(device_id=hardware_id).delete()
+        if deleted_count == 0:
+            return Response(
+                {"detail": "No registered device found with that hardware_id."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response(
+            {"detail": f"Removed {deleted_count} device(s) for hardware_id={hardware_id}. Reboot the ESP32 to re-pair."},
+            status=status.HTTP_200_OK,
+        )

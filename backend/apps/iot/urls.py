@@ -14,7 +14,7 @@ from django.urls import include, path  # type: ignore
 from rest_framework.routers import DefaultRouter  # type: ignore
 
 from .ingest import IngestNFCTapView, IngestReceiptView
-from .pairing import PairingClaimView, PairingRequestView, PairingStatusView
+from .pairing import PairingClaimView, PairingRequestView, PairingStatusView, ReleaseHardwareView
 from .views import IoTDeviceViewSet, NFCTagViewSet, PollView  # IoT Receipt Scanner: PollView
 
 app_name = "iot"
@@ -24,7 +24,7 @@ router.register("devices", IoTDeviceViewSet, basename="iot-device")
 router.register("nfc-tags", NFCTagViewSet, basename="nfc-tag")
 
 urlpatterns = [
-    # Pairing (anonymous + JWT)
+    # Pairing (anonymous + JWT + admin)
     path("pair/request/", PairingRequestView.as_view(), name="pair-request"),
     path("pair/claim/", PairingClaimView.as_view(), name="pair-claim"),
     path(
@@ -32,6 +32,7 @@ urlpatterns = [
         PairingStatusView.as_view(),
         name="pair-status",
     ),
+    path("pair/release/", ReleaseHardwareView.as_view(), name="pair-release"),
     # Ingestion (device API key)
     path("ingest/receipt/", IngestReceiptView.as_view(), name="ingest-receipt"),
     path("ingest/nfc-tap/", IngestNFCTapView.as_view(), name="ingest-nfc-tap"),
