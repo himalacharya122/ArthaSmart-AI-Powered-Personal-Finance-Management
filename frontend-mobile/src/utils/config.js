@@ -18,7 +18,9 @@ export const config = {
   // Future: Google Cloud Vision
   GOOGLE_VISION_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_VISION_API_KEY || '',
 
-  // Google OAuth
+  // Google OAuth — Web client ID is what Expo Go uses via the auth.expo.io
+  // proxy. Android/iOS client IDs are used only by EAS-built standalone apps.
   GOOGLE_ANDROID_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '',
   GOOGLE_IOS_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '',
+  GOOGLE_WEB_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '',
 };

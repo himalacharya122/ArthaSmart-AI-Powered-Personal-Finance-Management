@@ -55,7 +55,6 @@ docs/uml
 docs/wireframes
 docs/
 .claude/
-.claude\
 .claude
 
 # ruff cache

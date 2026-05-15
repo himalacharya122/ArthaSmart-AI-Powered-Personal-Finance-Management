@@ -13,4 +13,4 @@ export const DEFAULT_CURRENCY = 'NPR';
 
 export const DEFAULT_PAGE_SIZE = 20;
 
-export const APP_NAME = 'ArthaSmart';
+export const APP_NAME = 'Kash';
