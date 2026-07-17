@@ -1,0 +1,249 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+# Cancel in-progress runs of the same PR / branch.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "22"
+
+jobs:
+  # Backend - Django
+  backend-lint:
+    name: Backend / Lint + Security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+          cache-dependency-path: backend/requirements/*.txt
+
+      - name: Install dev dependencies
+        working-directory: ./backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/dev.txt
+
+      - name: Ruff (lint)
+        working-directory: ./backend
+        run: ruff check --output-format=github .
+
+      - name: Ruff (format check)
+        working-directory: ./backend
+        run: ruff format --check .
+
+      - name: Bandit (security)
+        working-directory: ./backend
+        run: bandit -c pyproject.toml -r apps config -ll
+
+  backend-tests:
+    name: Backend / Tests
+    runs-on: ubuntu-latest
+    needs: backend-lint
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_pass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DJANGO_SECRET_KEY: test-secret-key-for-ci
+      DJANGO_DEBUG: "False"
+      POSTGRES_DB: test_db
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_pass
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      REDIS_URL: redis://localhost:6379/0
+      CELERY_BROKER_URL: redis://localhost:6379/1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+          cache-dependency-path: backend/requirements/*.txt
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/dev.txt
+
+      - name: Django system check
+        working-directory: ./backend
+        run: python manage.py check
+
+      - name: Run migrations
+        working-directory: ./backend
+        run: python manage.py migrate --noinput
+
+      - name: Run tests
+        working-directory: ./backend
+        run: pytest
+
+  # AI Service - FastAPI
+  ai-service-lint:
+    name: AI Service / Lint + Security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+          cache-dependency-path: ai-service/requirements*.txt
+
+      - name: Install dev dependencies
+        working-directory: ./ai-service
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Ruff (lint)
+        working-directory: ./ai-service
+        run: ruff check --output-format=github .
+
+      - name: Ruff (format check)
+        working-directory: ./ai-service
+        run: ruff format --check .
+
+      - name: Bandit (security)
+        working-directory: ./ai-service
+        run: bandit -c pyproject.toml -r app api services models -ll
+
+  ai-service-tests:
+    name: AI Service / Tests
+    runs-on: ubuntu-latest
+    needs: ai-service-lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+          cache-dependency-path: ai-service/requirements*.txt
+
+      - name: Install dependencies
+        working-directory: ./ai-service
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Run tests
+        working-directory: ./ai-service
+        env:
+          OPENAI_API_KEY: test-key-for-ci
+        run: pytest
+
+  # Frontend - Web (Vite + TS + React)
+  frontend-web-lint:
+    name: Frontend Web / Lint + Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: frontend-web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./frontend-web
+        run: npm ci
+
+      - name: ESLint
+        working-directory: ./frontend-web
+        run: npm run lint --if-present
+
+      - name: Type check
+        working-directory: ./frontend-web
+        run: npx tsc --noEmit
+
+      - name: Build
+        working-directory: ./frontend-web
+        run: npm run build
+
+  # Docker - validate all images build
+  docker-build:
+    name: Docker / Build images
+    runs-on: ubuntu-latest
+    needs: [backend-lint, ai-service-lint, frontend-web-lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: false
+          tags: arthasmart-backend:ci
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+      - name: Build ai-service image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./ai-service
+          push: false
+          tags: arthasmart-ai:ci
+          cache-from: type=gha,scope=ai
+          cache-to: type=gha,scope=ai,mode=max
+
+      - name: Build frontend-web image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend-web
+          push: false
+          tags: arthasmart-web:ci
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,scope=web,mode=max
+
+      - name: Validate docker-compose config
+        run: |
+          cp .env.example .env
+          docker compose config --quiet

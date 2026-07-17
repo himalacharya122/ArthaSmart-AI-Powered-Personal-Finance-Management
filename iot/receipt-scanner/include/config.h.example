@@ -1,0 +1,28 @@
+// Copy to `config.h` and fill in. `config.h` is gitignored.
+
+#pragma once
+
+//WiFi
+#define WIFI_SSID       "YOUR_WIFI_SSID"
+#define WIFI_PASSWORD   "YOUR_WIFI_PASSWORD"
+
+// Backend
+// Must be reachable from the ESP32-CAM on your LAN. Self-signed HTTPS OK
+// (firmware uses setInsecure() for dev).
+#define BACKEND_BASE_URL "https://192.168.1.100:8443"
+
+// Device identity
+#define HARDWARE_ID      "receipt-scanner-01"
+
+// Capture button
+// Any spare GPIO that's safe on the AI-Thinker ESP32-CAM. GPIO 13 is free
+// when you're not using the SD card slot.
+#define PIN_SHUTTER      13
+#define PIN_FLASH_LED    4    // onboard white LED on AI-Thinker CAM
+
+// Capture quality
+// Lower numeric = better quality, bigger file. 10–15 is a good receipt range.
+// FRAMESIZE options: FRAMESIZE_VGA (640x480), SVGA (800x600), XGA (1024x768),
+// SXGA (1280x1024), UXGA (1600x1200). UXGA needs PSRAM.
+#define CAPTURE_JPEG_QUALITY 12
+#define CAPTURE_FRAMESIZE    FRAMESIZE_SXGA

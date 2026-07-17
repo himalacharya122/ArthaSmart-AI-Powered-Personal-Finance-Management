@@ -1,0 +1,91 @@
+# ArthaSmart - Backend tooling config
+# Tools configured here:
+#   - Ruff       : linter + formatter (replaces black, isort, flake8)
+#   - Bandit     : security-focused static analysis
+#   - Pytest     : test runner (Django plugin)
+#
+# Local usage (from ./backend):
+#   pip install -r requirements/dev.txt
+#   ruff check .
+#   ruff format .
+#   bandit -c pyproject.toml -r apps config
+#   pytest
+
+[tool.ruff]
+# Keep the line length generous enough for Django imports.
+line-length = 100
+target-version = "py312"
+
+# Don't lint vendored / generated / managed code.
+extend-exclude = [
+    "venv",
+    ".venv",
+    "**/migrations/**",
+    "staticfiles",
+    "media",
+    "db.sqlite3",
+]
+
+[tool.ruff.lint]
+# A pragmatic-but-strict default ruleset.
+# E/W   : pycodestyle, F : pyflakes, I : isort, B : flake8-bugbear,
+# UP    : pyupgrade, DJ : flake8-django, S : flake8-bandit lite,
+# C4    : comprehensions, SIM : simplifications, RUF : ruff-specific.
+select = [
+    "E", "W", "F", "I", "B", "UP", "DJ", "S", "C4", "SIM", "RUF",
+]
+ignore = [
+    "E501",   # line length handled by formatter
+    "B008",   # function call as default arg (common in FastAPI/DRF)
+    "S101",   # allow `assert` (used heavily in tests)
+    "DJ001",  # nullable CharField — team has a convention allowing it
+    "SIM108", # ternary suggestion is not always clearer
+    "RUF012", # mutable class default — DRF's permission_classes/serializer_class
+              # idiom legitimately uses plain lists on class bodies
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests can be looser.
+"**/tests/**" = ["S", "B", "DJ"]
+"**/test_*.py" = ["S", "B", "DJ"]
+# Settings files legitimately use * imports / long lines.
+"config/settings.py" = ["S105", "S106", "E402"]
+# Migrations are auto-generated.
+"**/migrations/*.py" = ["ALL"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "config"]
+combine-as-imports = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+docstring-code-format = true
+
+# -------------------------------------------------------------------
+# Bandit - security analysis
+# -------------------------------------------------------------------
+[tool.bandit]
+exclude_dirs = [
+    "venv",
+    ".venv",
+    "tests",
+    "*/tests/*",
+    "*/migrations/*",
+    "staticfiles",
+    "media",
+]
+# B101: assert used (fine in tests)
+# B104: hardcoded bind 0.0.0.0 (intentional for dev runserver)
+# B311: random for non-cryptographic uses (OTP we handle with secrets elsewhere)
+skips = ["B101", "B104"]
+
+# -------------------------------------------------------------------
+# Pytest
+# -------------------------------------------------------------------
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+addopts = "-ra --strict-markers"
+testpaths = ["apps", "tests"]
