@@ -44,7 +44,6 @@ INSTALLED_APPS = [
     "apps.expenses",
     "apps.budgets",
     "apps.receipts",
-    "apps.iot",
     "apps.ai_insights",
     "apps.chat",
     "apps.notifications",

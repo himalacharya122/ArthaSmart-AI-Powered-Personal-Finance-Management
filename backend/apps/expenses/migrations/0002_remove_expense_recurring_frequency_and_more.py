@@ -30,7 +30,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='expense',
             name='source',
-            field=models.CharField(choices=[('manual', 'Manual Entry'), ('ocr', 'OCR Receipt Scan'), ('nfc', 'NFC Tag'), ('chatbot', 'AI Chatbot'), ('import', 'CSV/Data Import'), ('recurring', 'Auto-Created by Recurring Rule')], default='manual', max_length=20),
+            field=models.CharField(choices=[('manual', 'Manual Entry'), ('ocr', 'OCR Receipt Scan'), ('chatbot', 'AI Chatbot'), ('import', 'CSV/Data Import'), ('recurring', 'Auto-Created by Recurring Rule')], default='manual', max_length=20),
         ),
         migrations.CreateModel(
             name='RecurringTransaction',

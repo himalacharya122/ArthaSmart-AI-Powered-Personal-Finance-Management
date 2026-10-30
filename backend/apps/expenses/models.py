@@ -99,7 +99,6 @@ class Expense(models.Model):
     class Source(models.TextChoices):
         MANUAL = "manual", "Manual Entry"
         OCR = "ocr", "OCR Receipt Scan"
-        NFC = "nfc", "NFC Tag"
         CHATBOT = "chatbot", "AI Chatbot"
         IMPORT = "import", "CSV/Data Import"
         RECURRING = "recurring", "Auto-Created by Recurring Rule"

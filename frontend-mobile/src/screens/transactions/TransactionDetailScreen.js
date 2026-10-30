@@ -390,7 +390,6 @@ function sourceLabel(s) {
     case 'chatbot': return 'AI Chat';
     case 'recurring': return 'Recurring rule';
     case 'import': return 'Import';
-    case 'nfc': return 'NFC tag';
     case 'manual':
     default: return 'Manual entry';
   }

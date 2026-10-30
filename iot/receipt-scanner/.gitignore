@@ -1,8 +1,0 @@
-.pio/
-.pioenvs/
-.piolibdeps/
-.vscode/
-.clang_complete
-.gcc-flags.json
-
-include/config.h

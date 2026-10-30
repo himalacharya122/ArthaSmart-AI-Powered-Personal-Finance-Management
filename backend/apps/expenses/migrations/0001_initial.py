@@ -32,7 +32,7 @@ class Migration(migrations.Migration):
                 ('receipt_image', models.ImageField(blank=True, null=True, upload_to='receipts/')),
                 ('ai_categorized', models.BooleanField(default=False)),
                 ('ai_confidence', models.FloatField(blank=True, help_text='AI confidence score between 0 and 1', null=True)),
-                ('source', models.CharField(choices=[('manual', 'Manual Entry'), ('ocr', 'OCR Receipt Scan'), ('nfc', 'NFC Tag'), ('chatbot', 'AI Chatbot'), ('import', 'CSV/Data Import')], default='manual', max_length=20)),
+                ('source', models.CharField(choices=[('manual', 'Manual Entry'), ('ocr', 'OCR Receipt Scan'), ('chatbot', 'AI Chatbot'), ('import', 'CSV/Data Import')], default='manual', max_length=20)),
                 ('location', models.CharField(blank=True, max_length=255)),
                 ('tags', models.JSONField(blank=True, default=list)),
                 ('metadata', models.JSONField(blank=True, default=dict)),
