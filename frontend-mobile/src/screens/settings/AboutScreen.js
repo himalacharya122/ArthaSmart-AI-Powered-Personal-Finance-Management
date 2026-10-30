@@ -30,7 +30,7 @@ const LEGAL_ITEMS = [
 ];
 
 const SUPPORT_ITEMS = [
-  { icon: 'email', label: 'Contact us', desc: 'arthasmart@tbc.edu.np', action: 'email' },
+  { icon: 'email', label: 'Contact us', desc: 'support@example.com', action: 'email' },
   { icon: 'bug-report', label: 'Report a bug', desc: 'Help us improve the app', action: 'bug' },
 ];
 
@@ -68,9 +68,9 @@ export function AboutScreen({ navigation }) {
     if (item.screen) {
       navigation.navigate(SCREEN_NAMES[item.screen]);
     } else if (item.action === 'email') {
-      Linking.openURL('mailto:arthasmart@tbc.edu.np').catch(() => showToast('Cannot open email client', 'error'));
+      Linking.openURL('mailto:support@example.com').catch(() => showToast('Cannot open email client', 'error'));
     } else if (item.action === 'bug') {
-      Linking.openURL('mailto:arthasmart@tbc.edu.np?subject=Bug%20Report').catch(() => showToast('Cannot open email client', 'error'));
+      Linking.openURL('mailto:support@example.com?subject=Bug%20Report').catch(() => showToast('Cannot open email client', 'error'));
     } else {
       showToast('Coming soon', 'info');
     }
@@ -93,7 +93,7 @@ export function AboutScreen({ navigation }) {
           <View style={styles.appIcon}>
             <MaterialIcons name="account-balance-wallet" size={36} color={colors.white} />
           </View>
-          <Text style={styles.appName}>ArthaSmart</Text>
+          <Text style={styles.appName}>Squirrel</Text>
           <Text style={styles.appTagline}>AI-powered personal finance</Text>
           <TouchableOpacity style={styles.versionBadge} activeOpacity={0.7} onPress={handleVersionTap}>
             <Text style={styles.versionText}>Version 1.0.0 · Up to date</Text>
@@ -147,7 +147,7 @@ export function AboutScreen({ navigation }) {
 
         {/* Footer */}
         <Text style={styles.footer}>
-          {'\u00A9'} 2026 ArthaSmart. All rights reserved.
+          {'\u00A9'} 2026 Squirrel. All rights reserved.
         </Text>
 
         <View style={{ height: spacing.xxl }} />

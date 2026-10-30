@@ -14,7 +14,7 @@ async def health_check() -> HealthResponse:
     settings = get_settings()
     return HealthResponse(
         status="ok",
-        service="arthasmart-ai",
+        service="squirrel-ai",
         model=settings.llm_model,
         version="1.0.0",
     )

@@ -1,11 +1,12 @@
 import { Platform } from 'react-native';
 
 /**
- * API base URL — adjust for your dev environment.
+ * API base URL (backend origin, without /api/v1).
  *
- * Android emulator uses 10.0.2.2 to reach host localhost.
- * iOS simulator and physical devices use the machine's LAN IP.
+ * Set EXPO_PUBLIC_API_URL in .env (or in the EAS build profile for production).
  * For Expo Go on a physical device, use your machine's LAN IP.
+ * If unset, falls back to the emulator/simulator address of the host machine:
+ * Android emulator uses 10.0.2.2 to reach host localhost.
  */
 const DEV_API_URL = Platform.select({
   android: 'http://10.0.2.2:8000',
@@ -13,12 +14,7 @@ const DEV_API_URL = Platform.select({
   default: 'http://localhost:8000',
 });
 
-// For physical device testing via Expo Go, replace with LAN IP:
-// home 'http://192.168.1.102:8000'-
-// college ipv4 address = 172.22.18.220
-export const API_BASE_URL = __DEV__
-  ? 'http://192.168.1.102:8000'
-  : 'https://api.arthasmart.com';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || DEV_API_URL;
 
 export const API_TIMEOUT = 30000; // 30 seconds
 

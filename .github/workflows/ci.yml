@@ -221,7 +221,7 @@ jobs:
         with:
           context: ./backend
           push: false
-          tags: arthasmart-backend:ci
+          tags: squirrel-backend:ci
           cache-from: type=gha,scope=backend
           cache-to: type=gha,scope=backend,mode=max
 
@@ -230,7 +230,7 @@ jobs:
         with:
           context: ./ai-service
           push: false
-          tags: arthasmart-ai:ci
+          tags: squirrel-ai:ci
           cache-from: type=gha,scope=ai
           cache-to: type=gha,scope=ai,mode=max
 
@@ -239,7 +239,7 @@ jobs:
         with:
           context: ./frontend-web
           push: false
-          tags: arthasmart-web:ci
+          tags: squirrel-web:ci
           cache-from: type=gha,scope=web
           cache-to: type=gha,scope=web,mode=max
 

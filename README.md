@@ -1,4 +1,4 @@
-# ArthaSmart: AI-Powered Personal Finance Management
+# Squirrel: AI-Powered Personal Finance Management
 
 ![Django](https://img.shields.io/badge/Django-6.0-092E20?style=for-the-badge&logo=django&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi&logoColor=white)
@@ -12,12 +12,11 @@
 ![JWT](https://img.shields.io/badge/JWT-Auth-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)
 ![Groq](https://img.shields.io/badge/Groq-Llama_3.3_70B-F55036?style=for-the-badge&logo=meta&logoColor=white)
 ![Expo](https://img.shields.io/badge/Expo-SDK_54-000020?style=for-the-badge&logo=expo&logoColor=white)
-![The British College](https://img.shields.io/badge/The_British_College-Group_6-003087?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Complete-2ECC71?style=for-the-badge)
 
 ---
 
-ArthaSmart is a full-stack, AI-powered personal finance management system built for tracking expenses, managing budgets, and gaining intelligent financial insights across web and mobile.
+Squirrel is a full-stack, AI-powered personal finance management system built for tracking expenses, managing budgets, and gaining intelligent financial insights across web and mobile.
 
 ---
 
@@ -34,7 +33,7 @@ ArthaSmart is a full-stack, AI-powered personal finance management system built 
 
 ## Architecture
 
-ArthaSmart is a multi-service system. Every service is independently deployable and wired together via Docker Compose.
+Squirrel is a multi-service system. Every service is independently deployable and wired together via Docker Compose.
 
 ```
            ┌─────────────────┐    ┌─────────────────┐
@@ -83,14 +82,12 @@ ArthaSmart is a multi-service system. Every service is independently deployable 
 ## Project Structure
 
 ```
-ArthaSmart/
+Squirrel/
 ├── backend/            # Django REST API (9 apps)
 ├── ai-service/         # FastAPI AI microservice (Groq LLM, OCR, insights)
 ├── frontend-web/       # React 19 web dashboard
 ├── frontend-mobile/    # React Native mobile app (Expo SDK 54)
-├── docs/               # Full project documentation & submission
-├── docker-compose.yml  # One-command full-stack startup
-└── .env.example        # Environment variable template
+└── docker-compose.yml  # One-command full-stack startup
 ```
 
 ---
@@ -127,9 +124,10 @@ ArthaSmart/
 **Docker (recommended): starts everything in one command:**
 
 ```bash
-git clone https://github.com/himalacharya122/ArthaSmart.git
-cd ArthaSmart
-cp .env.example .env          # fill in GROQ_API_KEY and DB credentials
+git clone https://github.com/himalacharya122/Squirrel.git
+cd Squirrel
+cp backend/.env.example backend/.env        # Django secret, DB password, shared AI key
+cp ai-service/.env.example ai-service/.env  # GROQ_API_KEY, same shared AI key
 docker compose up --build
 ```
 

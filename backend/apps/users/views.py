@@ -61,13 +61,13 @@ class RegisterView(generics.CreateAPIView):
 
         # Send verification email
         verification = EmailVerification.create_for_user(user)
-        subject = "ArthaSmart — Verify Your Email"
+        subject = "Squirrel — Verify Your Email"
         message = (
             f"Hi {user.first_name or user.username},\n\n"
-            f"Welcome to ArthaSmart! Your verification code is:\n\n"
+            f"Welcome to Squirrel! Your verification code is:\n\n"
             f"    {verification.code}\n\n"
             f"This code expires in 15 minutes.\n\n"
-            f"— ArthaSmart Team"
+            f"— Squirrel Team"
         )
         try:
             send_mail(
@@ -176,13 +176,13 @@ class ResendVerificationView(APIView):
             )
 
         verification = EmailVerification.create_for_user(user)
-        subject = "ArthaSmart — Your New Verification Code"
+        subject = "Squirrel — Your New Verification Code"
         message = (
             f"Hi {user.first_name or user.username},\n\n"
             f"Your new verification code is:\n\n"
             f"    {verification.code}\n\n"
             f"This code expires in 15 minutes.\n\n"
-            f"— ArthaSmart Team"
+            f"— Squirrel Team"
         )
         try:
             send_mail(
@@ -418,21 +418,21 @@ class PasswordResetRequestView(APIView):
 
         # Build reset links
         web_reset_url = f"http://localhost:5173/reset-password/{uid}/{token}"
-        mobile_reset_url = f"arthasmart://reset-password?uid={uid}&token={token}"
+        mobile_reset_url = f"squirrel://reset-password?uid={uid}&token={token}"
 
         # Send email
         first_name = user.first_name or user.username
-        subject = "ArthaSmart — Reset Your Password"
+        subject = "Squirrel — Reset Your Password"
 
         # Plain-text fallback
         plain_message = (
             f"Hi {first_name},\n\n"
             f"We received a request to reset your password.\n\n"
             f"Reset via web browser:\n  {web_reset_url}\n\n"
-            f"Or tap the link below to open in the ArthaSmart app:\n  {mobile_reset_url}\n\n"
+            f"Or tap the link below to open in the Squirrel app:\n  {mobile_reset_url}\n\n"
             f"This link expires in 1 hour.\n\n"
             f"If you didn't request this, you can safely ignore this email.\n\n"
-            f"— ArthaSmart Team"
+            f"— Squirrel Team"
         )
 
         # HTML version with clickable button for mobile deep link
@@ -446,12 +446,12 @@ class PasswordResetRequestView(APIView):
       <table width="100%" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e5e0;">
         <!-- Header -->
         <tr><td style="background:#1a1a1a;padding:28px 32px;text-align:center;">
-          <span style="font-size:20px;font-weight:700;color:#ffffff;letter-spacing:-0.3px;">ArthaSmart</span>
+          <span style="font-size:20px;font-weight:700;color:#ffffff;letter-spacing:-0.3px;">Squirrel</span>
         </td></tr>
         <!-- Body -->
         <tr><td style="padding:32px;">
           <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;">Reset your password</p>
-          <p style="margin:0 0 24px;font-size:15px;color:#666;line-height:1.5;">Hi {first_name}, we received a request to reset your ArthaSmart password.</p>
+          <p style="margin:0 0 24px;font-size:15px;color:#666;line-height:1.5;">Hi {first_name}, we received a request to reset your Squirrel password.</p>
 
           <!-- Web reset button -->
           <a href="{web_reset_url}" style="display:block;background:#1a1a1a;color:#ffffff;text-decoration:none;text-align:center;padding:15px 24px;border-radius:10px;font-size:15px;font-weight:600;margin-bottom:16px;">
@@ -460,7 +460,7 @@ class PasswordResetRequestView(APIView):
 
           <!-- Mobile app button -->
           <a href="{mobile_reset_url}" style="display:block;background:#f5f5f0;color:#1a1a1a;text-decoration:none;text-align:center;padding:15px 24px;border-radius:10px;font-size:15px;font-weight:600;border:1.5px solid #e0e0db;margin-bottom:24px;">
-            Open in ArthaSmart App
+            Open in Squirrel App
           </a>
 
           <p style="margin:0 0 8px;font-size:13px;color:#999;line-height:1.5;">This link expires in <strong>1 hour</strong>. If the buttons don't work, copy this link into your browser:</p>
@@ -471,7 +471,7 @@ class PasswordResetRequestView(APIView):
         </td></tr>
         <!-- Footer -->
         <tr><td style="padding:20px 32px;background:#f9f9f7;text-align:center;">
-          <p style="margin:0;font-size:12px;color:#bbb;">— ArthaSmart Team</p>
+          <p style="margin:0;font-size:12px;color:#bbb;">— Squirrel Team</p>
         </td></tr>
       </table>
     </td></tr>

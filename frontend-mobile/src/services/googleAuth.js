@@ -1,10 +1,10 @@
 /**
- * Google OAuth service for ArthaSmart.
+ * Google OAuth service for Squirrel.
  *
  * Two distinct runtime environments:
  *
  *  1. Expo Go (development)
- *     - Bundle is `host.exp.exponent`, not our `com.arthasmart.app`, so the
+ *     - Bundle is `host.exp.exponent`, not our `com.himalacharya.squirrel`, so the
  *       Android/iOS native client IDs would mismatch.
  *     - Solution: force the Web client + the auth.expo.io proxy redirect URI.
  *       The proxy URI MUST be registered in the Web client's Authorized
@@ -29,7 +29,7 @@ WebBrowser.maybeCompleteAuthSession();
 //   1. These constants
 //   2. The redirect URI in Google Cloud Console → Web OAuth client
 const EXPO_OWNER = 'himal-acharya';
-const APP_SLUG = 'arthasmart';
+const APP_SLUG = 'squirrel';
 const PROXY_REDIRECT = `https://auth.expo.io/@${EXPO_OWNER}/${APP_SLUG}`;
 
 const isExpoGo = Constants.appOwnership === 'expo';

@@ -4,7 +4,7 @@ from fastapi import FastAPI  # type: ignore
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore
 
 app = FastAPI(
-    title="Smart Budget AI Service",
+    title="Squirrel AI Service",
     description="ML inference for categorization, anomaly detection, OCR, and chatbot.",
     version="0.1.0",
 )

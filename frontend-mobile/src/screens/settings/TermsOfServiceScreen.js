@@ -18,7 +18,7 @@ const LAST_UPDATED = 'March 2026';
 const SECTIONS = [
   {
     title: '1. Acceptance of Terms',
-    content: 'By creating an account or using ArthaSmart, you agree to these Terms of Service and our Privacy Policy. If you do not agree, do not use the app.',
+    content: 'By creating an account or using Squirrel, you agree to these Terms of Service and our Privacy Policy. If you do not agree, do not use the app.',
   },
   {
     title: '2. Your Account',
@@ -26,7 +26,7 @@ const SECTIONS = [
   },
   {
     title: '3. Permitted Use',
-    content: 'ArthaSmart is provided for personal finance management only. You may not use the app for any illegal activities, attempt to reverse-engineer the AI system, or share your account credentials with others.',
+    content: 'Squirrel is provided for personal finance management only. You may not use the app for any illegal activities, attempt to reverse-engineer the AI system, or share your account credentials with others.',
   },
   {
     title: '4. AI-Powered Features',
@@ -34,7 +34,7 @@ const SECTIONS = [
   },
   {
     title: '5. Data & Content',
-    content: 'You retain ownership of all data you enter into ArthaSmart. By using the app, you grant us a limited license to process your data to provide the service. You can export or delete your data at any time.',
+    content: 'You retain ownership of all data you enter into Squirrel. By using the app, you grant us a limited license to process your data to provide the service. You can export or delete your data at any time.',
   },
   {
     title: '6. Service Availability',
@@ -42,7 +42,7 @@ const SECTIONS = [
   },
   {
     title: '7. Limitation of Liability',
-    content: 'ArthaSmart is provided "as is" without warranties. We are not liable for any financial decisions made based on AI suggestions. Our total liability shall not exceed the amount you paid for the service in the past 12 months.',
+    content: 'Squirrel is provided "as is" without warranties. We are not liable for any financial decisions made based on AI suggestions. Our total liability shall not exceed the amount you paid for the service in the past 12 months.',
   },
   {
     title: '8. Termination',
@@ -54,7 +54,7 @@ const SECTIONS = [
   },
   {
     title: '10. Contact',
-    content: 'For questions about these terms, contact us at arthasmart@tbc.edu.np. ArthaSmart is developed by students at The British College, Kathmandu, Nepal.',
+    content: 'For questions about these terms, contact us at support@example.com.',
   },
 ];
 

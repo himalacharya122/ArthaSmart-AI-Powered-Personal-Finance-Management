@@ -22,7 +22,7 @@ import { useAppStore } from '../../store/appStore';
 import * as chatService from '../../services/chat';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 
-function KashAISparkle({ size = 20 }) {
+function AISparkle({ size = 20 }) {
   const long = size * 0.9;
   const short = size * 0.22;
   const br = short / 2;
@@ -254,7 +254,7 @@ export function AIHubScreen({ navigation }) {
         {/* Ask AI Shortcut */}
         <TouchableOpacity style={styles.askAiBar} onPress={startNewChat} activeOpacity={0.75}>
           <View style={styles.askAiIconBg}>
-            <KashAISparkle size={18} />
+            <AISparkle size={18} />
           </View>
           <Text style={styles.askAiText}>Ask AI anything about your finances</Text>
           <MaterialIcons name="arrow-forward" size={18} color={colors.primary[500]} />
@@ -264,7 +264,7 @@ export function AIHubScreen({ navigation }) {
 
       {/* Floating chat button */}
       <TouchableOpacity style={styles.fab} onPress={startNewChat} activeOpacity={0.85}>
-        <KashAISparkle size={26} />
+        <AISparkle size={26} />
       </TouchableOpacity>
 
     </SafeAreaView>

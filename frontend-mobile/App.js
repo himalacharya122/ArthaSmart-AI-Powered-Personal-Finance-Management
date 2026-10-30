@@ -1,5 +1,5 @@
 /**
- * ArthaSmart Mobile App — Root Component
+ * Squirrel Mobile App — Root Component
  *
  * Sets up:
  * - SafeAreaProvider (for notch/status bar handling)

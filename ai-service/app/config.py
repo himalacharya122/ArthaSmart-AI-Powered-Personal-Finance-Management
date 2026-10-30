@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     max_memory_facts: int = 50
 
     # Service-to-service auth (override via SERVICE_SECRET_KEY env var)
-    service_secret_key: str = "artha-ai-service-key-change-in-production"  # noqa: S105
+    service_secret_key: str = "dev-service-key-change-me"  # noqa: S105
 
     # Rate limits
     user_messages_per_minute: int = 15

@@ -1,6 +1,6 @@
-# ArthaSmart — Docker Run & Debug Guide
+# Squirrel — Docker Run & Debug Guide
 
-A step-by-step guide to running, inspecting, and debugging the full ArthaSmart stack using Docker.
+A step-by-step guide to running, inspecting, and debugging the full Squirrel stack using Docker.
 
 ---
 
@@ -28,30 +28,31 @@ A step-by-step guide to running, inspecting, and debugging the full ArthaSmart s
 
 ## Step 1 — Set Up Environment Variables
 
-Copy the example file and fill in your values:
+Each service has its own env file. Copy the examples and fill in your values:
 
 ```bash
-cp .env.example .env
+cp backend/.env.example backend/.env
+cp ai-service/.env.example ai-service/.env
 ```
 
-Open `.env` and update these key fields before running anything:
+Update these key fields before running anything:
 
 ```env
-# Required — Django will refuse to start without a secret key
-DJANGO_SECRET_KEY=your-64-char-random-string-here
+# backend/.env
+DJANGO_SECRET_KEY=a-long-random-string
+POSTGRES_PASSWORD=a-database-password
+SERVICE_SECRET_KEY=a-shared-secret
 
-# Required for Docker — must be "db", not "localhost"
-POSTGRES_HOST=db
+# ai-service/.env
+GROQ_API_KEY=your-groq-api-key-here      # free key at https://console.groq.com
+SERVICE_SECRET_KEY=a-shared-secret        # must match backend/.env
 
-# Required — get a free key at https://console.groq.com
-GROQ_API_KEY=your-groq-api-key-here
-
-# Optional — only needed if you want email notifications working
+# backend/.env, optional, only needed for real emails
 EMAIL_HOST_USER=your-gmail@gmail.com
 EMAIL_HOST_PASSWORD=your-gmail-app-password
 ```
 
-> **Note:** `POSTGRES_HOST=db` is critical. When running inside Docker, the backend connects to the `db` container by its service name, not `localhost`.
+> **Note:** keep `POSTGRES_HOST=localhost` in `backend/.env`. `docker-compose.yml` overrides the database, Redis and AI service hostnames with the Docker service names, so the same file works with and without Docker.
 
 ---
 
@@ -210,7 +211,7 @@ Press `Ctrl+C` to stop following logs.
 Connect directly to PostgreSQL:
 
 ```bash
-docker compose exec db psql -U postgres -d kash_db
+docker compose exec db psql -U squirrel_user -d squirrel_db
 ```
 
 Once inside `psql`:
@@ -323,9 +324,9 @@ docker compose logs backend
 docker compose exec backend python manage.py migrate --verbosity=2
 ```
 
-### `POSTGRES_HOST` connection refused
+### Database connection refused
 
-Make sure `.env` has `POSTGRES_HOST=db` (not `localhost`). The backend must use the Docker service name to reach the database container.
+`docker-compose.yml` sets `POSTGRES_HOST=db` for the backend containers. Check that the `db` container is healthy (`docker compose ps db`) and that `POSTGRES_DB`, `POSTGRES_USER` and `POSTGRES_PASSWORD` are set in `backend/.env`. If you changed them after the first start, run `docker compose down -v` so Postgres re-creates the database with the new credentials.
 
 ### AI service returns 500 errors
 

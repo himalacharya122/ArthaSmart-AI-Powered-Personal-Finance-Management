@@ -66,8 +66,8 @@ const SECTIONS = [
     title: 'Contact',
     icon: 'email',
     items: [
-      'For privacy-related questions: arthasmart@tbc.edu.np',
-      'ArthaSmart — The British College, Kathmandu, Nepal',
+      'For privacy-related questions: support@example.com',
+      'Squirrel, Kathmandu, Nepal',
     ],
   },
 ];
@@ -86,7 +86,7 @@ export function PrivacyPolicyScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <Text style={styles.lastUpdated}>Last updated: {LAST_UPDATED}</Text>
         <Text style={styles.intro}>
-          We take your financial data seriously. ArthaSmart collects only the minimum information necessary to provide you with AI-powered personal finance management. Here is what you need to know:
+          We take your financial data seriously. Squirrel collects only the minimum information necessary to provide you with AI-powered personal finance management. Here is what you need to know:
         </Text>
 
         {SECTIONS.map((section, idx) => (

@@ -1,4 +1,4 @@
-"""Root pytest fixtures and factories for the ArthaSmart backend test suite.
+"""Root pytest fixtures and factories for the Squirrel backend test suite.
 
 Why these live here:
 - factory-boy factories for every core model keep tests concise and readable.
@@ -103,7 +103,7 @@ class IncomeFactory(factory.django.DjangoModelFactory):
     user = factory.SubFactory(UserFactory)
     amount = Decimal("1000.00")
     currency = "NPR"
-    source_name = "TBC Salary"
+    source_name = "Monthly Salary"
     date = factory.LazyFunction(date.today)
 
 

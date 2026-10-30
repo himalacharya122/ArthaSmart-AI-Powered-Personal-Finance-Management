@@ -1,4 +1,4 @@
-# ArthaSmart - AI Service tooling config
+# Squirrel - AI Service tooling config
 # Tools configured here:
 #   - Ruff   : linter + formatter
 #   - Bandit : security-focused static analysis

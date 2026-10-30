@@ -9,7 +9,7 @@ from django.conf import settings  # type: ignore
 logger = logging.getLogger(__name__)
 
 AI_SERVICE_URL = getattr(settings, "AI_SERVICE_URL", "http://localhost:8001")
-AI_SERVICE_KEY = getattr(settings, "AI_SERVICE_KEY", "artha-ai-service-key-change-in-production")
+AI_SERVICE_KEY = getattr(settings, "AI_SERVICE_KEY", "dev-service-key-change-me")
 
 # Timeout: 30s for LLM to respond
 TIMEOUT = httpx.Timeout(timeout=30.0, connect=5.0)

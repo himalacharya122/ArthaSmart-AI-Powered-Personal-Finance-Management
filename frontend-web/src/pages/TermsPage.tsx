@@ -171,8 +171,8 @@ export function TermsPage() {
                 {section.id === 'contact' ? (
                   <p className="mt-3 text-sm leading-relaxed text-primary-900">
                     For questions about these terms, contact us at{' '}
-                    <a href="mailto:legal@arthasmart.com" className="font-medium text-primary-800 underline underline-offset-2 hover:text-primary-950">
-                      legal@arthasmart.com
+                    <a href="mailto:support@example.com" className="font-medium text-primary-800 underline underline-offset-2 hover:text-primary-950">
+                      support@example.com
                     </a>.
                   </p>
                 ) : (

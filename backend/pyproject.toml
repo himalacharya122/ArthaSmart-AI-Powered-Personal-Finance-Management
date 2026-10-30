@@ -1,4 +1,4 @@
-# ArthaSmart - Backend tooling config
+# Squirrel - Backend tooling config
 # Tools configured here:
 #   - Ruff       : linter + formatter (replaces black, isort, flake8)
 #   - Bandit     : security-focused static analysis

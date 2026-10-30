@@ -1,5 +1,5 @@
 /**
- * Offline support service for ArthaSmart.
+ * Offline support service for Squirrel.
  *
  * - Monitors network connectivity via NetInfo
  * - Queues create operations (expenses, incomes) when offline
@@ -13,8 +13,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 
 const KEYS = {
-  OFFLINE_QUEUE: '@arthasmart/offline_queue',
-  CACHE_PREFIX: '@arthasmart/cache/',
+  OFFLINE_QUEUE: '@squirrel/offline_queue',
+  CACHE_PREFIX: '@squirrel/cache/',
 };
 
 // Cache TTL: 1 hour for most data, 24 hours for categories

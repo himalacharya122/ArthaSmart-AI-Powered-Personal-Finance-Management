@@ -147,7 +147,7 @@ export function SettingsScreen({ navigation }) {
 
   const handleBiometricToggle = async (value) => {
     if (value) {
-      const result = await biometricService.authenticate(`Enable ${biometricLabel} for ArthaSmart`);
+      const result = await biometricService.authenticate(`Enable ${biometricLabel} for Squirrel`);
       if (result.success) {
         await setBiometricEnabled(true);
         showToast(`${biometricLabel} lock enabled`, 'success');

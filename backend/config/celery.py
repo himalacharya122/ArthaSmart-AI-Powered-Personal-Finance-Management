@@ -1,4 +1,4 @@
-"""Celery configuration for ArthaSmart."""
+"""Celery configuration for Squirrel."""
 
 import os
 
@@ -7,7 +7,7 @@ from celery.schedules import crontab  # type: ignore
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
-app = Celery("arthasmart")
+app = Celery("squirrel")
 
 app.config_from_object("django.conf:settings", namespace="CELERY")
 

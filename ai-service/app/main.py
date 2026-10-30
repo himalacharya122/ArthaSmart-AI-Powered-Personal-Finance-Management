@@ -1,4 +1,4 @@
-"""ArthaSmart AI Microservice — FastAPI entry point."""
+"""Squirrel AI Microservice — FastAPI entry point."""
 
 import logging
 
@@ -22,9 +22,9 @@ def create_app() -> FastAPI:
     settings = get_settings()
 
     app = FastAPI(
-        title="ArthaSmart AI Service",
+        title="Squirrel AI Service",
         description=(
-            "AI microservice for ArthaSmart — handles chat processing, "
+            "AI microservice for Squirrel — handles chat processing, "
             "financial insights, anomaly detection, and voice interaction."
         ),
         version="1.0.0",
@@ -51,7 +51,7 @@ def create_app() -> FastAPI:
     app.include_router(voice.router)
 
     logger.info(
-        "ArthaSmart AI Service started | model=%s | port=%s",
+        "Squirrel AI Service started | model=%s | port=%s",
         settings.llm_model,
         settings.port,
     )

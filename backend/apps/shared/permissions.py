@@ -1,4 +1,4 @@
-"""Shared permission classes for ArthaSmart API."""
+"""Shared permission classes for Squirrel API."""
 
 from rest_framework.permissions import BasePermission  # type: ignore
 

@@ -155,7 +155,7 @@ export function ChatPage() {
               <Sparkles className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-sm font-[800] text-white tracking-tight">ArthaSmart AI</h2>
+              <h2 className="text-sm font-[800] text-white tracking-tight">Squirrel AI</h2>
               <p className="text-[11px] font-semibold text-white/40">Your personal finance buddy</p>
             </div>
           </div>
@@ -190,7 +190,7 @@ export function ChatPage() {
                     <div className="rounded-2xl rounded-bl-none bg-[#F6F7F9] px-5 py-3.5 border border-[rgba(9,29,42,0.05)]">
                       <div className="flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin text-accent-600" />
-                        <span className="text-sm font-medium text-primary-950/60">ArthaSmart is thinking...</span>
+                        <span className="text-sm font-medium text-primary-950/60">Squirrel is thinking...</span>
                       </div>
                     </div>
                   </div>

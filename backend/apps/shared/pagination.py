@@ -1,4 +1,4 @@
-"""Custom pagination classes for ArthaSmart API."""
+"""Custom pagination classes for Squirrel API."""
 
 from rest_framework.pagination import PageNumberPagination  # type: ignore
 

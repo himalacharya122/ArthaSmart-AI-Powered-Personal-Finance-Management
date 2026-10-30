@@ -34,7 +34,7 @@ export function BiometricSetupScreen() {
   const handleEnable = async () => {
     setLoading(true);
     try {
-      const result = await biometricService.authenticate(`Enable ${biometricLabel} for ArthaSmart`);
+      const result = await biometricService.authenticate(`Enable ${biometricLabel} for Squirrel`);
       if (result.success) {
         await setBiometricEnabled(true);
         showToast(`${biometricLabel} login enabled!`, 'success');
@@ -69,7 +69,7 @@ export function BiometricSetupScreen() {
         <Text style={styles.eyebrow}>ONE LAST STEP</Text>
         <Text style={styles.title}>Enable {biometricLabel === 'Biometric' ? 'biometric' : biometricLabel}{'\n'}login</Text>
         <Text style={styles.subtitle}>
-          Use {biometricLabel === 'Face ID' ? 'Face ID or your fingerprint' : 'your fingerprint or face'} to open ArthaSmart
+          Use {biometricLabel === 'Face ID' ? 'Face ID or your fingerprint' : 'your fingerprint or face'} to open Squirrel
           instantly. No password needed each time.
         </Text>
 

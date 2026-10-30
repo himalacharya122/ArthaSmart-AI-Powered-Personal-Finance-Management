@@ -47,7 +47,7 @@ export async function setupPushNotifications() {
   // Android notification channel
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
-      name: 'ArthaSmart',
+      name: 'Squirrel',
       importance: Notifications.AndroidImportance?.MAX || 4,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#10B981',

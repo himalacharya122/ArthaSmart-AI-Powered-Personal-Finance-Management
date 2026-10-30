@@ -27,7 +27,7 @@ export function BiometricLockScreen() {
 
   const handleUnlock = useCallback(async () => {
     setError(null);
-    const result = await biometricService.authenticate('Unlock ArthaSmart');
+    const result = await biometricService.authenticate('Unlock Squirrel');
     if (result.success) {
       unlockBiometric();
     } else if (result.error) {
@@ -56,7 +56,7 @@ export function BiometricLockScreen() {
         </View>
 
         <Text style={styles.greeting}>Welcome back, {firstName}</Text>
-        <Text style={styles.subtitle}>Use {biometricLabel} to unlock ArthaSmart</Text>
+        <Text style={styles.subtitle}>Use {biometricLabel} to unlock Squirrel</Text>
 
         {error && (
           <Text style={styles.errorText}>{error}</Text>

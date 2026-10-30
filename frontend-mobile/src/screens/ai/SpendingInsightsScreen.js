@@ -19,7 +19,7 @@ import * as chatService from '../../services/chat';
 import * as txnService from '../../services/transactions';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 
-function KashAISparkle({ size = 20 }) {
+function AISparkle({ size = 20 }) {
   const long = size * 0.9;
   const short = size * 0.22;
   const br = short / 2;
@@ -267,7 +267,7 @@ export function SpendingInsightsScreen({ navigation }) {
           onPress={() => navigation.navigate(SCREEN_NAMES.AI_CHAT, {})}
         >
           <View style={styles.askAiIconBg}>
-            <KashAISparkle size={18} />
+            <AISparkle size={18} />
           </View>
           <Text style={styles.askAiText}>Ask AI about your spending</Text>
           <MaterialIcons name="arrow-forward" size={18} color={colors.primary[600]} />

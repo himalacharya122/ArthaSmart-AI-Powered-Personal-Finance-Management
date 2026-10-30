@@ -7,7 +7,7 @@ class HealthResponse(BaseModel):
     """Health check response."""
 
     status: str = "ok"
-    service: str = "arthasmart-ai"
+    service: str = "squirrel-ai"
     model: str = ""
     version: str = "1.0.0"
 

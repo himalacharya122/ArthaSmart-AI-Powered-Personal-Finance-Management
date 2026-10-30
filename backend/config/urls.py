@@ -1,4 +1,4 @@
-"""URL configuration for ArthaSmart."""
+"""URL configuration for Squirrel."""
 
 from django.conf import settings  # type: ignore
 from django.conf.urls.static import static  # type: ignore
