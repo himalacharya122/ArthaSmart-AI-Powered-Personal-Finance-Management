@@ -71,7 +71,7 @@ function ChatPreview() {
         <View style={mockStyles.chip}><Text style={mockStyles.chipText}>Suggest cuts</Text></View>
       </View>
       <View style={mockStyles.chatBubbleRight}>
-        <Text style={mockStyles.chatTextRight}>I spent 2500 on IoT devices today</Text>
+        <Text style={mockStyles.chatTextRight}>I spent 2500 on headphones today</Text>
       </View>
       <View style={mockStyles.chatBubbleLeft}>
         <Text style={mockStyles.chatText}>

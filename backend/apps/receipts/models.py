@@ -44,14 +44,6 @@ class Receipt(models.Model):
         blank=True,
         help_text="How long OCR processing took in milliseconds",
     )
-    source_device = models.ForeignKey(
-        "iot.IoTDevice",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="receipts",
-        help_text="If uploaded from IoT receipt scanner",
-    )
     error_message = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

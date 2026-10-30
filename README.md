@@ -12,23 +12,21 @@
 ![JWT](https://img.shields.io/badge/JWT-Auth-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)
 ![Groq](https://img.shields.io/badge/Groq-Llama_3.3_70B-F55036?style=for-the-badge&logo=meta&logoColor=white)
 ![Expo](https://img.shields.io/badge/Expo-SDK_54-000020?style=for-the-badge&logo=expo&logoColor=white)
-![ESP32](https://img.shields.io/badge/ESP32-IoT_Firmware-E7352C?style=for-the-badge&logo=espressif&logoColor=white)
 ![The British College](https://img.shields.io/badge/The_British_College-Group_6-003087?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Complete-2ECC71?style=for-the-badge)
 
 ---
 
-ArthaSmart is a full-stack, AI-powered personal finance management system built for tracking expenses, managing budgets, and gaining intelligent financial insights — across web, mobile, and IoT devices.
+ArthaSmart is a full-stack, AI-powered personal finance management system built for tracking expenses, managing budgets, and gaining intelligent financial insights across web and mobile.
 
 ---
 
 ## What It Does
 
-- **Track** expenses and income from any source: manual entry, receipt scanning, NFC tap, or AI chat
+- **Track** expenses and income from any source: manual entry, receipt scanning, or AI chat
 - **Budget** smarter with category-based limits, alert thresholds, and rollover support
 - **Chat** with an AI financial assistant that understands your spending history and gives personalised advice
-- **Scan** physical receipts using an ESP32-CAM device: OCR extracts the amount, merchant, and date automatically
-- **Tap** an NFC card on an ESP32 reader to instantly log a pre-configured expense
+- **Scan** physical receipts with your phone camera: OCR extracts the amount, merchant, and date automatically
 - **Visualise** spending trends, category breakdowns, and income vs. expense charts
 - **Get alerted** via in-app, email, SMS, or push notification when budgets are breached or anomalies are detected
 
@@ -39,12 +37,12 @@ ArthaSmart is a full-stack, AI-powered personal finance management system built 
 ArthaSmart is a multi-service system. Every service is independently deployable and wired together via Docker Compose.
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌──────────────────┐
-│  React Web App  │    │  React Native   │    │   ESP32 Devices  │
-│  (Port 5173)    │    │  Mobile (Expo)  │    │  NFC + Camera    │
-└────────┬────────┘    └────────┬────────┘    └────────┬─────────┘
-         │                      │                      │
-         └──────────────────────┴──────────────────────┘
+           ┌─────────────────┐    ┌─────────────────┐
+           │  React Web App  │    │  React Native   │
+           │  (Port 5173)    │    │  Mobile (Expo)  │
+           └────────┬────────┘    └────────┬────────┘
+                    │                      │
+                    └───────────┬──────────┘
                                 │  REST API / WebSocket
                     ┌───────────▼───────────┐
                     │   Django Backend API  │
@@ -78,7 +76,6 @@ ArthaSmart is a multi-service system. Every service is independently deployable 
 | **Database** | PostgreSQL 15 |
 | **Cache & Queue** | Redis 7, Celery Beat (DatabaseScheduler) |
 | **Authentication** | JWT (SimpleJWT), token rotation & blacklist, Google OAuth |
-| **IoT Firmware** | ESP32-CAM (receipt scanner), ESP32 + RC522 NFC reader, PlatformIO / Arduino |
 | **DevOps** | Docker Compose (8 containers), GitHub Actions CI/CD, Ruff, Bandit |
 
 ---
@@ -87,13 +84,10 @@ ArthaSmart is a multi-service system. Every service is independently deployable 
 
 ```
 ArthaSmart/
-├── backend/            # Django REST API (10 apps, 60+ endpoints)
+├── backend/            # Django REST API (9 apps)
 ├── ai-service/         # FastAPI AI microservice (Groq LLM, OCR, insights)
 ├── frontend-web/       # React 19 web dashboard
 ├── frontend-mobile/    # React Native mobile app (Expo SDK 54)
-├── iot/
-│   ├── nfc-logger/     # ESP32 + RC522 NFC firmware (PlatformIO)
-│   └── receipt-scanner/# ESP32-CAM receipt capture firmware
 ├── docs/               # Full project documentation & submission
 ├── docker-compose.yml  # One-command full-stack startup
 └── .env.example        # Environment variable template
@@ -104,7 +98,7 @@ ArthaSmart/
 ## Key Features
 
 ### Transactions
-- Add expenses and income manually, via OCR receipt scan, NFC tap, AI chat command, or recurring automation
+- Add expenses and income manually, via OCR receipt scan, AI chat command, or recurring automation
 - Payment method tracking (card, cash, wallet, bank transfer)
 - Soft delete with full admin visibility
 - Multi-currency support
@@ -119,11 +113,6 @@ ArthaSmart/
 - Intent detection: add expense, query balance, get insight, general conversation
 - Persistent user memory: learns spending habits over time
 - Voice input via Expo Audio (mobile)
-
-### IoT Integration
-- **Receipt Scanner** (ESP32-CAM): photographs a receipt → sends to backend → OCR extracts data → user confirms as expense
-- **NFC Logger** (ESP32 + RC522): tap a pre-configured NFC tag → expense logged instantly, no phone needed
-- Secure per-device API keys, 6-digit pairing flow, API key rotation
 
 ### Notifications & Insights
 - Budget breach and threshold alerts
@@ -155,7 +144,7 @@ docker compose up --build
 
 ## API Overview
 
-The REST API has 60+ endpoints across 10 modules. Full interactive documentation is available at `/api/docs/` (Swagger UI) and `/api/redoc/` once the backend is running.
+The REST API is organised into the modules below. Full interactive documentation is available at `/api/docs/` (Swagger UI) and `/api/redoc/` once the backend is running.
 
 | Module | Base Path |
 |--------|-----------|
@@ -167,5 +156,4 @@ The REST API has 60+ endpoints across 10 modules. Full interactive documentation
 | AI Chat | `/api/v1/chat/conversations/` |
 | AI Insights | `/api/v1/insights/` |
 | Receipts (OCR) | `/api/v1/receipts/` |
-| IoT Devices | `/api/v1/iot/` |
 | Notifications | `/api/v1/notifications/` |

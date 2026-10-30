@@ -9,8 +9,6 @@ import {
   Brain,
   Bell,
   MessageSquare,
-  Cpu,
-  ScanLine,  // IoT Receipt Scanner: Receipts nav icon
   Settings,
   X,
 } from 'lucide-react';
@@ -28,9 +26,6 @@ const navItems = [
   { to: '/reports', label: 'Reports', icon: BarChart3, end: false },
   { to: '/insights', label: 'AI Insights', icon: Brain, end: false },
   { to: '/notifications', label: 'Notifications', icon: Bell, end: false },
-  { to: '/iot-devices', label: 'IoT Devices', icon: Cpu, end: false },
-  // IoT Receipt Scanner: link to receipt review page — remove if removing feature
-  { to: '/receipts', label: 'Receipts', icon: ScanLine, end: false },
   { to: '/settings', label: 'Settings', icon: Settings, end: false },
 ] as const;
 

@@ -398,12 +398,6 @@ Make sure your device and machine are on the same network, and update the API UR
 
 ---
 
-## IoT Devices (ESP32)
-
-IoT firmware is in `iot/` and is flashed to physical ESP32 boards using PlatformIO — it does not run in Docker. Devices communicate directly with the backend over HTTP.
-
----
-
 ## Quick Reference Card
 
 ```bash

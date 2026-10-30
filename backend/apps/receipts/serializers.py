@@ -34,7 +34,6 @@ class ReceiptDetailSerializer(serializers.ModelSerializer):
             "status",
             "processing_time_ms",
             "expense",
-            "source_device",
             "error_message",
             "created_at",
         ]
@@ -46,7 +45,6 @@ class ReceiptDetailSerializer(serializers.ModelSerializer):
             "status",
             "processing_time_ms",
             "expense",
-            "source_device",
             "error_message",
             "created_at",
         ]

@@ -11,7 +11,6 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('expenses', '0001_initial'),
-        ('iot', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -29,7 +28,6 @@ class Migration(migrations.Migration):
                 ('error_message', models.TextField(blank=True)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('expense', models.ForeignKey(blank=True, help_text='Linked after OCR processing creates the expense', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='receipts', to='expenses.expense')),
-                ('source_device', models.ForeignKey(blank=True, help_text='If uploaded from IoT receipt scanner', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='receipts', to='iot.iotdevice')),
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='receipts', to=settings.AUTH_USER_MODEL)),
             ],
             options={
