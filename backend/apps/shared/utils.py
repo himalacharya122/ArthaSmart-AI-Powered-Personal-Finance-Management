@@ -1,4 +1,4 @@
-"""Shared utility functions for ArthaSmart API."""
+"""Shared utility functions for Squirrel API."""
 
 import secrets
 

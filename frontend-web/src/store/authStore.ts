@@ -45,6 +45,6 @@ export const useAuthStore = create<AuthState>()(
 
       setUser: (user) => set({ user }),
     }),
-    { name: 'artha-auth' },
+    { name: 'squirrel-auth' },
   ),
 );

@@ -73,7 +73,7 @@ export function AboutPage() {
     {
       icon: Users,
       title: 'Open & Transparent',
-      description: 'Built by a team of BSc AI students at The British College, Kathmandu.',
+      description: 'Built independently in Kathmandu, Nepal.',
     },
   ];
 
@@ -146,8 +146,7 @@ export function AboutPage() {
                 avoid overspending, and build a path toward financial independence.
               </p>
               <p className="mt-4 text-base leading-relaxed text-primary-950/80">
-                {APP_NAME} is built as both a college capstone project and a real startup product, combining
-                academic rigor with startup ambition. We&apos;re not just solving a problem—we&apos;re building
+                {APP_NAME} is an independent product. We&apos;re not just solving a problem—we&apos;re building
                 the future of personal finance for South Asia.
               </p>
             </div>

@@ -46,13 +46,13 @@ class TestIncomeCreate:
             {
                 "amount": "30000",
                 "currency": "NPR",
-                "source_name": "TBC Salary",
+                "source_name": "Monthly Salary",
                 "date": "2026-04-01",
             },
             format="json",
         )
         assert r.status_code == 201
-        inc = Income.objects.get(source_name="TBC Salary")
+        inc = Income.objects.get(source_name="Monthly Salary")
         assert inc.user == user
 
     def test_negative_amount_rejected(self, authenticated_client):

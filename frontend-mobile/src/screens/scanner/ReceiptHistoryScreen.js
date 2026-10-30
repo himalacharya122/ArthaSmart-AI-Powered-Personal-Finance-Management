@@ -30,7 +30,7 @@ const FILTERS = ['All', 'Saved', 'Drafts'];
 export function ReceiptHistoryScreen({ navigation }) {
   const showToast = useAppStore((s) => s.showToast);
   const user = useAuthStore((s) => s.user);
-  const RECEIPTS_STORAGE_KEY = `arthasmart_receipts_${user?.id || 'guest'}`;
+  const RECEIPTS_STORAGE_KEY = `squirrel_receipts_${user?.id || 'guest'}`;
   const [receipts, setReceipts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');

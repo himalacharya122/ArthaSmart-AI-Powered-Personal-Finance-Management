@@ -1,5 +1,5 @@
 """
-Django settings for ArthaSmart - Smart Budgeting System.
+Django settings for Squirrel.
 """
 
 from datetime import timedelta
@@ -87,8 +87,8 @@ if config("POSTGRES_HOST", default=""):
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": config("POSTGRES_DB", default="arthasmart_db"),
-            "USER": config("POSTGRES_USER", default="arthasmart_user"),
+            "NAME": config("POSTGRES_DB", default="squirrel_db"),
+            "USER": config("POSTGRES_USER", default="squirrel_user"),
             "PASSWORD": config("POSTGRES_PASSWORD", default=""),
             "HOST": config("POSTGRES_HOST", default="localhost"),
             "PORT": config("POSTGRES_PORT", default="5432"),
@@ -153,8 +153,8 @@ SIMPLE_JWT = {
 
 # Swagger / Spectacular
 SPECTACULAR_SETTINGS = {
-    "TITLE": "ArthaSmart API",
-    "DESCRIPTION": "Smart Budgeting System API for personal expense tracking and financial decisions",
+    "TITLE": "Squirrel API",
+    "DESCRIPTION": "Squirrel API for personal expense tracking and financial decisions",
     "VERSION": "1.0.0",
 }
 
@@ -190,7 +190,7 @@ PASSWORD_RESET_TIMEOUT = 3600  # 1 hour
 
 # AI Service
 AI_SERVICE_URL = config("AI_SERVICE_URL", default="http://localhost:8001")
-AI_SERVICE_KEY = config("SERVICE_SECRET_KEY", default="artha-ai-service-key-change-in-production")
+AI_SERVICE_KEY = config("SERVICE_SECRET_KEY", default="dev-service-key-change-me")
 
 # Celery (activate later when Redis is ready)
 CELERY_BROKER_URL = config("CELERY_BROKER_URL", default="redis://localhost:6379/1")

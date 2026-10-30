@@ -119,7 +119,7 @@ export function ExportDataScreen({ navigation }) {
   const totalRows = (includeExpenses ? expenseCount : 0) + (includeIncome ? incomeCount : 0);
   const estSize = totalRows > 0 ? `~${Math.ceil(totalRows * 0.19)} KB` : '0 KB';
   const fileLabel = format(dateFrom, 'yyyyMMdd') + '_' + format(dateTo, 'yyyyMMdd');
-  const fileName = `ArthaSmart_${fileLabel}.${fileFormat}`;
+  const fileName = `Squirrel_${fileLabel}.${fileFormat}`;
 
   const openPicker = (target) => {
     setPickerTarget(target);
@@ -230,7 +230,7 @@ export function ExportDataScreen({ navigation }) {
   .amt { text-align: right; font-variant-numeric: tabular-nums; color: #b91c1c; font-weight: 600; }
   .pos { color: #047857; }
 </style></head><body>
-  <h1>ArthaSmart Statement</h1>
+  <h1>Squirrel Statement</h1>
   <div class="sub">${userName} · ${format(dateFrom, 'd MMM yyyy')} – ${format(dateTo, 'd MMM yyyy')}</div>
   <div class="summary">
     ${includeExpenses ? `<div class="card"><div class="lbl">EXPENSES</div><div class="val" style="color:#b91c1c">${fmtMoney(expTotal)}</div><div class="lbl">${expenses.length} txns</div></div>` : ''}
@@ -296,7 +296,7 @@ export function ExportDataScreen({ navigation }) {
 
       await Sharing.shareAsync(fileUri, {
         mimeType,
-        dialogTitle: 'Share ArthaSmart export',
+        dialogTitle: 'Share Squirrel export',
         UTI: fileFormat === 'csv' ? 'public.comma-separated-values-text' : 'com.adobe.pdf',
       });
     } catch (err) {

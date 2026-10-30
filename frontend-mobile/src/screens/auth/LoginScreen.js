@@ -108,7 +108,7 @@ export function LoginScreen({ navigation }) {
 
   const handleBiometricLogin = async () => {
     try {
-      const result = await biometricService.authenticate(`Sign in to ArthaSmart`);
+      const result = await biometricService.authenticate(`Sign in to Squirrel`);
       if (!result.success) {
         if (result.error !== 'user_cancel' && result.error !== 'system_cancel') {
           showToast('Authentication cancelled', 'info');

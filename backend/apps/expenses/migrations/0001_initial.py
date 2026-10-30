@@ -54,7 +54,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('amount', models.DecimalField(decimal_places=2, max_digits=12)),
                 ('currency', models.CharField(default='NPR', max_length=3)),
-                ('source_name', models.CharField(help_text="e.g., 'TBC Salary', 'Freelance Project'", max_length=255)),
+                ('source_name', models.CharField(help_text="e.g., 'Monthly Salary', 'Freelance Project'", max_length=255)),
                 ('description', models.TextField(blank=True)),
                 ('date', models.DateField()),
                 ('is_recurring', models.BooleanField(default=False)),

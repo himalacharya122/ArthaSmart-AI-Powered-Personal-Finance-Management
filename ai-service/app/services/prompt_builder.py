@@ -13,14 +13,14 @@ def build_system_prompt(
 ) -> str:
     """Build the full system prompt with personality, context, and memory.
 
-    This is the heart of ArthaSmart AI - the prompt that makes it a
+    This is the heart of Squirrel AI - the prompt that makes it a
     personalized finance buddy rather than a generic chatbot.
     """
     today = date.today().isoformat()
     currency = user_context.preferred_currency
 
     # Base personality
-    prompt = f"""You are ArthaSmart AI - a smart, friendly, and proactive personal finance assistant.
+    prompt = f"""You are Squirrel AI - a smart, friendly, and proactive personal finance assistant.
 
 PERSONALITY:
 - You are warm, encouraging, and never judgmental about spending habits.

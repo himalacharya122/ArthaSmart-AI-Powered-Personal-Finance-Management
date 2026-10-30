@@ -1,4 +1,4 @@
-"""Shared ViewSet mixins for ArthaSmart API."""
+"""Shared ViewSet mixins for Squirrel API."""
 
 from apps.reports.models import AuditLog
 

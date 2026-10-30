@@ -33,12 +33,12 @@ def send_budget_alert(user_id, budget_name, spent_percentage):
 
     try:
         user = User.objects.get(id=user_id)
-        subject = f"ArthaSmart — Budget Alert: {budget_name}"
+        subject = f"Squirrel — Budget Alert: {budget_name}"
         message = (
             f"Hi {user.first_name or user.username},\n\n"
             f"Your budget '{budget_name}' has reached {spent_percentage:.0f}% of its limit.\n\n"
             f"Consider reviewing your spending.\n\n"
-            f"— ArthaSmart Team"
+            f"— Squirrel Team"
         )
         send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=False)
     except Exception as exc:

@@ -62,7 +62,7 @@ export function ReceiptReviewScreen({ navigation, route }) {
   const { receiptData, imageUri, source, isFromHistory } = route.params;
   const showToast = useAppStore((s) => s.showToast);
   const user = useAuthStore((s) => s.user);
-  const RECEIPTS_STORAGE_KEY = `arthasmart_receipts_${user?.id || 'guest'}`;
+  const RECEIPTS_STORAGE_KEY = `squirrel_receipts_${user?.id || 'guest'}`;
 
   // Safe date parser helper
   const getSafeDate = (raw) => {

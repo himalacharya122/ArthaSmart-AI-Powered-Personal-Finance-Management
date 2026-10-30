@@ -60,7 +60,7 @@ export function RootNavigator() {
   }, [lockBiometric]);
 
   if (isLoading) {
-    return <LoadingSpinner message="Loading ArthaSmart..." />;
+    return <LoadingSpinner message="Loading Squirrel..." />;
   }
 
   if (!isAuthenticated) {

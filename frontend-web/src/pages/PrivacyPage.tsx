@@ -161,8 +161,8 @@ export function PrivacyPage() {
                 {section.id === 'contact' ? (
                   <p className="mt-3 text-sm leading-relaxed text-primary-900">
                     If you have questions about this privacy policy or how we handle your data, please contact us at{' '}
-                    <a href="mailto:privacy@arthasmart.com" className="font-medium text-primary-800 underline underline-offset-2 hover:text-primary-950">
-                      privacy@arthasmart.com
+                    <a href="mailto:support@example.com" className="font-medium text-primary-800 underline underline-offset-2 hover:text-primary-950">
+                      support@example.com
                     </a>.
                   </p>
                 ) : (

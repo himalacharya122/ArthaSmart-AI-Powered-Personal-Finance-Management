@@ -4,17 +4,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Storage layout
 // ─────────────────────────────────────────────────────────────────────────────
 // Device-level keys (one per install — shared across users on this device):
-//   @arthasmart/access_token, refresh_token, user (current session)
-//   @arthasmart/onboarding_done
-//   @arthasmart/biometric_enabled, biometric_refresh_token, biometric_user,
-//   @arthasmart/biometric_setup_seen
+//   @squirrel/access_token, refresh_token, user (current session)
+//   @squirrel/onboarding_done
+//   @squirrel/biometric_enabled, biometric_refresh_token, biometric_user,
+//   @squirrel/biometric_setup_seen
 //
 // User-scoped keys (one per user-id — survive logout, isolated per account):
-//   @arthasmart/u:<userId>/preferences
-//   @arthasmart/u:<userId>/budget_reset_day
-//   @arthasmart/u:<userId>/monthly_budget
-//   @arthasmart/u:<userId>/category_order
-//   @arthasmart/u:<userId>/category_budgets
+//   @squirrel/u:<userId>/preferences
+//   @squirrel/u:<userId>/budget_reset_day
+//   @squirrel/u:<userId>/monthly_budget
+//   @squirrel/u:<userId>/category_order
+//   @squirrel/u:<userId>/category_budgets
 //
 // `setCurrentUserId(id)` MUST be called on app init and after login so the
 // user-scoped getters/setters resolve to the correct namespace. On logout it
@@ -23,14 +23,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const DEVICE_KEYS = {
-  ACCESS_TOKEN: '@arthasmart/access_token',
-  REFRESH_TOKEN: '@arthasmart/refresh_token',
-  USER: '@arthasmart/user',
-  ONBOARDING_DONE: '@arthasmart/onboarding_done',
-  BIOMETRIC_ENABLED: '@arthasmart/biometric_enabled',
-  BIOMETRIC_REFRESH_TOKEN: '@arthasmart/biometric_refresh_token',
-  BIOMETRIC_USER: '@arthasmart/biometric_user',
-  BIOMETRIC_SETUP_SEEN: '@arthasmart/biometric_setup_seen',
+  ACCESS_TOKEN: '@squirrel/access_token',
+  REFRESH_TOKEN: '@squirrel/refresh_token',
+  USER: '@squirrel/user',
+  ONBOARDING_DONE: '@squirrel/onboarding_done',
+  BIOMETRIC_ENABLED: '@squirrel/biometric_enabled',
+  BIOMETRIC_REFRESH_TOKEN: '@squirrel/biometric_refresh_token',
+  BIOMETRIC_USER: '@squirrel/biometric_user',
+  BIOMETRIC_SETUP_SEEN: '@squirrel/biometric_setup_seen',
 };
 
 const USER_SUBKEYS = {
@@ -43,16 +43,16 @@ const USER_SUBKEYS = {
 
 // Old (pre-multi-user) global keys for these settings. We migrate from here.
 const LEGACY_GLOBAL = {
-  [USER_SUBKEYS.PREFERENCES]: '@arthasmart/preferences',
-  [USER_SUBKEYS.BUDGET_RESET_DAY]: '@arthasmart/budget_reset_day',
-  [USER_SUBKEYS.MONTHLY_BUDGET]: '@arthasmart/monthly_budget',
-  [USER_SUBKEYS.CATEGORY_ORDER]: '@arthasmart/category_order',
-  [USER_SUBKEYS.CATEGORY_BUDGETS]: '@arthasmart/category_budgets',
+  [USER_SUBKEYS.PREFERENCES]: '@squirrel/preferences',
+  [USER_SUBKEYS.BUDGET_RESET_DAY]: '@squirrel/budget_reset_day',
+  [USER_SUBKEYS.MONTHLY_BUDGET]: '@squirrel/monthly_budget',
+  [USER_SUBKEYS.CATEGORY_ORDER]: '@squirrel/category_order',
+  [USER_SUBKEYS.CATEGORY_BUDGETS]: '@squirrel/category_budgets',
 };
 
 let _currentUserId = null;
 
-const _userKey = (sub) => `@arthasmart/u:${_currentUserId || 'guest'}/${sub}`;
+const _userKey = (sub) => `@squirrel/u:${_currentUserId || 'guest'}/${sub}`;
 
 /**
  * One-time migration: if any of the legacy global keys still hold data, move
@@ -67,7 +67,7 @@ async function _migrateLegacyToUser(userId) {
     Object.entries(LEGACY_GLOBAL).map(async ([sub, legacyKey]) => {
       const legacyVal = await AsyncStorage.getItem(legacyKey);
       if (legacyVal == null) return;
-      const userKey = `@arthasmart/u:${userId}/${sub}`;
+      const userKey = `@squirrel/u:${userId}/${sub}`;
       const existing = await AsyncStorage.getItem(userKey);
       if (existing == null) {
         await AsyncStorage.setItem(userKey, legacyVal);
@@ -223,7 +223,7 @@ export const storage = {
   // Clear-all (used on app reset / debug)
   async clearAll() {
     const all = await AsyncStorage.getAllKeys();
-    const ours = all.filter((k) => k.startsWith('@arthasmart/'));
+    const ours = all.filter((k) => k.startsWith('@squirrel/'));
     if (ours.length) await AsyncStorage.multiRemove(ours);
     _currentUserId = null;
   },

@@ -62,7 +62,7 @@ TOOLS: list[dict] = [
                     },
                     "source_name": {
                         "type": "string",
-                        "description": "Source of income (e.g., 'Salary', 'Freelance', 'TBC Salary')",
+                        "description": "Source of income (e.g., 'Salary', 'Freelance', 'Monthly Salary')",
                     },
                     "category": {
                         "type": "string",

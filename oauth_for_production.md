@@ -6,15 +6,17 @@
 > Play Store / TestFlight build). Email-password login works today and is the
 > sole login path used during development.
 
+> **Rename note:** the app was renamed to Squirrel. The Expo slug/scheme is now `squirrel` and the Android package / iOS bundle ID is now `com.himalacharya.squirrel`. The Google Cloud project and OAuth clients below were registered under the old name and package, so they must be re-created (or updated) for the new identifiers: new Android client with the new package + SHA-1, new iOS client with the new bundle ID, and the Web client redirect URI changed to `https://auth.expo.io/@himal-acharya/squirrel`. Then put the new client IDs in `backend/.env` and `frontend-mobile/.env`.
+
 ---
 
 ## What's already in place
 
-### Google Cloud Console — project `arthasmart`
+### Google Cloud Console project
 
 | Item | Value |
 |---|---|
-| Project ID | `arthasmart` |
+| Project ID | create a new project for Squirrel (a project ID cannot be renamed) |
 | OAuth consent screen | External, **Testing** status |
 | Authorized domain | `expo.io` |
 | Scopes | `openid`, `userinfo.email`, `userinfo.profile` |
@@ -24,11 +26,11 @@
 
 | Type | Client ID | Purpose |
 |---|---|---|
-| Web | `647696287415-s9uhd3c4j25058592l2ultvq39tn3guu.apps.googleusercontent.com` | Used by Expo Go via `auth.expo.io` proxy. Authorized redirect URI: `https://auth.expo.io/@himal-acharya/arthasmart` |
+| Web | `647696287415-s9uhd3c4j25058592l2ultvq39tn3guu.apps.googleusercontent.com` | Used by Expo Go via `auth.expo.io` proxy. Authorized redirect URI: `https://auth.expo.io/@himal-acharya/squirrel` |
 | Android | `625044657742-856bk40jren07dbnq0drc9516t7o7lmr.apps.googleusercontent.com` | Used by EAS-built Android app. ⚠️ SHA-1 fingerprint not yet registered — will need to be added before EAS builds work |
-| iOS | `625044657742-tlf39m5lfbu4ioqsfkqqdt19b1cile64.apps.googleusercontent.com` | Used by EAS-built iOS app. Bundle ID: `com.arthasmart.app` |
+| iOS | `625044657742-tlf39m5lfbu4ioqsfkqqdt19b1cile64.apps.googleusercontent.com` | Used by EAS-built iOS app. Bundle ID: `com.himalacharya.squirrel` |
 
-> in Google Cloud Console → Credentials → ArthaSmart Web → Reset client
+> in Google Cloud Console → Credentials → Squirrel Web → Reset client
 > secret** before production. The mobile client doesn't use the secret
 > (PKCE flow), so rotation breaks nothing.
 
@@ -67,17 +69,17 @@ EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=647696287415-s9uhd3c4j25058592l2ultvq39tn3guu.a
 
 ```json
 {
-  "scheme": "arthasmart",
-  "slug": "arthasmart",
-  "ios":     { "bundleIdentifier": "com.arthasmart.app" },
-  "android": { "package":          "com.arthasmart.app" }
+  "scheme": "squirrel",
+  "slug": "squirrel",
+  "ios":     { "bundleIdentifier": "com.himalacharya.squirrel" },
+  "android": { "package":          "com.himalacharya.squirrel" }
 }
 ```
 
 ### Expo account
 
 - Username: `himal-acharya`
-- App slug under that account: `arthasmart`
+- App slug under that account: `squirrel`
 
 ---
 
@@ -103,7 +105,7 @@ eas credentials
 # Copy the SHA-1 fingerprint EAS shows
 ```
 
-Then in **Google Cloud Console → Credentials → ArthaSmart Android**:
+Then in **Google Cloud Console → Credentials → Squirrel Android**:
 - Paste the SHA-1 into "SHA-1 certificate fingerprints"
 - Save
 
@@ -134,7 +136,7 @@ eas build --profile development --platform ios
 ```
 
 You'll need a paid Apple Developer account (Cmd-line walks you through it).
-The iOS client ID is already configured — Bundle ID `com.arthasmart.app`
+The iOS client ID is already configured — Bundle ID `com.himalacharya.squirrel`
 matches `app.json`.
 
 ### 6. Publish the OAuth consent screen
@@ -150,7 +152,7 @@ When ready for public launch:
 
 ### 7. Rotate the leaked Web client secret
 
-- Google Cloud Console → Credentials → ArthaSmart Web → Reset client secret.
+- Google Cloud Console → Credentials → Squirrel Web → Reset client secret.
 - No code change needed (mobile uses PKCE; backend doesn't use the secret
   either).
 
@@ -168,7 +170,7 @@ Sign in with a Gmail that is **not** in the test-users list. It should:
 ## Why Expo Go OAuth fails (reference)
 
 When `useGoogleAuthRequest()` runs inside Expo Go we route through Expo's
-proxy at `https://auth.expo.io/@himal-acharya/arthasmart`. Google
+proxy at `https://auth.expo.io/@himal-acharya/squirrel`. Google
 authenticates correctly, redirects to that URL, but Expo's proxy server
 returns:
 
@@ -178,7 +180,7 @@ Expo deprecated the proxy for projects that weren't already registered with
 it before its 2025 sunset. New projects (ours, registered May 15, 2026) get
 this dead-end page no matter what.
 
-The dev-client / standalone path uses **native deep links** (`arthasmart://`)
+The dev-client / standalone path uses **native deep links** (`squirrel://`)
 instead of the proxy and works fine. That's why the production path is to
 ship a built app.
 

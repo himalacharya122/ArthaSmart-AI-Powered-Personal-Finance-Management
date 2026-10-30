@@ -17,7 +17,7 @@ from .models import AIInsight
 logger = logging.getLogger(__name__)
 
 AI_URL = getattr(django_settings, "AI_SERVICE_URL", "http://localhost:8001")
-AI_KEY = getattr(django_settings, "AI_SERVICE_KEY", "artha-ai-service-key-change-in-production")
+AI_KEY = getattr(django_settings, "AI_SERVICE_KEY", "dev-service-key-change-me")
 TIMEOUT = httpx.Timeout(timeout=45.0, connect=5.0)
 
 

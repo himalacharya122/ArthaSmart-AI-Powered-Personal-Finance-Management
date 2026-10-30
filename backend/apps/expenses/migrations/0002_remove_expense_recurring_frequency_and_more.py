@@ -41,7 +41,7 @@ class Migration(migrations.Migration):
                 ('currency', models.CharField(default='NPR', max_length=3)),
                 ('description', models.TextField(blank=True)),
                 ('merchant', models.CharField(blank=True, help_text='For expense type only', max_length=255)),
-                ('source_name', models.CharField(blank=True, help_text="For income type only (e.g., 'TBC Salary')", max_length=255)),
+                ('source_name', models.CharField(blank=True, help_text="For income type only (e.g., 'Monthly Salary')", max_length=255)),
                 ('frequency', models.CharField(choices=[('daily', 'Daily'), ('weekly', 'Weekly'), ('biweekly', 'Biweekly'), ('monthly', 'Monthly'), ('quarterly', 'Quarterly'), ('yearly', 'Yearly')], max_length=20)),
                 ('day_of_week', models.SmallIntegerField(blank=True, help_text='0=Monday to 6=Sunday (for weekly/biweekly)', null=True)),
                 ('day_of_month', models.SmallIntegerField(blank=True, help_text='1-31 (for monthly, wraps to last day if needed)', null=True)),

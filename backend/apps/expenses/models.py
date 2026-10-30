@@ -43,7 +43,7 @@ class RecurringTransaction(models.Model):
     source_name = models.CharField(
         max_length=255,
         blank=True,
-        help_text="For income type only (e.g., 'TBC Salary')",
+        help_text="For income type only (e.g., 'Monthly Salary')",
     )
     frequency = models.CharField(max_length=20, choices=Frequency.choices)
     day_of_week = models.SmallIntegerField(
@@ -224,7 +224,7 @@ class Income(models.Model):
     )
     source_name = models.CharField(
         max_length=255,
-        help_text="e.g., 'TBC Salary', 'Freelance Project'",
+        help_text="e.g., 'Monthly Salary', 'Freelance Project'",
     )
     description = models.TextField(blank=True)
     notes = models.TextField(

@@ -13,7 +13,7 @@ client = TestClient(app)
 
 def test_app_factory_builds():
     """Importing the app must not raise; the title should be set."""
-    assert app.title == "ArthaSmart AI Service"
+    assert app.title == "Squirrel AI Service"
 
 
 def test_health_endpoint():
@@ -26,4 +26,4 @@ def test_openapi_schema_served():
     """FastAPI auto-generates /openapi.json; proves routing is wired up."""
     response = client.get("/openapi.json")
     assert response.status_code == 200
-    assert response.json()["info"]["title"] == "ArthaSmart AI Service"
+    assert response.json()["info"]["title"] == "Squirrel AI Service"

@@ -36,8 +36,8 @@ try {
   Audio = null;
 }
 
-/* Gemini-style 4-pointed sparkle logo for Kash AI */
-function KashAISparkle({ size = 20 }) {
+/* Gemini-style 4-pointed sparkle logo for Squirrel AI */
+function AISparkle({ size = 20 }) {
   const long = size * 0.9;
   const short = size * 0.22;
   const br = short / 2;
@@ -141,7 +141,7 @@ export function AIChatScreen({ navigation, route }) {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [loadingChat, setLoadingChat] = useState(true);
-  const [convTitle, setConvTitle] = useState('Kash AI');
+  const [convTitle, setConvTitle] = useState('Squirrel AI');
   const [menuVisible, setMenuVisible] = useState(false);
   const [recording, setRecording] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -363,7 +363,7 @@ export function AIChatScreen({ navigation, route }) {
       <View style={[styles.msgRow, isUser && styles.msgRowUser]}>
         {!isUser && (
           <View style={styles.avatar}>
-            <KashAISparkle size={15} />
+            <AISparkle size={15} />
           </View>
         )}
 
@@ -491,7 +491,7 @@ export function AIChatScreen({ navigation, route }) {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerAvatar}>
-            <KashAISparkle size={20} />
+            <AISparkle size={20} />
           </View>
           <View>
             <Text style={styles.headerTitle} numberOfLines={1}>{convTitle}</Text>
@@ -545,7 +545,7 @@ export function AIChatScreen({ navigation, route }) {
           ListEmptyComponent={
             <View style={styles.emptyChat}>
               <View style={styles.emptyChatIcon}>
-                <KashAISparkle size={42} />
+                <AISparkle size={42} />
               </View>
               <Text style={styles.emptyChatTitle}>Start a conversation</Text>
               <Text style={styles.emptyChatDesc}>Ask about your spending, log transactions, or get financial advice.</Text>
@@ -578,12 +578,12 @@ export function AIChatScreen({ navigation, route }) {
         {sending && (
           <View style={styles.typingRow}>
             <View style={styles.avatar}>
-              <KashAISparkle size={15} />
+              <AISparkle size={15} />
             </View>
             <View style={styles.typingBubble}>
               <View style={styles.typingDots}>
                 <ActivityIndicator size="small" color={colors.primary[400]} />
-                <Text style={styles.typingLabel}>Kash AI is thinking...</Text>
+                <Text style={styles.typingLabel}>Squirrel AI is thinking...</Text>
               </View>
             </View>
           </View>

@@ -1,4 +1,4 @@
-# ArthaSmart - Full local stack
+# Squirrel - Full local stack
 # Quick start:  docker compose up --build
 # See docker_readme.md for common commands.
 # Each service reads its own env file (backend/.env, ai-service/.env). Only the hostnames that differ inside Docker are overridden here.

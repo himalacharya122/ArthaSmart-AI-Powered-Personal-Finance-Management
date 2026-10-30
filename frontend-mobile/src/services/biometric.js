@@ -49,7 +49,7 @@ export async function getBiometricLabel() {
  * @param {string} promptMessage — Message shown to the user
  * @returns {{ success: boolean, error?: string }}
  */
-export async function authenticate(promptMessage = 'Unlock ArthaSmart') {
+export async function authenticate(promptMessage = 'Unlock Squirrel') {
   const result = await LocalAuthentication.authenticateAsync({
     promptMessage,
     cancelLabel: 'Use Password',

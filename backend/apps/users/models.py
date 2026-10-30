@@ -1,4 +1,4 @@
-"""Custom User model for ArthaSmart."""
+"""Custom User model for Squirrel."""
 
 import secrets
 import string

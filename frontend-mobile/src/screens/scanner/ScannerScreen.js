@@ -30,7 +30,7 @@ try { AsyncStorage = require('@react-native-async-storage/async-storage').defaul
 export function ScannerScreen({ navigation }) {
   const showToast = useAppStore((s) => s.showToast);
   const user = useAuthStore((s) => s.user);
-  const RECEIPTS_STORAGE_KEY = `arthasmart_receipts_${user?.id || 'guest'}`;
+  const RECEIPTS_STORAGE_KEY = `squirrel_receipts_${user?.id || 'guest'}`;
   const [recentScans, setRecentScans] = useState([]);
   const [loadingRecents, setLoadingRecents] = useState(true);
   const [picking, setPicking] = useState(false);
